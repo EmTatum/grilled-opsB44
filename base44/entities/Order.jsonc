@@ -1,0 +1,35 @@
+{
+  "name": "Order",
+  "type": "object",
+  "properties": {
+    "client_name": {
+      "type": "string",
+      "title": "Client Name"
+    },
+    "order_details": {
+      "type": "string",
+      "title": "Order Details"
+    },
+    "order_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Order Date & Time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Pending",
+        "Confirmed",
+        "Fulfilled",
+        "Cancelled"
+      ],
+      "title": "Status"
+    }
+  },
+  "required": [
+    "client_name",
+    "order_details",
+    "order_date",
+    "status"
+  ]
+}

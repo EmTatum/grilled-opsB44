@@ -1,0 +1,40 @@
+{
+  "name": "CustomerNote",
+  "type": "object",
+  "properties": {
+    "client_name": {
+      "type": "string",
+      "title": "Client Name"
+    },
+    "note_type": {
+      "type": "string",
+      "enum": [
+        "Credit on Account",
+        "Debt on Account",
+        "Needs Attention",
+        "Client Retention",
+        "General"
+      ],
+      "title": "Note Type"
+    },
+    "content": {
+      "type": "string",
+      "title": "Note Content"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "Low",
+        "Medium",
+        "High"
+      ],
+      "title": "Priority"
+    }
+  },
+  "required": [
+    "client_name",
+    "note_type",
+    "content",
+    "priority"
+  ]
+}

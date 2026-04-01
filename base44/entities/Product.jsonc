@@ -1,0 +1,41 @@
+{
+  "name": "Product",
+  "type": "object",
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "title": "Product Name"
+    },
+    "category": {
+      "type": "string",
+      "title": "Category"
+    },
+    "last_stock_count": {
+      "type": "number",
+      "title": "Last Stock Count",
+      "default": 0
+    },
+    "new_stock_arrived": {
+      "type": "number",
+      "title": "New Stock Arrived",
+      "default": 0
+    },
+    "current_stock": {
+      "type": "number",
+      "title": "Current Stock",
+      "default": 0
+    },
+    "low_stock_threshold": {
+      "type": "number",
+      "title": "Low Stock Threshold",
+      "default": 5
+    }
+  },
+  "required": [
+    "product_name",
+    "category",
+    "last_stock_count",
+    "new_stock_arrived",
+    "current_stock"
+  ]
+}
