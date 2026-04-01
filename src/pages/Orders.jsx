@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { base44 } from "@/api/base44Client";
 import { Plus, Pencil, Trash2, ChevronDown } from "lucide-react";
 import OrderLifecycle from "../components/OrderLifecycle";
@@ -79,8 +79,8 @@ export default function Orders() {
                 </thead>
                 <tbody>
                   {orders.map(order => (
-                    <>
-                    <tr key={order.id}
+                    <Fragment key={order.id}>
+                    <tr
                       style={{ borderBottom: expandedId === order.id ? "none" : "1px solid rgba(255,255,255,0.04)", transition: "background 0.15s", cursor: "pointer" }}
                       onMouseEnter={e => e.currentTarget.style.background = "rgba(201,168,76,0.04)"}
                       onMouseLeave={e => e.currentTarget.style.background = expandedId === order.id ? "rgba(201,168,76,0.04)" : "transparent"}
@@ -107,13 +107,13 @@ export default function Orders() {
                       </td>
                     </tr>
                     {expandedId === order.id && (
-                      <tr key={`${order.id}-lifecycle`} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                      <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
                         <td colSpan={5} style={{ padding: 0 }}>
                           <OrderLifecycle order={order} />
                         </td>
                       </tr>
                     )}
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
