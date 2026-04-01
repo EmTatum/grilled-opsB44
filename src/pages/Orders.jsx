@@ -33,7 +33,8 @@ export default function Orders() {
   const [formOpen, setFormOpen] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
-  const [expandedId, setExpandedId] = useState(null);
+  const [expandedIds, setExpandedIds] = useState(new Set());
+  const toggleExpanded = (id) => setExpandedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
 
   const load = async () => { setOrders(await base44.entities.Order.list("-order_date", 100)); setLoading(false); };
   useEffect(() => { load(); }, []);
@@ -81,10 +82,10 @@ export default function Orders() {
                   {orders.map(order => (
                     <Fragment key={order.id}>
                     <tr
-                      style={{ borderBottom: expandedId === order.id ? "none" : "1px solid rgba(255,255,255,0.04)", transition: "background 0.15s", cursor: "pointer" }}
+                      style={{ borderBottom: expandedIds.has(order.id) ? "none" : "1px solid rgba(255,255,255,0.04)", transition: "background 0.15s", cursor: "pointer" }}
                       onMouseEnter={e => e.currentTarget.style.background = "rgba(201,168,76,0.04)"}
-                      onMouseLeave={e => e.currentTarget.style.background = expandedId === order.id ? "rgba(201,168,76,0.04)" : "transparent"}
-                      onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
+                      onMouseLeave={e => e.currentTarget.style.background = expandedIds.has(order.id) ? "rgba(201,168,76,0.04)" : "transparent"}
+                      onClick={() => toggleExpanded(order.id)}
                     >
                       <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "#F5F0E8", fontWeight: 500 }}>{order.client_name}</td>
                       <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.55)", maxWidth: "260px" }}>
@@ -102,11 +103,11 @@ export default function Orders() {
                             onMouseEnter={e => e.currentTarget.style.color = "#C2185B"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.28)"} >
                             <Trash2 size={13} strokeWidth={1.5} />
                           </button>
-                          <ChevronDown size={13} strokeWidth={1.5} style={{ color: "rgba(245,240,232,0.2)", transition: "transform 0.2s", transform: expandedId === order.id ? "rotate(180deg)" : "rotate(0deg)", marginLeft: "4px" }} />
+                          <ChevronDown size={13} strokeWidth={1.5} style={{ color: "rgba(245,240,232,0.2)", transition: "transform 0.2s", transform: expandedIds.has(order.id) ? "rotate(180deg)" : "rotate(0deg)", marginLeft: "4px" }} />
                         </div>
                       </td>
                     </tr>
-                    {expandedId === order.id && (
+                    {expandedIds.has(order.id) && (
                       <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
                         <td colSpan={5} style={{ padding: 0 }}>
                           <OrderLifecycle order={order} />
