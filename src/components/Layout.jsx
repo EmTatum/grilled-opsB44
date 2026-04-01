@@ -32,22 +32,11 @@ export default function Layout() {
         className={!mobileOpen ? "max-lg:-translate-x-full lg:translate-x-0" : "translate-x-0"}
       >
         {/* Logo block */}
-        <div style={{ padding: "20px 16px 16px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={{ height: "1px", width: "100%", background: "linear-gradient(90deg, transparent, #C9A84C, transparent)", marginBottom: "14px" }} />
-          
-          {/* Logo image */}
-          <div style={{ position: "relative", width: "140px", marginBottom: "10px" }}>
-            <img
-              src="https://media.base44.com/images/public/69cd3aaf3e23608c6e7a4c23/85abe4afd_generated_image.png"
-              alt="Grilled Inc"
-              style={{ width: "100%", display: "block", filter: "drop-shadow(0 0 12px rgba(201,168,76,0.35))" }}
-            />
-          </div>
-
-          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 300, color: "rgba(201,168,76,0.45)", letterSpacing: "0.3em", textAlign: "center", textTransform: "uppercase", margin: 0 }}>
-            — Internal Operations —
-          </p>
-          <div style={{ height: "1px", width: "100%", background: "linear-gradient(90deg, transparent, #C9A84C, transparent)", marginTop: "14px" }} />
+        <div style={{ padding: "28px 20px 20px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ height: "1px", width: "100%", background: "linear-gradient(90deg, transparent, #C9A84C, transparent)", marginBottom: "16px" }} />
+          <p style={{ fontFamily: "'Cinzel', serif", fontSize: "18px", fontWeight: 700, color: "#C9A84C", letterSpacing: "0.25em", textAlign: "center", textTransform: "uppercase", margin: 0 }}>GRILLED OPS</p>
+          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 300, color: "rgba(201,168,76,0.45)", letterSpacing: "0.3em", textAlign: "center", marginTop: "6px", textTransform: "uppercase" }}>— Internal Operations —</p>
+          <div style={{ height: "1px", width: "100%", background: "linear-gradient(90deg, transparent, #C9A84C, transparent)", marginTop: "16px" }} />
         </div>
 
         {/* Nav */}
