@@ -7,7 +7,7 @@ import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
 import moment from "moment";
 
-const navCards = [
+const quickLinks = [
   { path: "/orders", label: "Upcoming Orders", desc: "Log and manage all pending and confirmed orders.", icon: ShoppingCart },
   { path: "/inventory", label: "Inventory", desc: "Track product stock counts and low-stock alerts.", icon: Package },
   { path: "/notes", label: "Client Notes", desc: "CRM notes, credits, debts, and client retention.", icon: StickyNote },
@@ -20,236 +20,116 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      const [o, p, n] = await Promise.all([
-        base44.entities.Order.list("-created_date", 50),
-        base44.entities.Product.list("-created_date", 50),
-        base44.entities.CustomerNote.list("-created_date", 50),
-      ]);
-      setOrders(o);
-      setProducts(p);
-      setNotes(n);
-      setLoading(false);
-    }
-    load();
+    Promise.all([
+      base44.entities.Order.list("-created_date", 50),
+      base44.entities.Product.list("-created_date", 50),
+      base44.entities.CustomerNote.list("-created_date", 50),
+    ]).then(([o, p, n]) => { setOrders(o); setProducts(p); setNotes(n); setLoading(false); });
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div
-          className="w-7 h-7 rounded-full border-2 animate-spin"
-          style={{ borderColor: "hsl(40 57% 54% / 0.2)", borderTopColor: "hsl(40 57% 54%)" }}
-        />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
+      <div style={{ width: "28px", height: "28px", borderRadius: "50%", border: "2px solid rgba(201,168,76,0.2)", borderTopColor: "#C9A84C", animation: "spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 
-  const upcomingOrders = orders.filter((o) => o.status === "Pending" || o.status === "Confirmed");
-  const lowStockProducts = products.filter((p) => p.current_stock < (p.low_stock_threshold || 5));
-  const uniqueClients = new Set([
-    ...orders.map((o) => o.client_name),
-    ...notes.map((n) => n.client_name),
-  ]);
+  const upcoming = orders.filter(o => o.status === "Pending" || o.status === "Confirmed");
+  const lowStock = products.filter(p => p.current_stock < (p.low_stock_threshold || 5));
+  const clients = new Set([...orders.map(o => o.client_name), ...notes.map(n => n.client_name)]);
   const recentNotes = notes.slice(0, 3);
 
   return (
     <div>
       <PageHeader title="Operations" subtitle="Grilled.inc — Internal Dashboard" />
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-10">
-        <StatCard icon={ShoppingCart} label="Upcoming Orders" value={upcomingOrders.length} accent />
-        <StatCard icon={AlertTriangle} label="Low Stock Alerts" value={lowStockProducts.length} rose={lowStockProducts.length > 0} accent={lowStockProducts.length === 0} />
-        <StatCard icon={Users} label="Active Clients" value={uniqueClients.size} />
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px", marginBottom: "48px" }}>
+        <StatCard icon={ShoppingCart} label="Upcoming Orders" value={upcoming.length} />
+        <StatCard icon={AlertTriangle} label="Low Stock Alerts" value={lowStock.length} />
+        <StatCard icon={Users} label="Active Clients" value={clients.size} />
         <StatCard icon={StickyNote} label="Client Notes" value={notes.length} />
       </div>
 
-      {/* Navigation cards */}
-      <div className="mb-3">
-        <p
-          className="uppercase tracking-luxury mb-4"
-          style={{ fontSize: "9px", color: "hsl(36 10% 40%)", letterSpacing: "0.25em", fontFamily: "Inter, sans-serif" }}
-        >
-          Quick Access
-        </p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-        {navCards.map((card) => (
+      {/* Quick links */}
+      <p style={{ fontFamily: "var(--font-body)", fontSize: "11px", fontWeight: 500, color: "rgba(201,168,76,0.5)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "16px" }}>
+        Quick Access
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "48px" }}>
+        {quickLinks.map(card => (
           <Link
             key={card.path}
             to={card.path}
-            className="group relative rounded-sm overflow-hidden transition-all duration-300 hover:scale-[1.01]"
             style={{
-              background: "linear-gradient(160deg, #1c1c1c, #161616)",
-              border: "1px solid hsl(40 20% 17%)",
+              display: "block",
+              background: "#1a1a1a",
+              border: "1px solid rgba(201,168,76,0.25)",
+              borderRadius: "2px",
+              padding: "24px",
+              textDecoration: "none",
+              transition: "all 0.25s ease",
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.6)"; e.currentTarget.style.boxShadow = "0 0 20px rgba(201,168,76,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.25)"; e.currentTarget.style.boxShadow = "none"; }}
           >
-            {/* Hover gold border */}
-            <div
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-sm"
-              style={{ border: "1px solid hsl(40 57% 54% / 0.35)" }}
-            />
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-5">
-                <div
-                  className="p-2.5 rounded-sm"
-                  style={{
-                    background: "hsl(40 57% 54% / 0.08)",
-                    border: "1px solid hsl(40 57% 54% / 0.18)",
-                  }}
-                >
-                  <card.icon size={17} strokeWidth={1.2} style={{ color: "hsl(40 57% 54%)" }} />
-                </div>
-                <ArrowRight
-                  size={14}
-                  strokeWidth={1}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 -translate-x-1 group-hover:translate-x-0"
-                  style={{ color: "hsl(40 57% 54%)" }}
-                />
-              </div>
-              <h3
-                className="font-heading font-semibold mb-2"
-                style={{ fontSize: "20px", color: "hsl(36 40% 92%)" }}
-              >
-                {card.label}
-              </h3>
-              <p
-                style={{ fontSize: "12px", color: "hsl(36 10% 48%)", lineHeight: 1.6, fontFamily: "Inter, sans-serif" }}
-              >
-                {card.desc}
-              </p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+              <card.icon size={18} strokeWidth={1.2} style={{ color: "rgba(201,168,76,0.7)" }} />
+              <ArrowRight size={14} strokeWidth={1} style={{ color: "rgba(201,168,76,0.4)" }} />
             </div>
-            {/* Bottom accent */}
-            <div
-              className="h-px w-full opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ background: "linear-gradient(90deg, hsl(40 57% 54% / 0.5), transparent)" }}
-            />
+            <p style={{ fontFamily: "var(--font-heading)", fontSize: "20px", fontWeight: 600, color: "#C9A84C", marginBottom: "8px", letterSpacing: "0.05em" }}>{card.label}</p>
+            <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 300, color: "rgba(245,240,232,0.5)", lineHeight: 1.6 }}>{card.desc}</p>
           </Link>
         ))}
       </div>
 
       {/* Bottom panels */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Notes */}
-        <div
-          className="rounded-sm"
-          style={{
-            background: "linear-gradient(160deg, #1c1c1c, #181818)",
-            border: "1px solid hsl(40 20% 17%)",
-          }}
-        >
-          <div
-            className="px-6 py-5 flex items-center justify-between"
-            style={{ borderBottom: "1px solid hsl(40 20% 13%)" }}
-          >
-            <h3
-              className="font-heading font-semibold"
-              style={{ fontSize: "18px", color: "hsl(36 40% 90%)" }}
-            >
-              Recent Notes
-            </h3>
-            <Link
-              to="/notes"
-              className="uppercase tracking-luxury transition-colors hover:opacity-100"
-              style={{ fontSize: "9px", color: "hsl(40 57% 54%)", letterSpacing: "0.18em", fontFamily: "Inter, sans-serif", opacity: 0.7 }}
-            >
-              View All
-            </Link>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }} className="max-md:!grid-cols-1">
+        {/* Recent notes */}
+        <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.2)", borderRadius: "2px" }}>
+          <div style={{ padding: "20px 24px", borderBottom: "1px solid rgba(201,168,76,0.15)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontFamily: "var(--font-heading)", fontSize: "18px", fontWeight: 600, color: "#C9A84C", letterSpacing: "0.05em" }}>Recent Notes</span>
+            <Link to="/notes" style={{ fontFamily: "var(--font-body)", fontSize: "11px", fontWeight: 500, color: "rgba(201,168,76,0.6)", letterSpacing: "0.12em", textTransform: "uppercase" }}>View All</Link>
           </div>
-          <div className="p-4 space-y-2">
+          <div style={{ padding: "16px" }}>
             {recentNotes.length === 0 ? (
-              <p className="px-2 py-4 text-sm" style={{ color: "hsl(36 10% 42%)", fontFamily: "Inter, sans-serif" }}>
-                No notes yet.
-              </p>
-            ) : (
-              recentNotes.map((note) => (
-                <div
-                  key={note.id}
-                  className="px-4 py-3 rounded-sm"
-                  style={{ background: "hsl(0 0% 9%)", border: "1px solid hsl(40 20% 12%)" }}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span style={{ fontSize: "13px", color: "hsl(36 40% 88%)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
-                      {note.client_name}
-                    </span>
-                    <StatusBadge status={note.priority} />
-                  </div>
-                  <p
-                    className="line-clamp-2 mb-2"
-                    style={{ fontSize: "12px", color: "hsl(36 10% 48%)", lineHeight: 1.5, fontFamily: "Inter, sans-serif" }}
-                  >
-                    {note.content}
-                  </p>
-                  <div className="flex items-center gap-1.5">
-                    <Clock size={10} style={{ color: "hsl(36 10% 38%)" }} />
-                    <span style={{ fontSize: "10px", color: "hsl(36 10% 38%)", fontFamily: "Inter, sans-serif" }}>
-                      {moment(note.created_date).fromNow()}
-                    </span>
-                  </div>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.35)", padding: "12px 8px" }}>No notes yet.</p>
+            ) : recentNotes.map(note => (
+              <div key={note.id} style={{ padding: "14px", borderBottom: "1px solid rgba(255,255,255,0.04)", marginBottom: "2px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: "14px", color: "#F5F0E8", fontWeight: 500 }}>{note.client_name}</span>
+                  <StatusBadge status={note.priority} />
                 </div>
-              ))
-            )}
+                <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.5)", lineHeight: 1.5, marginBottom: "8px", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{note.content}</p>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Clock size={10} style={{ color: "rgba(245,240,232,0.25)" }} />
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(245,240,232,0.25)" }}>{moment(note.created_date).fromNow()}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Low Stock */}
-        <div
-          className="rounded-sm"
-          style={{
-            background: "linear-gradient(160deg, #1c1c1c, #181818)",
-            border: "1px solid hsl(40 20% 17%)",
-          }}
-        >
-          <div
-            className="px-6 py-5 flex items-center justify-between"
-            style={{ borderBottom: "1px solid hsl(40 20% 13%)" }}
-          >
-            <h3
-              className="font-heading font-semibold"
-              style={{ fontSize: "18px", color: "hsl(36 40% 90%)" }}
-            >
-              Low Stock Alerts
-            </h3>
-            <Link
-              to="/inventory"
-              className="uppercase tracking-luxury transition-colors hover:opacity-100"
-              style={{ fontSize: "9px", color: "hsl(40 57% 54%)", letterSpacing: "0.18em", fontFamily: "Inter, sans-serif", opacity: 0.7 }}
-            >
-              View All
-            </Link>
+        {/* Low stock */}
+        <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.2)", borderRadius: "2px" }}>
+          <div style={{ padding: "20px 24px", borderBottom: "1px solid rgba(201,168,76,0.15)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontFamily: "var(--font-heading)", fontSize: "18px", fontWeight: 600, color: "#C9A84C", letterSpacing: "0.05em" }}>Low Stock Alerts</span>
+            <Link to="/inventory" style={{ fontFamily: "var(--font-body)", fontSize: "11px", fontWeight: 500, color: "rgba(201,168,76,0.6)", letterSpacing: "0.12em", textTransform: "uppercase" }}>View All</Link>
           </div>
-          <div className="p-4 space-y-2">
-            {lowStockProducts.length === 0 ? (
-              <p className="px-2 py-4 text-sm" style={{ color: "hsl(36 10% 42%)", fontFamily: "Inter, sans-serif" }}>
-                All products are well stocked.
-              </p>
-            ) : (
-              lowStockProducts.map((p) => (
-                <div
-                  key={p.id}
-                  className="px-4 py-3 rounded-sm flex items-center justify-between"
-                  style={{ background: "hsl(333 72% 43% / 0.06)", border: "1px solid hsl(333 72% 43% / 0.18)" }}
-                >
-                  <div>
-                    <p style={{ fontSize: "13px", color: "hsl(36 40% 88%)", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
-                      {p.product_name}
-                    </p>
-                    <p style={{ fontSize: "10px", color: "hsl(36 10% 45%)", fontFamily: "Inter, sans-serif", marginTop: "2px" }}>
-                      {p.category}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-heading font-semibold" style={{ fontSize: "26px", color: "hsl(333 72% 60%)", lineHeight: 1 }}>
-                      {p.current_stock}
-                    </p>
-                    <p style={{ fontSize: "9px", color: "hsl(36 10% 40%)", fontFamily: "Inter, sans-serif", letterSpacing: "0.12em" }}>
-                      UNITS
-                    </p>
-                  </div>
+          <div style={{ padding: "16px" }}>
+            {lowStock.length === 0 ? (
+              <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.35)", padding: "12px 8px" }}>All products well stocked.</p>
+            ) : lowStock.map(p => (
+              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px", borderBottom: "1px solid rgba(255,255,255,0.04)", background: "rgba(194,24,91,0.04)" }}>
+                <div>
+                  <p style={{ fontFamily: "var(--font-body)", fontSize: "14px", color: "#F5F0E8", fontWeight: 500 }}>{p.product_name}</p>
+                  <p style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.4)", marginTop: "2px" }}>{p.category}</p>
                 </div>
-              ))
-            )}
+                <div style={{ textAlign: "right" }}>
+                  <p style={{ fontFamily: "var(--font-heading)", fontSize: "28px", fontWeight: 600, color: "#C2185B", lineHeight: 1 }}>{p.current_stock}</p>
+                  <p style={{ fontFamily: "var(--font-body)", fontSize: "10px", color: "rgba(245,240,232,0.3)", letterSpacing: "0.1em", textTransform: "uppercase" }}>units</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

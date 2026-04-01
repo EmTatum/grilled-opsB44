@@ -1,70 +1,46 @@
-export default function StatCard({ icon: Icon, label, value, accent, rose }) {
+export default function StatCard({ icon: Icon, label, value }) {
   return (
     <div
-      className="relative rounded-sm overflow-hidden transition-all duration-300 hover:scale-[1.01]"
       style={{
-        background: "linear-gradient(160deg, #1c1c1c, #161616)",
-        border: "1px solid hsl(40 20% 18%)",
+        background: "#1a1a1a",
+        border: "1px solid rgba(201,168,76,0.3)",
+        borderRadius: "2px",
+        padding: "24px",
+        transition: "all 0.25s ease",
+        cursor: "default",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = "rgba(201,168,76,0.6)";
+        e.currentTarget.style.boxShadow = "0 0 20px rgba(201,168,76,0.1)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = "rgba(201,168,76,0.3)";
+        e.currentTarget.style.boxShadow = "none";
       }}
     >
-      {/* Top accent stripe */}
-      <div
-        className="h-px w-full"
-        style={{
-          background: accent
-            ? "linear-gradient(90deg, hsl(40 57% 54% / 0.8), transparent)"
-            : rose
-            ? "linear-gradient(90deg, hsl(333 72% 43% / 0.6), transparent)"
-            : "hsl(40 20% 16%)",
-        }}
-      />
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div
-            className="p-2.5 rounded-sm"
-            style={{
-              background: accent
-                ? "hsl(40 57% 54% / 0.1)"
-                : rose
-                ? "hsl(333 72% 43% / 0.1)"
-                : "hsl(0 0% 16%)",
-              border: accent
-                ? "1px solid hsl(40 57% 54% / 0.2)"
-                : rose
-                ? "1px solid hsl(333 72% 43% / 0.2)"
-                : "1px solid hsl(0 0% 20%)",
-            }}
-          >
-            <Icon
-              size={18}
-              strokeWidth={1.2}
-              style={{
-                color: accent
-                  ? "hsl(40 57% 54%)"
-                  : rose
-                  ? "hsl(333 72% 43%)"
-                  : "hsl(36 10% 50%)",
-              }}
-            />
-          </div>
-        </div>
-        <p
-          className="uppercase tracking-luxury mb-1"
-          style={{ fontSize: "9px", color: "hsl(36 10% 45%)", letterSpacing: "0.2em", fontFamily: "Inter, sans-serif" }}
-        >
-          {label}
-        </p>
-        <p
-          className="font-heading font-semibold"
-          style={{
-            fontSize: "32px",
-            color: accent ? "hsl(40 57% 54%)" : rose ? "hsl(333 72% 43%)" : "hsl(36 40% 90%)",
-            lineHeight: 1.1,
-          }}
-        >
-          {value}
-        </p>
+      <div style={{ marginBottom: "16px" }}>
+        <Icon size={18} strokeWidth={1.2} style={{ color: "rgba(201,168,76,0.6)" }} />
       </div>
+      <p style={{
+        fontFamily: "var(--font-body)",
+        fontSize: "11px",
+        fontWeight: 500,
+        letterSpacing: "0.1em",
+        textTransform: "uppercase",
+        color: "rgba(201,168,76,0.6)",
+        marginBottom: "8px",
+      }}>
+        {label}
+      </p>
+      <p style={{
+        fontFamily: "var(--font-heading)",
+        fontSize: "32px",
+        fontWeight: 600,
+        color: "#C9A84C",
+        lineHeight: 1,
+      }}>
+        {value}
+      </p>
     </div>
   );
 }

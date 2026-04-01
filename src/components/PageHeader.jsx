@@ -1,32 +1,38 @@
 export default function PageHeader({ title, subtitle, children }) {
   return (
-    <div className="mb-10">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <div style={{ marginBottom: "40px" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
         <div>
-          {/* Decorative line */}
-          <div className="flex items-center gap-3 mb-3">
-            <div className="h-px w-8" style={{ background: "hsl(40 57% 54% / 0.6)" }} />
-            <div className="h-px w-2" style={{ background: "hsl(40 57% 54% / 0.3)" }} />
-          </div>
-          <h1
-            className="font-heading font-semibold"
-            style={{ fontSize: "36px", color: "hsl(36 40% 94%)", lineHeight: 1.15, letterSpacing: "0.02em" }}
-          >
+          <h1 style={{
+            fontFamily: "var(--font-heading)",
+            fontSize: "36px",
+            fontWeight: 600,
+            color: "#C9A84C",
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            margin: 0,
+            lineHeight: 1.1,
+          }}>
             {title}
           </h1>
+          <div style={{ width: "60px", height: "2px", background: "#C9A84C", marginTop: "10px" }} />
           {subtitle && (
-            <p
-              className="mt-2 uppercase tracking-luxury"
-              style={{ fontSize: "10px", color: "hsl(36 10% 45%)", letterSpacing: "0.22em", fontFamily: "Inter, sans-serif" }}
-            >
+            <p style={{
+              fontFamily: "var(--font-body)",
+              fontSize: "13px",
+              fontWeight: 300,
+              color: "rgba(245,240,232,0.5)",
+              marginTop: "10px",
+              letterSpacing: "0.05em",
+            }}>
               {subtitle}
             </p>
           )}
         </div>
-        {children && <div className="flex items-center gap-3">{children}</div>}
+        {children && <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>{children}</div>}
       </div>
-      {/* Full-width divider */}
-      <div className="mt-6 h-px" style={{ background: "linear-gradient(90deg, hsl(40 57% 54% / 0.25), transparent)" }} />
+      {/* Gold separator */}
+      <div style={{ marginTop: "24px", height: "1px", background: "rgba(201,168,76,0.25)", width: "100%" }} />
     </div>
   );
 }

@@ -7,36 +7,28 @@ import NoteFormDialog from "../components/NoteFormDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
 import moment from "moment";
 
-const noteTypeStyles = {
-  "Credit on Account": { color: "hsl(145 55% 55%)", bg: "hsl(145 55% 35% / 0.1)", border: "hsl(145 55% 35% / 0.25)" },
-  "Debt on Account": { color: "hsl(0 65% 60%)", bg: "hsl(0 65% 48% / 0.1)", border: "hsl(0 65% 48% / 0.25)" },
-  "Needs Attention": { color: "hsl(40 80% 58%)", bg: "hsl(40 80% 50% / 0.1)", border: "hsl(40 80% 50% / 0.25)" },
-  "Client Retention": { color: "hsl(333 72% 65%)", bg: "hsl(333 72% 43% / 0.1)", border: "hsl(333 72% 43% / 0.28)" },
-  "General": { color: "hsl(36 10% 52%)", bg: "hsl(0 0% 16%)", border: "hsl(0 0% 22%)" },
+const noteTypeColors = {
+  "Credit on Account": { color: "rgba(120,200,140,0.85)", border: "rgba(120,200,140,0.3)", bg: "rgba(120,200,140,0.06)" },
+  "Debt on Account": { color: "#C2185B", border: "rgba(194,24,91,0.35)", bg: "rgba(194,24,91,0.06)" },
+  "Needs Attention": { color: "#C9A84C", border: "rgba(201,168,76,0.4)", bg: "rgba(201,168,76,0.06)" },
+  "Client Retention": { color: "rgba(180,140,220,0.85)", border: "rgba(180,140,220,0.3)", bg: "rgba(180,140,220,0.05)" },
+  "General": { color: "rgba(245,240,232,0.5)", border: "rgba(245,240,232,0.12)", bg: "rgba(255,255,255,0.03)" },
 };
 
-const GoldButton = ({ onClick, children }) => (
-  <button
-    onClick={onClick}
-    className="flex items-center gap-2 transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
-    style={{
-      background: "linear-gradient(135deg, hsl(40 57% 54%), hsl(40 40% 40%))",
-      color: "#0a0a0a",
-      fontFamily: "Inter, sans-serif",
-      fontSize: "11px",
-      fontWeight: 600,
-      letterSpacing: "0.18em",
-      textTransform: "uppercase",
-      padding: "10px 22px",
-      border: "none",
-      borderRadius: "2px",
-    }}
-  >
-    {children}
-  </button>
-);
-
 const noteTypes = ["Credit on Account", "Debt on Account", "Needs Attention", "Client Retention", "General"];
+
+const GoldBtn = ({ onClick, children }) => (
+  <button onClick={onClick} style={{
+    background: "transparent", border: "1px solid #C9A84C", color: "#C9A84C",
+    fontFamily: "var(--font-body)", fontSize: "12px", fontWeight: 500,
+    letterSpacing: "0.12em", textTransform: "uppercase", padding: "10px 24px",
+    borderRadius: "2px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px",
+    transition: "all 0.2s ease",
+  }}
+    onMouseEnter={e => { e.currentTarget.style.background = "#C9A84C"; e.currentTarget.style.color = "#0a0a0a"; }}
+    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#C9A84C"; }}
+  >{children}</button>
+);
 
 export default function CustomerNotes() {
   const [notes, setNotes] = useState([]);
@@ -47,173 +39,110 @@ export default function CustomerNotes() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
 
-  const loadNotes = async () => {
-    const data = await base44.entities.CustomerNote.list("-created_date", 100);
-    setNotes(data);
-    setLoading(false);
-  };
+  const load = async () => { setNotes(await base44.entities.CustomerNote.list("-created_date", 100)); setLoading(false); };
+  useEffect(() => { load(); }, []);
 
-  useEffect(() => { loadNotes(); }, []);
-
-  const filtered = useMemo(() => {
-    return notes.filter((n) => {
-      const matchSearch = !search || n.client_name.toLowerCase().includes(search.toLowerCase());
-      const matchType = typeFilter === "all" || n.note_type === typeFilter;
-      return matchSearch && matchType;
-    });
-  }, [notes, search, typeFilter]);
+  const filtered = useMemo(() => notes.filter(n => {
+    const matchSearch = !search || n.client_name.toLowerCase().includes(search.toLowerCase());
+    const matchType = typeFilter === "all" || n.note_type === typeFilter;
+    return matchSearch && matchType;
+  }), [notes, search, typeFilter]);
 
   const handleSave = async (data) => {
-    if (editNote) {
-      await base44.entities.CustomerNote.update(editNote.id, data);
-    } else {
-      await base44.entities.CustomerNote.create(data);
-    }
-    setEditNote(null);
-    loadNotes();
+    if (editNote) await base44.entities.CustomerNote.update(editNote.id, data);
+    else await base44.entities.CustomerNote.create(data);
+    setEditNote(null); load();
   };
+  const handleDelete = async () => { await base44.entities.CustomerNote.delete(deleteId); setDeleteId(null); load(); };
 
-  const handleDelete = async () => {
-    await base44.entities.CustomerNote.delete(deleteId);
-    setDeleteId(null);
-    loadNotes();
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
+      <div style={{ width: "28px", height: "28px", borderRadius: "50%", border: "2px solid rgba(201,168,76,0.2)", borderTopColor: "#C9A84C", animation: "spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
+  const inputBase = {
+    background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.2)", borderRadius: "2px",
+    color: "#F5F0E8", fontFamily: "var(--font-body)", fontSize: "13px", outline: "none",
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-7 h-7 rounded-full border-2 animate-spin"
-          style={{ borderColor: "hsl(40 57% 54% / 0.2)", borderTopColor: "hsl(40 57% 54%)" }} />
-      </div>
-    );
-  }
 
   return (
     <div>
       <PageHeader title="Client Notes" subtitle="CRM — Notes, credits, and client intelligence">
-        <GoldButton onClick={() => { setEditNote(null); setFormOpen(true); }}>
-          <Plus size={12} strokeWidth={2} /> New Note
-        </GoldButton>
+        <GoldBtn onClick={() => { setEditNote(null); setFormOpen(true); }}><Plus size={13} /> New Note</GoldBtn>
       </PageHeader>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-8">
-        <div
-          className="relative flex-1 max-w-sm"
-        >
-          <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: "hsl(36 10% 40%)" }} />
+      <div style={{ display: "flex", gap: "12px", marginBottom: "32px", flexWrap: "wrap" }}>
+        <div style={{ position: "relative", flex: "1", maxWidth: "320px" }}>
+          <Search size={13} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "rgba(245,240,232,0.3)" }} />
           <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by client name..."
-            style={{
-              width: "100%",
-              background: "#161616",
-              border: "1px solid hsl(40 20% 16%)",
-              borderRadius: "2px",
-              padding: "9px 12px 9px 34px",
-              color: "hsl(36 40% 88%)",
-              fontFamily: "Inter, sans-serif",
-              fontSize: "13px",
-              outline: "none",
-            }}
-            onFocus={(e) => e.target.style.borderColor = "hsl(40 57% 54% / 0.4)"}
-            onBlur={(e) => e.target.style.borderColor = "hsl(40 20% 16%)"}
+            style={{ ...inputBase, width: "100%", padding: "10px 12px 10px 34px" }}
+            onFocus={e => { e.target.style.borderColor = "#C9A84C"; e.target.style.boxShadow = "0 0 0 2px rgba(201,168,76,0.15)"; }}
+            onBlur={e => { e.target.style.borderColor = "rgba(201,168,76,0.2)"; e.target.style.boxShadow = "none"; }}
           />
         </div>
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          style={{
-            background: "#161616",
-            border: "1px solid hsl(40 20% 16%)",
-            borderRadius: "2px",
-            padding: "9px 14px",
-            color: "hsl(36 30% 75%)",
-            fontFamily: "Inter, sans-serif",
-            fontSize: "12px",
-            letterSpacing: "0.04em",
-            outline: "none",
-            minWidth: "180px",
-          }}
-        >
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
+          style={{ ...inputBase, padding: "10px 14px", minWidth: "180px", cursor: "pointer" }}
+          onFocus={e => { e.target.style.borderColor = "#C9A84C"; }}
+          onBlur={e => { e.target.style.borderColor = "rgba(201,168,76,0.2)"; }}>
           <option value="all">All Types</option>
-          {noteTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+          {noteTypes.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-20 rounded-sm" style={{ border: "1px dashed hsl(40 20% 18%)" }}>
-          <p className="font-heading" style={{ fontSize: "22px", color: "hsl(36 40% 60%)" }}>
+        <div style={{ textAlign: "center", padding: "80px 20px", border: "1px dashed rgba(201,168,76,0.2)", borderRadius: "2px" }}>
+          <p style={{ fontFamily: "var(--font-heading)", fontSize: "22px", color: "rgba(201,168,76,0.5)" }}>
             {notes.length === 0 ? "No notes yet" : "No matching notes"}
           </p>
-          <p style={{ fontSize: "12px", color: "hsl(36 10% 40%)", marginTop: "8px", fontFamily: "Inter, sans-serif" }}>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.3)", marginTop: "8px" }}>
             {notes.length === 0 ? "Add your first client note." : "Try adjusting your filters."}
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((note) => {
-            const ts = noteTypeStyles[note.note_type] || noteTypeStyles.General;
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
+          {filtered.map(note => {
+            const ts = noteTypeColors[note.note_type] || noteTypeColors.General;
             return (
-              <div
-                key={note.id}
-                className="group rounded-sm overflow-hidden transition-all duration-300 hover:scale-[1.01]"
-                style={{
-                  background: "linear-gradient(160deg, #1c1c1c, #181818)",
-                  border: "1px solid hsl(40 20% 16%)",
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = "hsl(40 57% 54% / 0.28)"}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = "hsl(40 20% 16%)"}
+              <div key={note.id}
+                style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.2)", borderRadius: "2px", overflow: "hidden", transition: "all 0.25s ease" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.5)"; e.currentTarget.style.boxShadow = "0 0 20px rgba(201,168,76,0.07)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.2)"; e.currentTarget.style.boxShadow = "none"; }}
               >
-                {/* Top accent line = note type color */}
-                <div className="h-px" style={{ background: ts.color, opacity: 0.55 }} />
-                <div className="p-5">
-                  <div className="flex items-start justify-between mb-3">
+                {/* Top stripe */}
+                <div style={{ height: "2px", background: ts.color, opacity: 0.6 }} />
+                <div style={{ padding: "20px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
                     <div>
-                      <p style={{ fontFamily: "Inter, sans-serif", fontSize: "14px", color: "hsl(36 40% 88%)", fontWeight: 500 }}>
-                        {note.client_name}
-                      </p>
-                      <p style={{ fontFamily: "Inter, sans-serif", fontSize: "10px", color: "hsl(36 10% 40%)", marginTop: "2px" }}>
-                        {moment(note.created_date).format("MMM D, YYYY")}
-                      </p>
+                      <p style={{ fontFamily: "var(--font-body)", fontSize: "15px", color: "#F5F0E8", fontWeight: 500 }}>{note.client_name}</p>
+                      <p style={{ fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(245,240,232,0.3)", marginTop: "3px" }}>{moment(note.created_date).format("MMM D, YYYY")}</p>
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => { setEditNote(note); setFormOpen(true); }}
-                        className="p-1.5 rounded-sm transition-colors"
-                        style={{ color: "hsl(36 10% 45%)" }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = "hsl(40 57% 54%)"}
-                        onMouseLeave={(e) => e.currentTarget.style.color = "hsl(36 10% 45%)"}
-                      >
-                        <Pencil size={12} strokeWidth={1.5} />
+                    <div style={{ display: "flex", gap: "4px" }}>
+                      <button onClick={() => { setEditNote(note); setFormOpen(true); }}
+                        style={{ padding: "5px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.3)", transition: "color 0.15s" }}
+                        onMouseEnter={e => e.currentTarget.style.color = "#C9A84C"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.3)"}>
+                        <Pencil size={13} strokeWidth={1.5} />
                       </button>
-                      <button
-                        onClick={() => setDeleteId(note.id)}
-                        className="p-1.5 rounded-sm transition-colors"
-                        style={{ color: "hsl(36 10% 45%)" }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = "hsl(0 65% 55%)"}
-                        onMouseLeave={(e) => e.currentTarget.style.color = "hsl(36 10% 45%)"}
-                      >
-                        <Trash2 size={12} strokeWidth={1.5} />
+                      <button onClick={() => setDeleteId(note.id)}
+                        style={{ padding: "5px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.3)", transition: "color 0.15s" }}
+                        onMouseEnter={e => e.currentTarget.style.color = "#C2185B"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.3)"}>
+                        <Trash2 size={13} strokeWidth={1.5} />
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 mb-3">
-                    <span
-                      className="inline-flex items-center px-2.5 py-1 rounded-sm uppercase"
-                      style={{ background: ts.bg, color: ts.color, border: `1px solid ${ts.border}`, fontSize: "9px", letterSpacing: "0.12em", fontFamily: "Inter, sans-serif", fontWeight: 500 }}
-                    >
+                  <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
+                    <span style={{ background: ts.bg, border: `1px solid ${ts.border}`, color: ts.color, fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", padding: "4px 10px", borderRadius: "2px" }}>
                       {note.note_type}
                     </span>
                     <StatusBadge status={note.priority} />
                   </div>
 
-                  <p
-                    className="line-clamp-3"
-                    style={{ fontFamily: "Inter, sans-serif", fontSize: "12px", color: "hsl(36 10% 50%)", lineHeight: 1.65 }}
-                  >
+                  <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.55)", lineHeight: 1.65, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>
                     {note.content}
                   </p>
                 </div>
