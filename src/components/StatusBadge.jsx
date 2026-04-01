@@ -1,17 +1,34 @@
 const statusStyles = {
-  Pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  Confirmed: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  Fulfilled: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  Cancelled: "bg-red-500/10 text-red-400 border-red-500/20",
-  Low: "bg-slate-500/10 text-slate-400 border-slate-500/20",
-  Medium: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  High: "bg-red-500/10 text-red-400 border-red-500/20",
+  Pending: { bg: "hsl(40 57% 54% / 0.1)", color: "hsl(40 57% 60%)", border: "hsl(40 57% 54% / 0.3)" },
+  Confirmed: { bg: "hsl(210 70% 50% / 0.1)", color: "hsl(210 70% 65%)", border: "hsl(210 70% 50% / 0.3)" },
+  Fulfilled: { bg: "hsl(145 55% 35% / 0.12)", color: "hsl(145 55% 55%)", border: "hsl(145 55% 35% / 0.3)" },
+  Cancelled: { bg: "hsl(0 65% 48% / 0.1)", color: "hsl(0 65% 60%)", border: "hsl(0 65% 48% / 0.3)" },
+  Low: { bg: "hsl(0 0% 20%)", color: "hsl(36 10% 55%)", border: "hsl(0 0% 28%)" },
+  Medium: { bg: "hsl(40 57% 54% / 0.1)", color: "hsl(40 57% 60%)", border: "hsl(40 57% 54% / 0.3)" },
+  High: { bg: "hsl(333 72% 43% / 0.12)", color: "hsl(333 72% 65%)", border: "hsl(333 72% 43% / 0.35)" },
 };
 
 export default function StatusBadge({ status }) {
-  const style = statusStyles[status] || "bg-muted text-muted-foreground border-border";
+  const s = statusStyles[status];
+  if (!s) return (
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs uppercase tracking-wide border"
+      style={{ fontFamily: "Inter, sans-serif", fontSize: "9px", letterSpacing: "0.15em" }}>
+      {status}
+    </span>
+  );
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${style}`}>
+    <span
+      className="inline-flex items-center px-2.5 py-1 rounded-sm uppercase"
+      style={{
+        background: s.bg,
+        color: s.color,
+        border: `1px solid ${s.border}`,
+        fontSize: "9px",
+        letterSpacing: "0.15em",
+        fontFamily: "Inter, sans-serif",
+        fontWeight: 500,
+      }}
+    >
       {status}
     </span>
   );

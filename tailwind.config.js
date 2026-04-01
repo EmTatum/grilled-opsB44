@@ -5,8 +5,9 @@ module.exports = {
   theme: {
   	extend: {
   		fontFamily: {
-  			heading: ['var(--font-heading)'],
-  			body: ['var(--font-body)']
+  			display: ['Cinzel', 'serif'],
+  			heading: ['Cormorant Garamond', 'serif'],
+  			body: ['Inter', 'sans-serif'],
   		},
   		borderRadius: {
   			lg: 'var(--radius)',
@@ -63,7 +64,14 @@ module.exports = {
   				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
-  			}
+  			},
+  			gold: 'hsl(40 57% 54%)',
+  			rose: 'hsl(333 72% 43%)',
+  			cream: 'hsl(36 40% 94%)',
+  		},
+  		backgroundImage: {
+  			'gold-gradient': 'linear-gradient(135deg, hsl(40 57% 54%), hsl(40 40% 38%))',
+  			'card-gradient': 'linear-gradient(160deg, hsl(0 0% 13%), hsl(0 0% 9%))',
   		},
   		keyframes: {
   			'accordion-down': {
@@ -82,4 +90,8 @@ module.exports = {
   	}
   },
   plugins: [require("tailwindcss-animate")],
+  safelist: [
+    'bg-gold-gradient', 'text-gold', 'text-cream',
+    'tracking-luxury', 'tracking-wide-xl', 'gold-border-top',
+  ],
 }

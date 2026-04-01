@@ -1,20 +1,29 @@
 import { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-const emptyProduct = {
-  product_name: "",
-  category: "",
-  last_stock_count: 0,
-  new_stock_arrived: 0,
-  low_stock_threshold: 5,
+const emptyProduct = { product_name: "", category: "", last_stock_count: 0, new_stock_arrived: 0, low_stock_threshold: 5 };
+
+const inputStyle = {
+  width: "100%",
+  background: "#111111",
+  border: "1px solid hsl(40 20% 18%)",
+  borderRadius: "2px",
+  padding: "9px 12px",
+  color: "hsl(36 40% 88%)",
+  fontFamily: "Inter, sans-serif",
+  fontSize: "13px",
+  outline: "none",
+  marginTop: "6px",
+};
+
+const labelStyle = {
+  display: "block",
+  fontSize: "9px",
+  color: "hsl(36 10% 42%)",
+  fontFamily: "Inter, sans-serif",
+  letterSpacing: "0.2em",
+  textTransform: "uppercase",
+  fontWeight: 500,
 };
 
 export default function ProductFormDialog({ open, onOpenChange, product, onSave }) {
@@ -53,87 +62,71 @@ export default function ProductFormDialog({ open, onOpenChange, product, onSave 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border sm:max-w-md">
+      <DialogContent style={{ background: "#161616", border: "1px solid hsl(40 20% 18%)", borderRadius: "2px", maxWidth: "460px" }}>
         <DialogHeader>
-          <DialogTitle className="font-heading text-foreground">
+          <DialogTitle className="font-heading" style={{ fontSize: "24px", color: "hsl(36 40% 90%)" }}>
             {product ? "Edit Product" : "New Product"}
           </DialogTitle>
+          <div className="h-px mt-1 mb-1" style={{ background: "linear-gradient(90deg, hsl(40 57% 54% / 0.4), transparent)" }} />
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-1">
           <div>
-            <Label className="text-muted-foreground text-xs">Product Name</Label>
-            <Input
-              required
-              value={form.product_name}
-              onChange={(e) => setForm({ ...form, product_name: e.target.value })}
-              className="bg-secondary border-border text-foreground mt-1"
-              placeholder="Product name"
-            />
+            <label style={labelStyle}>Product Name</label>
+            <input required value={form.product_name} onChange={(e) => setForm({ ...form, product_name: e.target.value })}
+              style={inputStyle} placeholder="Product name"
+              onFocus={(e) => e.target.style.borderColor = "hsl(40 57% 54% / 0.5)"}
+              onBlur={(e) => e.target.style.borderColor = "hsl(40 20% 18%)"} />
           </div>
           <div>
-            <Label className="text-muted-foreground text-xs">Category</Label>
-            <Input
-              required
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="bg-secondary border-border text-foreground mt-1"
-              placeholder="e.g. Flower, Edibles, Concentrates"
-            />
+            <label style={labelStyle}>Category</label>
+            <input required value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
+              style={inputStyle} placeholder="e.g. Flower, Edibles, Concentrates"
+              onFocus={(e) => e.target.style.borderColor = "hsl(40 57% 54% / 0.5)"}
+              onBlur={(e) => e.target.style.borderColor = "hsl(40 20% 18%)"} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-muted-foreground text-xs">Last Stock Count</Label>
-              <Input
-                required
-                type="number"
-                min="0"
-                value={form.last_stock_count}
+              <label style={labelStyle}>Last Stock Count</label>
+              <input required type="number" min="0" value={form.last_stock_count}
                 onChange={(e) => setForm({ ...form, last_stock_count: e.target.value })}
-                className="bg-secondary border-border text-foreground mt-1"
-              />
+                style={inputStyle}
+                onFocus={(e) => e.target.style.borderColor = "hsl(40 57% 54% / 0.5)"}
+                onBlur={(e) => e.target.style.borderColor = "hsl(40 20% 18%)"} />
             </div>
             <div>
-              <Label className="text-muted-foreground text-xs">New Stock Arrived</Label>
-              <Input
-                required
-                type="number"
-                min="0"
-                value={form.new_stock_arrived}
+              <label style={labelStyle}>New Stock Arrived</label>
+              <input required type="number" min="0" value={form.new_stock_arrived}
                 onChange={(e) => setForm({ ...form, new_stock_arrived: e.target.value })}
-                className="bg-secondary border-border text-foreground mt-1"
-              />
+                style={inputStyle}
+                onFocus={(e) => e.target.style.borderColor = "hsl(40 57% 54% / 0.5)"}
+                onBlur={(e) => e.target.style.borderColor = "hsl(40 20% 18%)"} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-muted-foreground text-xs">Current Stock</Label>
-              <div className="mt-1 px-3 py-2 bg-secondary/50 border border-border rounded-md text-foreground text-sm font-medium">
+              <label style={labelStyle}>Current Stock</label>
+              <div style={{ ...inputStyle, background: "#0d0d0d", color: "hsl(40 57% 58%)", fontWeight: 600, cursor: "default", display: "flex", alignItems: "center" }}>
                 {currentStock} units
               </div>
             </div>
             <div>
-              <Label className="text-muted-foreground text-xs">Low Stock Threshold</Label>
-              <Input
-                type="number"
-                min="0"
-                value={form.low_stock_threshold}
+              <label style={labelStyle}>Low Stock Threshold</label>
+              <input type="number" min="0" value={form.low_stock_threshold}
                 onChange={(e) => setForm({ ...form, low_stock_threshold: e.target.value })}
-                className="bg-secondary border-border text-foreground mt-1"
-              />
+                style={inputStyle}
+                onFocus={(e) => e.target.style.borderColor = "hsl(40 57% 54% / 0.5)"}
+                onBlur={(e) => e.target.style.borderColor = "hsl(40 20% 18%)"} />
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="border-border text-foreground hover:bg-secondary"
-            >
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => onOpenChange(false)}
+              style={{ padding: "9px 20px", background: "transparent", border: "1px solid hsl(40 20% 20%)", borderRadius: "2px", color: "hsl(36 30% 70%)", fontFamily: "Inter, sans-serif", fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer" }}>
               Cancel
-            </Button>
-            <Button type="submit" disabled={saving} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            </button>
+            <button type="submit" disabled={saving}
+              style={{ padding: "9px 24px", background: "linear-gradient(135deg, hsl(40 57% 54%), hsl(40 40% 40%))", border: "none", borderRadius: "2px", color: "#0a0a0a", fontFamily: "Inter, sans-serif", fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
               {saving ? "Saving..." : product ? "Update" : "Create"}
-            </Button>
+            </button>
           </div>
         </form>
       </DialogContent>

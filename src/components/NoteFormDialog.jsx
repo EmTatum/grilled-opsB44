@@ -1,37 +1,31 @@
 import { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-const noteTypes = [
-  "Credit on Account",
-  "Debt on Account",
-  "Needs Attention",
-  "Client Retention",
-  "General",
-];
-
+const noteTypes = ["Credit on Account", "Debt on Account", "Needs Attention", "Client Retention", "General"];
 const priorities = ["Low", "Medium", "High"];
+const emptyNote = { client_name: "", note_type: "General", content: "", priority: "Medium" };
 
-const emptyNote = {
-  client_name: "",
-  note_type: "General",
-  content: "",
-  priority: "Medium",
+const inputStyle = {
+  width: "100%",
+  background: "#111111",
+  border: "1px solid hsl(40 20% 18%)",
+  borderRadius: "2px",
+  padding: "9px 12px",
+  color: "hsl(36 40% 88%)",
+  fontFamily: "Inter, sans-serif",
+  fontSize: "13px",
+  outline: "none",
+  marginTop: "6px",
+};
+
+const labelStyle = {
+  display: "block",
+  fontSize: "9px",
+  color: "hsl(36 10% 42%)",
+  fontFamily: "Inter, sans-serif",
+  letterSpacing: "0.2em",
+  textTransform: "uppercase",
+  fontWeight: 500,
 };
 
 export default function NoteFormDialog({ open, onOpenChange, note, onSave }) {
@@ -61,73 +55,53 @@ export default function NoteFormDialog({ open, onOpenChange, note, onSave }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border sm:max-w-md">
+      <DialogContent style={{ background: "#161616", border: "1px solid hsl(40 20% 18%)", borderRadius: "2px", maxWidth: "460px" }}>
         <DialogHeader>
-          <DialogTitle className="font-heading text-foreground">
+          <DialogTitle className="font-heading" style={{ fontSize: "24px", color: "hsl(36 40% 90%)" }}>
             {note ? "Edit Note" : "New Note"}
           </DialogTitle>
+          <div className="h-px mt-1 mb-1" style={{ background: "linear-gradient(90deg, hsl(40 57% 54% / 0.4), transparent)" }} />
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-1">
           <div>
-            <Label className="text-muted-foreground text-xs">Client Name</Label>
-            <Input
-              required
-              value={form.client_name}
-              onChange={(e) => setForm({ ...form, client_name: e.target.value })}
-              className="bg-secondary border-border text-foreground mt-1"
-              placeholder="Enter client name"
-            />
+            <label style={labelStyle}>Client Name</label>
+            <input required value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })}
+              style={inputStyle} placeholder="Enter client name"
+              onFocus={(e) => e.target.style.borderColor = "hsl(40 57% 54% / 0.5)"}
+              onBlur={(e) => e.target.style.borderColor = "hsl(40 20% 18%)"} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-muted-foreground text-xs">Note Type</Label>
-              <Select value={form.note_type} onValueChange={(v) => setForm({ ...form, note_type: v })}>
-                <SelectTrigger className="bg-secondary border-border text-foreground mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border">
-                  {noteTypes.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label style={labelStyle}>Note Type</label>
+              <select value={form.note_type} onChange={(e) => setForm({ ...form, note_type: e.target.value })}
+                style={{ ...inputStyle, cursor: "pointer" }}>
+                {noteTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
             </div>
             <div>
-              <Label className="text-muted-foreground text-xs">Priority</Label>
-              <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-                <SelectTrigger className="bg-secondary border-border text-foreground mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border">
-                  {priorities.map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label style={labelStyle}>Priority</label>
+              <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}
+                style={{ ...inputStyle, cursor: "pointer" }}>
+                {priorities.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
             </div>
           </div>
           <div>
-            <Label className="text-muted-foreground text-xs">Note Content</Label>
-            <Textarea
-              required
-              value={form.content}
-              onChange={(e) => setForm({ ...form, content: e.target.value })}
-              className="bg-secondary border-border text-foreground mt-1 min-h-[100px]"
-              placeholder="Write your note..."
-            />
+            <label style={labelStyle}>Note Content</label>
+            <textarea required value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })}
+              style={{ ...inputStyle, minHeight: "100px", resize: "vertical" }} placeholder="Write your note..."
+              onFocus={(e) => e.target.style.borderColor = "hsl(40 57% 54% / 0.5)"}
+              onBlur={(e) => e.target.style.borderColor = "hsl(40 20% 18%)"} />
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="border-border text-foreground hover:bg-secondary"
-            >
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => onOpenChange(false)}
+              style={{ padding: "9px 20px", background: "transparent", border: "1px solid hsl(40 20% 20%)", borderRadius: "2px", color: "hsl(36 30% 70%)", fontFamily: "Inter, sans-serif", fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer" }}>
               Cancel
-            </Button>
-            <Button type="submit" disabled={saving} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            </button>
+            <button type="submit" disabled={saving}
+              style={{ padding: "9px 24px", background: "linear-gradient(135deg, hsl(40 57% 54%), hsl(40 40% 40%))", border: "none", borderRadius: "2px", color: "#0a0a0a", fontFamily: "Inter, sans-serif", fontSize: "11px", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
               {saving ? "Saving..." : note ? "Update" : "Create"}
-            </Button>
+            </button>
           </div>
         </form>
       </DialogContent>
