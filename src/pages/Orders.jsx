@@ -36,7 +36,14 @@ export default function Orders() {
   const [expandedIds, setExpandedIds] = useState(new Set());
   const toggleExpanded = (id) => setExpandedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
 
-  const load = async () => { setOrders(await base44.entities.Order.list("-order_date", 200)); setLoading(false); };
+  const load = async () => {
+    const all = await base44.entities.Order.list("-order_date", 200);
+    // Auto-remove cancelled orders
+    const cancelled = all.filter(o => o.status === "Cancelled");
+    await Promise.all(cancelled.map(o => base44.entities.Order.delete(o.id)));
+    setOrders(all.filter(o => o.status !== "Cancelled"));
+    setLoading(false);
+  };
 
   const isUrgent = (order) => {
     if (order.status !== "Pending") return false;
