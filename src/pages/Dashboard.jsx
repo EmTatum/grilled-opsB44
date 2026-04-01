@@ -108,7 +108,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats */}
-      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 500, color: "rgba(201,168,76,0.4)", letterSpacing: "0.28em", textTransform: "uppercase", marginBottom: "14px" }}>
+      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: "14px" }}>
         Live Intelligence
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px", marginBottom: "40px" }}>
@@ -126,7 +126,7 @@ export default function Dashboard() {
       <div className="gold-divider"><span className="gold-divider-diamond">◆</span></div>
 
       {/* Quick access */}
-      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 500, color: "rgba(201,168,76,0.4)", letterSpacing: "0.28em", textTransform: "uppercase", marginBottom: "14px" }}>
+      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: "14px" }}>
         Quick Access
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px", marginBottom: "40px" }}>
@@ -167,7 +167,7 @@ export default function Dashboard() {
         {/* Recent notes */}
         <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.18)", borderRadius: 0 }}>
           <div style={{ background: "#0a0a0a", padding: "14px 20px", borderBottom: "1px solid rgba(201,168,76,0.25)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontFamily: "'Cinzel', serif", fontSize: "12px", letterSpacing: "0.25em", color: "rgba(201,168,76,0.7)", textTransform: "uppercase" }}>Recent Notes</span>
+            <span style={{ fontFamily: "'Cinzel', serif", fontSize: "15px", letterSpacing: "0.2em", color: "rgba(201,168,76,0.85)", textTransform: "uppercase", fontWeight: 600 }}>Recent Notes</span>
             <Link to="/notes" style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 500, color: "rgba(201,168,76,0.45)", letterSpacing: "0.15em", textTransform: "uppercase" }}>View All →</Link>
           </div>
           <div>
@@ -192,7 +192,7 @@ export default function Dashboard() {
         {/* Low stock */}
         <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.18)", borderRadius: 0 }}>
           <div style={{ background: "#0a0a0a", padding: "14px 20px", borderBottom: "1px solid rgba(201,168,76,0.25)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontFamily: "'Cinzel', serif", fontSize: "12px", letterSpacing: "0.25em", color: "rgba(201,168,76,0.7)", textTransform: "uppercase" }}>Low Stock Alerts</span>
+            <span style={{ fontFamily: "'Cinzel', serif", fontSize: "15px", letterSpacing: "0.2em", color: "rgba(201,168,76,0.85)", textTransform: "uppercase", fontWeight: 600 }}>Low Stock Alerts</span>
             <Link to="/inventory" style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 500, color: "rgba(201,168,76,0.45)", letterSpacing: "0.15em", textTransform: "uppercase" }}>View All →</Link>
           </div>
           <div>
