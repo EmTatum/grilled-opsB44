@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronDown } from "lucide-react";
+import OrderLifecycle from "../components/OrderLifecycle";
 import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
 import OrderFormDialog from "../components/OrderFormDialog";
@@ -32,6 +33,7 @@ export default function Orders() {
   const [formOpen, setFormOpen] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
 
   const load = async () => { setOrders(await base44.entities.Order.list("-order_date", 100)); setLoading(false); };
   useEffect(() => { load(); }, []);
@@ -77,10 +79,12 @@ export default function Orders() {
                 </thead>
                 <tbody>
                   {orders.map(order => (
+                    <>
                     <tr key={order.id}
-                      style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", transition: "background 0.15s" }}
+                      style={{ borderBottom: expandedId === order.id ? "none" : "1px solid rgba(255,255,255,0.04)", transition: "background 0.15s", cursor: "pointer" }}
                       onMouseEnter={e => e.currentTarget.style.background = "rgba(201,168,76,0.04)"}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                      onMouseLeave={e => e.currentTarget.style.background = expandedId === order.id ? "rgba(201,168,76,0.04)" : "transparent"}
+                      onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
                     >
                       <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "#F5F0E8", fontWeight: 500 }}>{order.client_name}</td>
                       <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.55)", maxWidth: "260px" }}>
@@ -89,18 +93,27 @@ export default function Orders() {
                       <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.45)", whiteSpace: "nowrap" }}>{moment(order.order_date).format("MMM D, YYYY · h:mm A")}</td>
                       <td style={{ padding: "14px 16px" }}><StatusBadge status={order.status} /></td>
                       <td style={{ padding: "14px 16px", textAlign: "right" }}>
-                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "4px" }}>
-                          <button onClick={() => { setEditOrder(order); setFormOpen(true); }} style={{ padding: "6px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.28)", transition: "color 0.15s" }}
-                            onMouseEnter={e => e.currentTarget.style.color = "#C9A84C"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.28)"}>
+                        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "4px" }}>
+                          <button onClick={(e) => { e.stopPropagation(); setEditOrder(order); setFormOpen(true); }} style={{ padding: "6px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.28)", transition: "color 0.15s" }}
+                            onMouseEnter={e => e.currentTarget.style.color = "#C9A84C"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.28)"} >
                             <Pencil size={13} strokeWidth={1.5} />
                           </button>
-                          <button onClick={() => setDeleteId(order.id)} style={{ padding: "6px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.28)", transition: "color 0.15s" }}
-                            onMouseEnter={e => e.currentTarget.style.color = "#C2185B"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.28)"}>
+                          <button onClick={(e) => { e.stopPropagation(); setDeleteId(order.id); }} style={{ padding: "6px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.28)", transition: "color 0.15s" }}
+                            onMouseEnter={e => e.currentTarget.style.color = "#C2185B"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.28)"} >
                             <Trash2 size={13} strokeWidth={1.5} />
                           </button>
+                          <ChevronDown size={13} strokeWidth={1.5} style={{ color: "rgba(245,240,232,0.2)", transition: "transform 0.2s", transform: expandedId === order.id ? "rotate(180deg)" : "rotate(0deg)", marginLeft: "4px" }} />
                         </div>
                       </td>
                     </tr>
+                    {expandedId === order.id && (
+                      <tr key={`${order.id}-lifecycle`} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                        <td colSpan={5} style={{ padding: 0 }}>
+                          <OrderLifecycle order={order} />
+                        </td>
+                      </tr>
+                    )}
+                    </>
                   ))}
                 </tbody>
               </table>
