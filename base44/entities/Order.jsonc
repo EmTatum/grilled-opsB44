@@ -8,7 +8,27 @@
     },
     "order_details": {
       "type": "string",
-      "title": "Order Details"
+      "title": "Items Summary"
+    },
+    "order_value": {
+      "type": "number",
+      "title": "Order Value",
+      "default": 0
+    },
+    "time_slot": {
+      "type": "string",
+      "title": "Time Slot"
+    },
+    "payment_method": {
+      "type": "string",
+      "title": "Payment Method",
+      "enum": [
+        "Cash",
+        "Card",
+        "Bank Transfer",
+        "Credit on Account",
+        "Other"
+      ]
     },
     "order_date": {
       "type": "string",
@@ -31,5 +51,33 @@
     "order_details",
     "order_date",
     "status"
-  ]
+  ],
+  "rls": {
+    "create": null,
+    "read": null,
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
 }

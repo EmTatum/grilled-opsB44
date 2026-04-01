@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 
 const noteTypes = ["Credit on Account", "Debt on Account", "Needs Attention", "Client Retention", "General"];
 const priorities = ["Low", "Medium", "High"];
-const emptyNote = { client_name: "", note_type: "General", content: "", priority: "Medium" };
+const emptyNote = { client_name: "", note_type: "General", content: "", priority: "Medium", tags: "", last_order_date: "", total_spend: "" };
 const F = { fontFamily: "'Raleway', sans-serif" };
 const inputStyle = { ...F, width: "100%", background: "#0f0f0f", border: "1px solid rgba(201,168,76,0.2)", borderRadius: "0", padding: "10px 14px", color: "#F5F0E8", fontSize: "13px", outline: "none", marginTop: "8px", transition: "border-color 0.2s, box-shadow 0.2s" };
 const labelStyle = { ...F, display: "block", fontSize: "10px", fontWeight: 500, color: "rgba(201,168,76,0.6)", letterSpacing: "0.15em", textTransform: "uppercase" };
@@ -15,12 +15,12 @@ export default function NoteFormDialog({ open, onOpenChange, note, onSave }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setForm(note ? { client_name: note.client_name || "", note_type: note.note_type || "General", content: note.content || "", priority: note.priority || "Medium" } : emptyNote);
+    setForm(note ? { client_name: note.client_name || "", note_type: note.note_type || "General", content: note.content || "", priority: note.priority || "Medium", tags: (note.tags || []).join(", "), last_order_date: note.last_order_date ? note.last_order_date.slice(0, 10) : "", total_spend: note.total_spend || "" } : emptyNote);
   }, [note, open]);
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setSaving(true);
-    await onSave(form);
+    await onSave({ ...form, tags: form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : [], total_spend: Number(form.total_spend) || 0, last_order_date: form.last_order_date ? new Date(form.last_order_date).toISOString() : null });
     setSaving(false); onOpenChange(false);
   };
 
@@ -46,6 +46,11 @@ export default function NoteFormDialog({ open, onOpenChange, note, onSave }) {
               </select>
             </div>
           </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <div><label style={labelStyle}>Last Order Date</label><input type="date" value={form.last_order_date} onChange={e => setForm({ ...form, last_order_date: e.target.value })} style={{ ...inputStyle, colorScheme: "dark" }} onFocus={onFocus} onBlur={onBlur} /></div>
+            <div><label style={labelStyle}>Total Spend (R)</label><input type="number" min="0" step="0.01" value={form.total_spend} onChange={e => setForm({ ...form, total_spend: e.target.value })} style={inputStyle} placeholder="0.00" onFocus={onFocus} onBlur={onBlur} /></div>
+          </div>
+          <div><label style={labelStyle}>Tags (comma separated)</label><input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} style={inputStyle} placeholder="e.g. VIP, Regular, Wholesale" onFocus={onFocus} onBlur={onBlur} /></div>
           <div><label style={labelStyle}>Note Content</label><textarea required value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} style={{ ...inputStyle, minHeight: "100px", resize: "vertical" }} placeholder="Write your note..." onFocus={onFocus} onBlur={onBlur} /></div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", paddingTop: "12px", borderTop: "1px solid rgba(201,168,76,0.15)" }}>
             <button type="button" onClick={() => onOpenChange(false)} style={{ ...F, padding: "10px 28px", background: "transparent", border: "1px solid rgba(201,168,76,0.25)", borderRadius: "0", color: "rgba(245,240,232,0.5)", fontSize: "11px", fontWeight: 500, letterSpacing: "0.18em", textTransform: "uppercase", cursor: "pointer" }}>Cancel</button>

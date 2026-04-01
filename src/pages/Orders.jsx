@@ -73,9 +73,9 @@ export default function Orders() {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "#0d0d0d", borderBottom: "1px solid rgba(201,168,76,0.3)" }}>
-                    {["Client", "Details", "Date & Time", "Status", ""].map((h, i) => (
-                      <th key={i} style={{ padding: "14px 16px", textAlign: i === 4 ? "right" : "left", fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 600, color: "rgba(201,168,76,0.55)", letterSpacing: "0.18em", textTransform: "uppercase" }}>{h}</th>
-                    ))}
+                    {["Client", "Items Summary", "Value", "Time Slot", "Payment", "Status", ""].map((h, i) => (
+                    <th key={i} style={{ padding: "14px 16px", textAlign: i === 6 ? "right" : "left", fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 600, color: "rgba(201,168,76,0.55)", letterSpacing: "0.18em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -87,11 +87,13 @@ export default function Orders() {
                       onMouseLeave={e => e.currentTarget.style.background = expandedIds.has(order.id) ? "rgba(201,168,76,0.04)" : "transparent"}
                       onClick={() => toggleExpanded(order.id)}
                     >
-                      <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "#F5F0E8", fontWeight: 500 }}>{order.client_name}</td>
-                      <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.55)", maxWidth: "260px" }}>
+                      <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "#F5F0E8", fontWeight: 500, whiteSpace: "nowrap" }}>{order.client_name}</td>
+                      <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.55)", maxWidth: "200px" }}>
                         <span style={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>{order.order_details}</span>
                       </td>
-                      <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.45)", whiteSpace: "nowrap" }}>{moment(order.order_date).format("MMM D, YYYY · h:mm A")}</td>
+                      <td style={{ padding: "14px 16px", fontFamily: "'Cinzel', serif", fontSize: "14px", color: "#C9A84C", whiteSpace: "nowrap" }}>{order.order_value ? `R${Number(order.order_value).toLocaleString()}` : "—"}</td>
+                      <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.45)", whiteSpace: "nowrap" }}>{order.time_slot || moment(order.order_date).format("h:mm A")}</td>
+                      <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.4)", whiteSpace: "nowrap", letterSpacing: "0.05em" }}>{order.payment_method || "—"}</td>
                       <td style={{ padding: "14px 16px" }}><StatusBadge status={order.status} /></td>
                       <td style={{ padding: "14px 16px", textAlign: "right" }}>
                         <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "4px" }}>

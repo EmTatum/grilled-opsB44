@@ -29,6 +29,23 @@
         "High"
       ],
       "title": "Priority"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags"
+    },
+    "last_order_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Order Date"
+    },
+    "total_spend": {
+      "type": "number",
+      "title": "Total Spend",
+      "default": 0
     }
   },
   "required": [
@@ -36,5 +53,33 @@
     "note_type",
     "content",
     "priority"
-  ]
+  ],
+  "rls": {
+    "create": null,
+    "read": null,
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
 }

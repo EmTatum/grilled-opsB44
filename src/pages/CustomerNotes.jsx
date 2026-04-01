@@ -149,9 +149,30 @@ export default function CustomerNotes() {
                   <StatusBadge status={note.priority} />
                 </div>
 
-                <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.65)", lineHeight: 1.8, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>
+                <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.65)", lineHeight: 1.8, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", marginBottom: "12px" }}>
                   {note.content}
                 </p>
+                {(note.tags && note.tags.length > 0) && (
+                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
+                    {note.tags.map((tag, i) => (
+                      <span key={i} style={{ padding: "3px 8px", background: "rgba(201,168,76,0.06)", border: "1px solid rgba(201,168,76,0.2)", color: "rgba(201,168,76,0.6)", fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" }}>{tag}</span>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: "20px", paddingTop: "10px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                  {note.last_order_date && (
+                    <div>
+                      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", color: "rgba(245,240,232,0.25)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "2px" }}>Last Order</p>
+                      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.5)" }}>{moment(note.last_order_date).format("D MMM YYYY")}</p>
+                    </div>
+                  )}
+                  {note.total_spend > 0 && (
+                    <div>
+                      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", color: "rgba(245,240,232,0.25)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "2px" }}>Total Spend</p>
+                      <p style={{ fontFamily: "'Cinzel', serif", fontSize: "14px", color: "#C9A84C", fontWeight: 600 }}>R{Number(note.total_spend).toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}

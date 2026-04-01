@@ -66,8 +66,8 @@ export default function Inventory() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#0d0d0d", borderBottom: "1px solid rgba(201,168,76,0.3)" }}>
-                  {["Product", "Category", "Last Stock", "New Arrived", "Current Stock", ""].map((h, i) => (
-                    <th key={i} style={{ padding: "14px 16px", textAlign: i >= 2 && i < 5 ? "center" : i === 5 ? "right" : "left", fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 600, color: "rgba(201,168,76,0.55)", letterSpacing: "0.18em", textTransform: "uppercase" }}>{h}</th>
+                  {["Product", "Category", "Last Stock Take", "New Stock Take", "Current Stock", "Status", ""].map((h, i) => (
+                    <th key={i} style={{ padding: "14px 16px", textAlign: i >= 2 && i < 5 ? "center" : i === 6 ? "right" : "left", fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 600, color: "rgba(201,168,76,0.55)", letterSpacing: "0.18em", textTransform: "uppercase" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -91,6 +91,11 @@ export default function Inventory() {
                       <td style={{ padding: "14px 16px", textAlign: "center", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.45)" }}>{p.new_stock_arrived}</td>
                       <td style={{ padding: "14px 16px", textAlign: "center" }}>
                         <span style={{ fontFamily: "'Cinzel', serif", fontSize: "24px", fontWeight: 600, color: isLow ? "#C2185B" : "#C9A84C", lineHeight: 1 }}>{p.current_stock}</span>
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", padding: "4px 10px", fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 500, letterSpacing: "0.18em", textTransform: "uppercase", border: isLow ? "1px solid rgba(194,24,91,0.5)" : "1px solid rgba(201,168,76,0.35)", background: isLow ? "rgba(194,24,91,0.08)" : "rgba(201,168,76,0.07)", color: isLow ? "#C2185B" : "#C9A84C" }}>
+                          {isLow ? "Low Stock" : "In Stock"}
+                        </span>
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "right" }}>
                         <div style={{ display: "flex", justifyContent: "flex-end", gap: "4px" }}>
