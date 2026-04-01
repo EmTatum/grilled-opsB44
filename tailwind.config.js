@@ -5,26 +5,12 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        heading: ['Cormorant Garamond', 'serif'],
-        body: ['Raleway', 'sans-serif'],
-      },
-      colors: {
-        gold: '#C9A84C',
-        'gold-light': '#E8D08A',
-        rose: '#C2185B',
-        cream: '#F5F0E8',
-        bg: '#0a0a0a',
-        surface: '#111111',
-        card: '#1a1a1a',
+        cinzel: ['Cinzel', 'serif'],
+        cormorant: ['Cormorant Garamond', 'serif'],
+        raleway: ['Raleway', 'sans-serif'],
       },
       borderRadius: {
-        DEFAULT: '2px',
-        sm: '2px',
-        md: '2px',
-        lg: '2px',
-        xl: '2px',
-        '2xl': '2px',
-        full: '9999px',
+        DEFAULT: '0px', sm: '0px', md: '0px', lg: '0px', xl: '0px', '2xl': '0px', full: '9999px',
       },
       keyframes: {
         'accordion-down': { from: { height: '0' }, to: { height: 'var(--radix-accordion-content-height)' } },
