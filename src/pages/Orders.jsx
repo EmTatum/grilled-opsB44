@@ -34,6 +34,7 @@ export default function Orders() {
   const [editOrder, setEditOrder] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [expandedIds, setExpandedIds] = useState(new Set());
+  const [archivedFulfilled, setArchivedFulfilled] = useState([]);
   const toggleExpanded = (id) => setExpandedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
 
   const load = async () => {
@@ -41,7 +42,13 @@ export default function Orders() {
     // Auto-remove cancelled orders
     const cancelled = all.filter(o => o.status === "Cancelled");
     await Promise.all(cancelled.map(o => base44.entities.Order.delete(o.id)));
-    setOrders(all.filter(o => o.status !== "Cancelled"));
+    // Auto-remove fulfilled orders whose date has passed
+    const pastFulfilled = all.filter(o => o.status === "Fulfilled" && moment(o.order_date).isBefore(moment(), "day"));
+    await Promise.all(pastFulfilled.map(o => base44.entities.Order.delete(o.id)));
+    const active = all.filter(o => o.status !== "Cancelled" && !(o.status === "Fulfilled" && moment(o.order_date).isBefore(moment(), "day")));
+    setOrders(active);
+    // Keep past fulfilled as archive cards
+    setArchivedFulfilled(pastFulfilled);
     setLoading(false);
   };
 
@@ -67,20 +74,22 @@ export default function Orders() {
   const calendarGroups = useMemo(() => {
     const sorted = [...orders].sort((a, b) => moment(a.order_date).diff(moment(b.order_date)));
     const total = sorted.length;
-    // Assign gradient color red→gold→green based on position
+    // Intense gradient: vivid red → vivid yellow → vivid green
     const interpolate = (idx) => {
       const t = total <= 1 ? 0.5 : idx / (total - 1);
       let r, g, b;
       if (t < 0.5) {
         const s = t / 0.5;
-        r = Math.round(194 + (201 - 194) * s);
-        g = Math.round(24 + (168 - 24) * s);
-        b = Math.round(91 + (76 - 91) * s);
+        // Vivid red (#FF1744) → vivid yellow (#FFD600)
+        r = 255;
+        g = Math.round(23 + (214 - 23) * s);
+        b = Math.round(68 + (0 - 68) * s);
       } else {
         const s = (t - 0.5) / 0.5;
-        r = Math.round(201 + (76 - 201) * s);
-        g = Math.round(168 + (175 - 168) * s);
-        b = Math.round(76 + (130 - 76) * s);
+        // Vivid yellow (#FFD600) → vivid green (#00E676)
+        r = Math.round(255 + (0 - 255) * s);
+        g = Math.round(214 + (230 - 214) * s);
+        b = Math.round(0 + (118 - 0) * s);
       }
       return `rgb(${r},${g},${b})`;
     };
@@ -138,7 +147,8 @@ export default function Orders() {
                 <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px" }}>
                   <div style={{ minWidth: "80px" }}>
                     <p style={{ fontFamily: "'Cinzel', serif", fontSize: "22px", fontWeight: 600, color: "#C9A84C", lineHeight: 1, margin: 0 }}>{moment(day).format("D")}</p>
-                    <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 500, color: "rgba(201,168,76,0.5)", letterSpacing: "0.2em", textTransform: "uppercase", margin: 0 }}>{moment(day).format("MMM YYYY")}</p>
+                    <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 600, color: "#C9A84C", letterSpacing: "0.15em", textTransform: "uppercase", margin: "1px 0 0" }}>{moment(day).format("ddd")}</p>
+                    <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 400, color: "rgba(201,168,76,0.45)", letterSpacing: "0.15em", textTransform: "uppercase", margin: 0 }}>{moment(day).format("MMM YYYY")}</p>
                   </div>
                   <div style={{ flex: 1, height: "1px", background: "rgba(201,168,76,0.12)" }} />
                   <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", color: "rgba(245,240,232,0.2)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
@@ -151,16 +161,17 @@ export default function Orders() {
                     <div key={order.id}
                       onClick={() => { setEditOrder(order); setFormOpen(true); }}
                       style={{
-                        background: `linear-gradient(135deg, ${color}14 0%, rgba(20,20,20,0.95) 60%)`,
-                        border: `1px solid ${color}44`,
-                        borderLeft: `3px solid ${color}`,
+                        background: `linear-gradient(135deg, ${color}30 0%, rgba(14,14,14,1) 65%)`,
+                        border: `1px solid ${color}70`,
+                        borderLeft: `4px solid ${color}`,
+                        boxShadow: `0 0 18px ${color}22, inset 0 0 40px ${color}08`,
                         padding: "12px 14px",
                         cursor: "pointer",
                         transition: "all 0.2s ease",
                         position: "relative",
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background = `linear-gradient(135deg, ${color}28 0%, rgba(20,20,20,0.95) 60%)`; e.currentTarget.style.borderColor = `${color}88`; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = `linear-gradient(135deg, ${color}14 0%, rgba(20,20,20,0.95) 60%)`; e.currentTarget.style.borderColor = `${color}44`; }}
+                      onMouseEnter={e => { e.currentTarget.style.background = `linear-gradient(135deg, ${color}45 0%, rgba(14,14,14,1) 65%)`; e.currentTarget.style.boxShadow = `0 0 30px ${color}44`; e.currentTarget.style.borderColor = `${color}99`; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = `linear-gradient(135deg, ${color}30 0%, rgba(14,14,14,1) 65%)`; e.currentTarget.style.boxShadow = `0 0 18px ${color}22, inset 0 0 40px ${color}08`; e.currentTarget.style.borderColor = `${color}70`; }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
                         <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", fontWeight: 600, color: "#F5F0E8", margin: 0 }}>{order.client_name}</p>
@@ -277,6 +288,26 @@ export default function Orders() {
             </div>
           </div>
         </>
+      )}
+
+      {/* ── Archived Fulfilled Orders ── */}
+      {archivedFulfilled.length > 0 && (
+        <div style={{ marginTop: "48px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+            <div style={{ height: "1px", flex: 1, background: "rgba(245,240,232,0.06)" }} />
+            <span style={{ fontFamily: "'Cinzel', serif", fontSize: "10px", letterSpacing: "0.3em", color: "rgba(245,240,232,0.2)", textTransform: "uppercase" }}>Fulfilled · Archived</span>
+            <div style={{ height: "1px", flex: 1, background: "rgba(245,240,232,0.06)" }} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "8px" }}>
+            {archivedFulfilled.map(order => (
+              <div key={order.id} style={{ padding: "10px 14px", border: "1px solid rgba(245,240,232,0.06)", borderLeft: "3px solid rgba(245,240,232,0.1)", background: "rgba(255,255,255,0.02)", opacity: 0.55 }}>
+                <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, color: "rgba(245,240,232,0.5)", margin: "0 0 3px" }}>{order.client_name}</p>
+                <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", color: "rgba(245,240,232,0.25)", margin: "0 0 3px", letterSpacing: "0.1em", textTransform: "uppercase" }}>{moment(order.order_date).format("ddd D MMM YYYY")}</p>
+                {order.order_value > 0 && <p style={{ fontFamily: "'Cinzel', serif", fontSize: "12px", color: "rgba(201,168,76,0.35)", margin: 0 }}>R{Number(order.order_value).toLocaleString()}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       <OrderFormDialog open={formOpen} onOpenChange={setFormOpen} order={editOrder} onSave={handleSave} />
