@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from "react";
+import { useState, useEffect, Fragment, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Plus, Pencil, Trash2, ChevronDown } from "lucide-react";
 import OrderLifecycle from "../components/OrderLifecycle";
@@ -37,6 +37,24 @@ export default function Orders() {
   const toggleExpanded = (id) => setExpandedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
 
   const load = async () => { setOrders(await base44.entities.Order.list("-order_date", 200)); setLoading(false); };
+
+  const isUrgent = (order) => {
+    if (order.status !== "Pending") return false;
+    const slot = order.time_slot;
+    // Try to parse time_slot as a datetime-aware moment using order_date as base date
+    const base = moment(order.order_date);
+    let slotMoment = null;
+    if (slot) {
+      // e.g. "3:00 PM" — attach to the order date
+      const parsed = moment(`${base.format("YYYY-MM-DD")} ${slot}`, "YYYY-MM-DD h:mm A", true);
+      if (parsed.isValid()) slotMoment = parsed;
+    }
+    const reference = slotMoment || base;
+    return reference.diff(moment(), "hours") <= 24 && reference.isAfter(moment());
+  };
+
+  const pendingCount = useMemo(() => orders.filter(o => o.status === "Pending").length, [orders]);
+  const urgentCount = useMemo(() => orders.filter(o => isUrgent(o)).length, [orders]);
   useEffect(() => { load(); }, []);
 
   const handleSave = async (data) => {
@@ -51,7 +69,21 @@ export default function Orders() {
   return (
     <div>
       <PageHeader title="Order Log" subtitle="Manage and track all client orders">
-        <GoldBtn onClick={() => { setEditOrder(null); setFormOpen(true); }}><Plus size={12} /> New Order</GoldBtn>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <div style={{ padding: "6px 14px", border: "1px solid rgba(201,168,76,0.35)", background: "rgba(201,168,76,0.07)" }}>
+              <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Pending</span>
+              <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "#C9A84C", lineHeight: 1 }}>{pendingCount}</span>
+            </div>
+            {urgentCount > 0 && (
+              <div style={{ padding: "6px 14px", border: "1px solid rgba(194,24,91,0.5)", background: "rgba(194,24,91,0.08)" }}>
+                <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(194,24,91,0.7)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Urgent</span>
+                <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "#C2185B", lineHeight: 1 }}>{urgentCount}</span>
+              </div>
+            )}
+          </div>
+          <GoldBtn onClick={() => { setEditOrder(null); setFormOpen(true); }}><Plus size={12} /> New Order</GoldBtn>
+        </div>
       </PageHeader>
 
       {orders.length === 0 ? (
@@ -79,12 +111,14 @@ export default function Orders() {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map(order => (
+                  {orders.map(order => {
+                    const urgent = isUrgent(order);
+                    return (
                     <Fragment key={order.id}>
                     <tr
-                      style={{ borderBottom: expandedIds.has(order.id) ? "none" : "1px solid rgba(255,255,255,0.04)", transition: "background 0.15s", cursor: "pointer" }}
-                      onMouseEnter={e => e.currentTarget.style.background = "rgba(201,168,76,0.04)"}
-                      onMouseLeave={e => e.currentTarget.style.background = expandedIds.has(order.id) ? "rgba(201,168,76,0.04)" : "transparent"}
+                      style={{ borderBottom: expandedIds.has(order.id) ? "none" : "1px solid rgba(255,255,255,0.04)", transition: "background 0.15s", cursor: "pointer", background: urgent ? "rgba(194,24,91,0.06)" : "transparent", borderLeft: urgent ? "2px solid rgba(194,24,91,0.6)" : "2px solid transparent" }}
+                      onMouseEnter={e => e.currentTarget.style.background = urgent ? "rgba(194,24,91,0.1)" : "rgba(201,168,76,0.04)"}
+                      onMouseLeave={e => e.currentTarget.style.background = urgent ? "rgba(194,24,91,0.06)" : (expandedIds.has(order.id) ? "rgba(201,168,76,0.04)" : "transparent")}
                       onClick={() => toggleExpanded(order.id)}
                     >
                       <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "#F5F0E8", fontWeight: 500, whiteSpace: "nowrap" }}>{order.client_name}</td>
@@ -117,15 +151,18 @@ export default function Orders() {
                       </tr>
                     )}
                     </Fragment>
-                  ))}
+                  );
+                  })}
                 </tbody>
               </table>
             </div>
 
             {/* Mobile cards */}
             <div className="md:hidden">
-              {orders.map((order, idx) => (
-                <div key={order.id} style={{ padding: "18px 20px", borderBottom: idx < orders.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+              {orders.map((order, idx) => {
+                const urgent = isUrgent(order);
+                return (
+                 <div key={order.id} style={{ padding: "18px 20px", borderBottom: idx < orders.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", background: urgent ? "rgba(194,24,91,0.06)" : "transparent", borderLeft: urgent ? "3px solid rgba(194,24,91,0.6)" : "3px solid transparent" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
                     <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "14px", color: "#F5F0E8", fontWeight: 500 }}>{order.client_name}</p>
                     <StatusBadge status={order.status} />
@@ -137,7 +174,8 @@ export default function Orders() {
                     <button onClick={() => setDeleteId(order.id)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "#C2185B", letterSpacing: "0.15em", textTransform: "uppercase", padding: 0 }}>Delete</button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </>
