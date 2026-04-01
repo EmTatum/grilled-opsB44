@@ -55,6 +55,36 @@ export default function Orders() {
 
   const pendingCount = useMemo(() => orders.filter(o => o.status === "Pending").length, [orders]);
   const urgentCount = useMemo(() => orders.filter(o => isUrgent(o)).length, [orders]);
+
+  // Chronological calendar data — sorted ascending by date, grouped by day
+  const calendarGroups = useMemo(() => {
+    const sorted = [...orders].sort((a, b) => moment(a.order_date).diff(moment(b.order_date)));
+    const total = sorted.length;
+    // Assign gradient color red→gold→green based on position
+    const interpolate = (idx) => {
+      const t = total <= 1 ? 0.5 : idx / (total - 1);
+      let r, g, b;
+      if (t < 0.5) {
+        const s = t / 0.5;
+        r = Math.round(194 + (201 - 194) * s);
+        g = Math.round(24 + (168 - 24) * s);
+        b = Math.round(91 + (76 - 91) * s);
+      } else {
+        const s = (t - 0.5) / 0.5;
+        r = Math.round(201 + (76 - 201) * s);
+        g = Math.round(168 + (175 - 168) * s);
+        b = Math.round(76 + (130 - 76) * s);
+      }
+      return `rgb(${r},${g},${b})`;
+    };
+    const groups = {};
+    sorted.forEach((order, idx) => {
+      const day = moment(order.order_date).format("YYYY-MM-DD");
+      if (!groups[day]) groups[day] = [];
+      groups[day].push({ order, color: interpolate(idx) });
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [orders]);
   useEffect(() => { load(); }, []);
 
   const handleSave = async (data) => {
@@ -85,6 +115,67 @@ export default function Orders() {
           <GoldBtn onClick={() => { setEditOrder(null); setFormOpen(true); }}><Plus size={12} /> New Order</GoldBtn>
         </div>
       </PageHeader>
+
+      {/* ── Calendar View ── */}
+      {calendarGroups.length > 0 && (
+        <div style={{ marginBottom: "40px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+            <div style={{ height: "1px", flex: 1, background: "rgba(201,168,76,0.15)" }} />
+            <span style={{ fontFamily: "'Cinzel', serif", fontSize: "11px", letterSpacing: "0.3em", color: "rgba(201,168,76,0.45)", textTransform: "uppercase" }}>Schedule</span>
+            <div style={{ height: "1px", flex: 1, background: "rgba(201,168,76,0.15)" }} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            {calendarGroups.map(([day, entries]) => (
+              <div key={day}>
+                {/* Date header */}
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px" }}>
+                  <div style={{ minWidth: "80px" }}>
+                    <p style={{ fontFamily: "'Cinzel', serif", fontSize: "22px", fontWeight: 600, color: "#C9A84C", lineHeight: 1, margin: 0 }}>{moment(day).format("D")}</p>
+                    <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 500, color: "rgba(201,168,76,0.5)", letterSpacing: "0.2em", textTransform: "uppercase", margin: 0 }}>{moment(day).format("MMM YYYY")}</p>
+                  </div>
+                  <div style={{ flex: 1, height: "1px", background: "rgba(201,168,76,0.12)" }} />
+                  <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", color: "rgba(245,240,232,0.2)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                    {moment(day).isSame(moment(), "day") ? "Today" : moment(day).isSame(moment().add(1, "day"), "day") ? "Tomorrow" : moment(day).fromNow()}
+                  </span>
+                </div>
+                {/* Order cards */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px", paddingLeft: "92px" }}>
+                  {entries.map(({ order, color }) => (
+                    <div key={order.id}
+                      onClick={() => { setEditOrder(order); setFormOpen(true); }}
+                      style={{
+                        background: `linear-gradient(135deg, ${color}14 0%, rgba(20,20,20,0.95) 60%)`,
+                        border: `1px solid ${color}44`,
+                        borderLeft: `3px solid ${color}`,
+                        padding: "12px 14px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        position: "relative",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = `linear-gradient(135deg, ${color}28 0%, rgba(20,20,20,0.95) 60%)`; e.currentTarget.style.borderColor = `${color}88`; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = `linear-gradient(135deg, ${color}14 0%, rgba(20,20,20,0.95) 60%)`; e.currentTarget.style.borderColor = `${color}44`; }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
+                        <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", fontWeight: 600, color: "#F5F0E8", margin: 0 }}>{order.client_name}</p>
+                        <StatusBadge status={order.status} />
+                      </div>
+                      {order.time_slot && (
+                        <p style={{ fontFamily: "'Cinzel', serif", fontSize: "11px", color, margin: "0 0 4px", letterSpacing: "0.05em" }}>{order.time_slot}</p>
+                      )}
+                      {order.order_value > 0 && (
+                        <p style={{ fontFamily: "'Cinzel', serif", fontSize: "13px", color: "rgba(201,168,76,0.7)", margin: "0 0 4px" }}>R{Number(order.order_value).toLocaleString()}</p>
+                      )}
+                      {order.order_details && (
+                        <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", color: "rgba(245,240,232,0.35)", margin: 0, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>{order.order_details}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {orders.length === 0 ? (
         <div style={{ textAlign: "center", padding: "80px 20px", border: "1px dashed rgba(201,168,76,0.15)" }}>
