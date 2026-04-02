@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import PageHeader from "../components/PageHeader";
@@ -50,8 +51,13 @@ export default function CustomerNotes() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
 
+  const location = useLocation();
   const load = async () => { setNotes(await base44.entities.CustomerNote.list("-created_date", 100)); setLoading(false); };
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("new") === "1") { setEditNote(null); setFormOpen(true); }
+  }, [location.search]);
 
   const filtered = useMemo(() => notes.filter(n => {
     const matchSearch = !search || n.client_name.toLowerCase().includes(search.toLowerCase());

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ShoppingCart, Package, StickyNote, Users, AlertTriangle, Clock, ArrowRight } from "lucide-react";
-import StatCard from "../components/StatCard";
+import { ShoppingCart, Package, StickyNote, Clock, ArrowRight } from "lucide-react";
+import IntelligenceCards from "../components/IntelligenceCards";
 import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
 import moment from "moment";
@@ -47,7 +47,6 @@ export default function Dashboard() {
 
   const upcoming = orders.filter(o => o.status === "Pending" || o.status === "Confirmed");
   const lowStock = products.filter(p => p.current_stock < (p.low_stock_threshold || 5));
-  const clients = new Set([...orders.map(o => o.client_name), ...notes.map(n => n.client_name)]);
   const recentNotes = notes.slice(0, 3);
 
   return (
@@ -111,12 +110,7 @@ export default function Dashboard() {
       <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: "14px" }}>
         Live Intelligence
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px", marginBottom: "40px" }}>
-        <StatCard icon={ShoppingCart} label="Upcoming Orders" value={upcoming.length} accent="#C9A84C" />
-        <StatCard icon={AlertTriangle} label="Low Stock" value={lowStock.length} accent="#C9A84C" />
-        <StatCard icon={Users} label="Active Clients" value={clients.size} accent="#C9A84C" />
-        <StatCard icon={StickyNote} label="Client Notes" value={notes.length} accent="#C9A84C" />
-      </div>
+      <IntelligenceCards upcomingCount={upcoming.length} lowStockCount={lowStock.length} />
 
       {/* Divider */}
       <div className="gold-divider"><span className="gold-divider-diamond">◆</span></div>
