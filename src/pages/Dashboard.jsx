@@ -112,14 +112,10 @@ export default function Dashboard() {
         Live Intelligence
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px", marginBottom: "40px" }}>
-        {/* Orders — fiery orange/bronze */}
-        <StatCard icon={ShoppingCart} label="Upcoming Orders" value={upcoming.length} accent="#E8823A" />
-        {/* Low stock — rose/crimson */}
-        <StatCard icon={AlertTriangle} label="Low Stock" value={lowStock.length} accent="#C2185B" />
-        {/* Clients — gold */}
+        <StatCard icon={ShoppingCart} label="Upcoming Orders" value={upcoming.length} accent="#C9A84C" />
+        <StatCard icon={AlertTriangle} label="Low Stock" value={lowStock.length} accent="#C9A84C" />
         <StatCard icon={Users} label="Active Clients" value={clients.size} accent="#C9A84C" />
-        {/* Notes — teal */}
-        <StatCard icon={StickyNote} label="Client Notes" value={notes.length} accent="#2ABFB0" />
+        <StatCard icon={StickyNote} label="Client Notes" value={notes.length} accent="#C9A84C" />
       </div>
 
       {/* Divider */}

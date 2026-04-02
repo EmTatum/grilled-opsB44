@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ShoppingCart, Package, StickyNote, Menu, X } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, StickyNote, Menu, X, Lock } from "lucide-react";
+import { logout } from "./PasswordGate";
 import { useState } from "react";
 
 const navItems = [
@@ -82,6 +83,15 @@ export default function Layout() {
 
         {/* Footer */}
         <div style={{ marginTop: "auto", padding: "20px 16px", borderTop: "1px solid rgba(201,168,76,0.12)" }}>
+          <button
+            onClick={logout}
+            style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", padding: "6px 0", width: "100%", justifyContent: "center", marginBottom: "10px", color: "rgba(201,168,76,0.3)", fontFamily: "'Raleway', sans-serif", fontSize: "8px", letterSpacing: "0.18em", textTransform: "uppercase", transition: "color 0.2s" }}
+            onMouseEnter={e => e.currentTarget.style.color = "rgba(201,168,76,0.7)"}
+            onMouseLeave={e => e.currentTarget.style.color = "rgba(201,168,76,0.3)"}
+          >
+            <Lock size={10} />
+            Lock Session
+          </button>
           <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "8px", letterSpacing: "0.18em", color: "rgba(201,168,76,0.25)", textAlign: "center", textTransform: "uppercase", margin: 0 }}>GRILLED.INC © 2026</p>
         </div>
       </aside>
@@ -132,6 +142,15 @@ export default function Layout() {
           })}
         </nav>
         <div style={{ marginTop: "auto", padding: "20px 16px", borderTop: "1px solid rgba(201,168,76,0.12)" }}>
+          <button
+            onClick={logout}
+            style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", padding: "6px 0", width: "100%", justifyContent: "center", marginBottom: "10px", color: "rgba(201,168,76,0.3)", fontFamily: "'Raleway', sans-serif", fontSize: "8px", letterSpacing: "0.18em", textTransform: "uppercase", transition: "color 0.2s" }}
+            onMouseEnter={e => e.currentTarget.style.color = "rgba(201,168,76,0.7)"}
+            onMouseLeave={e => e.currentTarget.style.color = "rgba(201,168,76,0.3)"}
+          >
+            <Lock size={10} />
+            Lock Session
+          </button>
           <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "8px", letterSpacing: "0.18em", color: "rgba(201,168,76,0.25)", textAlign: "center", textTransform: "uppercase", margin: 0 }}>GRILLED.INC © 2026</p>
         </div>
       </aside>
