@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
 import Inventory from './pages/Inventory';
 import CustomerNotes from './pages/CustomerNotes';
+import ClientAnalytics from './pages/ClientAnalytics';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -43,6 +44,7 @@ const AuthenticatedApp = () => {
         <Route path="/orders" element={<Orders />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/notes" element={<CustomerNotes />} />
+        <Route path="/client-analytics" element={<ClientAnalytics />} />
         <Route path="*" element={<PageNotFound />} />
       </Route>
     </Routes>

@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ShoppingCart, Package, StickyNote, Menu, X, Lock } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, StickyNote, LineChart, Menu, X, Lock } from "lucide-react";
 import { logout } from "./PasswordGate";
 import { useState } from "react";
 
@@ -8,6 +8,7 @@ const navItems = [
   { path: "/orders", label: "Upcoming Orders", icon: ShoppingCart },
   { path: "/inventory", label: "Inventory", icon: Package },
   { path: "/notes", label: "Client Notes", icon: StickyNote },
+  { path: "/client-analytics", label: "Client Analytics", icon: LineChart },
 ];
 
 const sidebarStyle = {
