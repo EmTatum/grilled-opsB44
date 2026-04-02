@@ -7,6 +7,7 @@ const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/orders", label: "Upcoming Orders", icon: ShoppingCart },
   { path: "/orders-planner", label: "Orders Planner", icon: ShoppingCart },
+  { path: "/daily-dispatch-manifest", label: "Dispatch Manifest", icon: ShoppingCart },
   { path: "/inventory", label: "Inventory", icon: Package },
   { path: "/notes", label: "Client Notes", icon: StickyNote },
   { path: "/client-analytics", label: "Client Analytics", icon: LineChart },

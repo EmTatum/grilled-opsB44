@@ -132,6 +132,9 @@ export default function Orders() {
           <Link to="/orders-planner" style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.3)", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 18px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px" }}>
             <CalendarDays size={12} /> Calendar View
           </Link>
+          <Link to="/daily-dispatch-manifest" style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.3)", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 18px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px" }}>
+            <CalendarDays size={12} /> Dispatch Sheet
+          </Link>
           <GoldBtn onClick={() => { setEditOrder(null); setFormOpen(true); }}><Plus size={12} /> New Order</GoldBtn>
         </div>
       </PageHeader>
