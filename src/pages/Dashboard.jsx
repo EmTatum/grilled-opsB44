@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { ShoppingCart, Package, StickyNote, Clock, ArrowRight } from "lucide-react";
 import IntelligenceCards from "../components/IntelligenceCards";
-import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
 import moment from "moment";
 
@@ -45,9 +44,31 @@ export default function Dashboard() {
 
   if (loading) return <Spinner />;
 
-  const upcoming = orders.filter(o => o.status === "Pending" || o.status === "Confirmed");
-  const lowStock = products.filter(p => p.current_stock < (p.low_stock_threshold || 5));
+  const todayOrders = orders.filter(o => moment(o.order_date).isSame(moment(), "day"));
+  const pendingOrders = orders.filter(o => o.status === "Pending");
+  const processingOrders = orders.filter(o => o.status === "Confirmed");
+  const completedOrders = orders.filter(o => o.status === "Fulfilled");
+  const overdueOrders = orders.filter(o => (o.status === "Pending" || o.status === "Confirmed") && moment(o.order_date).isBefore(moment(), "day"));
+  const lowStock = products.filter(p => p.current_stock <= (p.low_stock_threshold || 5));
+  const outOfStock = products.filter(p => p.current_stock <= 0);
+  const topSeller = orders.length > 0
+    ? Object.entries(orders.reduce((acc, order) => {
+        const key = order.client_name || "Unknown";
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {})).sort((a, b) => b[1] - a[1])[0]?.[0]
+    : null;
+  const unresolvedClientIssues = notes.filter(n => n.priority === "High" || n.note_type === "Needs Attention" || n.note_type === "Debt on Account");
   const recentNotes = notes.slice(0, 3);
+  const recentInteractions = notes.filter(n => moment(n.created_date).isAfter(moment().subtract(7, "days"))).length;
+  const newNotesToday = notes.filter(n => moment(n.created_date).isSame(moment(), "day")).length;
+  const followUpClients = notes.filter(n => n.note_type === "Client Retention" || n.note_type === "Needs Attention").length;
+  const completedToday = orders.filter(o => o.status === "Fulfilled" && moment(o.updated_date || o.order_date).isSame(moment(), "day")).length;
+  const completedYesterday = orders.filter(o => o.status === "Fulfilled" && moment(o.updated_date || o.order_date).isSame(moment().subtract(1, "day"), "day")).length;
+  const revenueToday = orders
+    .filter(o => moment(o.order_date).isSame(moment(), "day"))
+    .reduce((sum, order) => sum + Number(order.order_value || 0), 0);
+  const fulfillmentRate = todayOrders.length > 0 ? Math.round((completedToday / todayOrders.length) * 100) : 0;
 
   return (
     <div>
@@ -110,7 +131,36 @@ export default function Dashboard() {
       <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: "14px" }}>
         Live Intelligence
       </p>
-      <IntelligenceCards upcomingCount={upcoming.length} lowStockCount={lowStock.length} />
+      <IntelligenceCards
+        ordersOverview={{
+          todayTotal: todayOrders.length,
+          pending: pendingOrders.length,
+          processing: processingOrders.length,
+          completed: completedOrders.length,
+          overdue: overdueOrders.length,
+        }}
+        inventoryStatus={{
+          lowStock: lowStock.length,
+          outOfStock: outOfStock.length,
+          topSeller,
+        }}
+        alertsIssues={{
+          lateOrders: overdueOrders.length,
+          lowInventory: lowStock.length,
+          clientIssues: unresolvedClientIssues.length,
+        }}
+        clientActivity={{
+          recentInteractions,
+          newNotes: newNotesToday,
+          followUp: followUpClients,
+        }}
+        dailyPerformance={{
+          completedToday,
+          completedYesterday,
+          revenue: revenueToday,
+          fulfillmentRate,
+        }}
+      />
 
       {/* Divider */}
       <div className="gold-divider"><span className="gold-divider-diamond">◆</span></div>
