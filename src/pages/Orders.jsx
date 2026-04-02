@@ -1,7 +1,8 @@
 import { useState, useEffect, Fragment, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Pencil, Trash2, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronDown, CalendarDays } from "lucide-react";
 import OrderLifecycle from "../components/OrderLifecycle";
+import { Link } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
 import OrderFormDialog from "../components/OrderFormDialog";
@@ -115,7 +116,7 @@ export default function Orders() {
   return (
     <div>
       <PageHeader title="Order Log" subtitle="Manage and track all client orders">
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", justifyContent: "flex-end" }}>
           <div style={{ display: "flex", gap: "10px" }}>
             <div style={{ padding: "6px 14px", border: "1px solid rgba(201,168,76,0.35)", background: "rgba(201,168,76,0.07)" }}>
               <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Pending</span>
@@ -128,6 +129,9 @@ export default function Orders() {
               </div>
             )}
           </div>
+          <Link to="/orders-planner" style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.3)", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 18px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px" }}>
+            <CalendarDays size={12} /> Calendar View
+          </Link>
           <GoldBtn onClick={() => { setEditOrder(null); setFormOpen(true); }}><Plus size={12} /> New Order</GoldBtn>
         </div>
       </PageHeader>
