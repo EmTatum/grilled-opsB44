@@ -66,7 +66,13 @@ export default function Dashboard() {
   const completedToday = orders.filter(o => o.status === "Fulfilled" && moment(o.updated_date || o.order_date).isSame(moment(), "day")).length;
   const completedYesterday = orders.filter(o => o.status === "Fulfilled" && moment(o.updated_date || o.order_date).isSame(moment().subtract(1, "day"), "day")).length;
   const revenueToday = orders
-    .filter(o => moment(o.order_date).isSame(moment(), "day"))
+    .filter(o => o.status === "Fulfilled" && moment(o.order_date).isSame(moment(), "day"))
+    .reduce((sum, order) => sum + Number(order.order_value || 0), 0);
+  const revenueWeek = orders
+    .filter(o => o.status === "Fulfilled" && moment(o.order_date).isSame(moment(), "week"))
+    .reduce((sum, order) => sum + Number(order.order_value || 0), 0);
+  const revenueMonth = orders
+    .filter(o => o.status === "Fulfilled" && moment(o.order_date).isSame(moment(), "month"))
     .reduce((sum, order) => sum + Number(order.order_value || 0), 0);
   const fulfillmentRate = todayOrders.length > 0 ? Math.round((completedToday / todayOrders.length) * 100) : 0;
 
@@ -159,6 +165,11 @@ export default function Dashboard() {
           completedYesterday,
           revenue: revenueToday,
           fulfillmentRate,
+        }}
+        financialSummary={{
+          today: revenueToday,
+          week: revenueWeek,
+          month: revenueMonth,
         }}
       />
 

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Box, ClipboardList, FileText, Users, TrendingUp } from "lucide-react";
+import { AlertTriangle, Box, ClipboardList, DollarSign, Users, TrendingUp } from "lucide-react";
 
 const cardBase = {
   position: "relative",
@@ -193,7 +193,21 @@ function DailyPerformanceWidget({ stats }) {
   );
 }
 
-export default function IntelligenceCards({ ordersOverview, inventoryStatus, alertsIssues, clientActivity, dailyPerformance }) {
+function FinancialSummaryWidget({ stats }) {
+  const navigate = useNavigate();
+  return (
+    <WidgetCard icon={DollarSign} title="Financial Summary" onClick={() => navigate("/orders")} actionLabel="View Fulfilled Orders">
+      <p style={valueStyle}>{stats.today > 0 ? `R${Number(stats.today).toLocaleString()}` : "—"}</p>
+      <div style={{ marginTop: "10px" }}>
+        <MetricRow label="Today" value={stats.today > 0 ? `R${Number(stats.today).toLocaleString()}` : "—"} />
+        <MetricRow label="This Week" value={stats.week > 0 ? `R${Number(stats.week).toLocaleString()}` : "—"} />
+        <MetricRow label="This Month" value={stats.month > 0 ? `R${Number(stats.month).toLocaleString()}` : "—"} />
+      </div>
+    </WidgetCard>
+  );
+}
+
+export default function IntelligenceCards({ ordersOverview, inventoryStatus, alertsIssues, clientActivity, dailyPerformance, financialSummary }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px", marginBottom: "40px" }} className="intelligence-grid">
       <style>{`
@@ -209,6 +223,7 @@ export default function IntelligenceCards({ ordersOverview, inventoryStatus, ale
       <AlertsIssuesWidget stats={alertsIssues} />
       <ClientActivityWidget stats={clientActivity} />
       <DailyPerformanceWidget stats={dailyPerformance} />
+      <FinancialSummaryWidget stats={financialSummary} />
     </div>
   );
 }
