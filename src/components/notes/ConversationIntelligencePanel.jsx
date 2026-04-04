@@ -34,6 +34,7 @@ const maskSensitiveDetails = (text) =>
 export default function ConversationIntelligencePanel() {
   const [conversation, setConversation] = useState("");
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [report, setReport] = useState(null);
 
   const analyzeConversation = async () => {
@@ -85,6 +86,63 @@ Conversation:\n${sanitizedConversation}`,
     setLoading(false);
   };
 
+  const saveReport = async () => {
+    if (!report || saving) return;
+    setSaving(true);
+
+    const title = report.client_snapshot?.[0] || "Client sales intelligence report";
+    const content = [
+      "CLIENT SALES INTELLIGENCE REPORT",
+      "",
+      "Client Snapshot:",
+      ...(report.client_snapshot || []).map(item => `- ${item}`),
+      "",
+      "Salesperson Brief:",
+      ...(report.salesperson_brief || []).map(item => `- ${item}`),
+      "",
+      "Sentiment Profile:",
+      `- Current: ${report.sentiment_profile?.current || "—"}`,
+      `- Trust: ${report.sentiment_profile?.trust_level || "—"}`,
+      `- Style: ${report.sentiment_profile?.communication_style || "—"}`,
+      ...(report.sentiment_profile?.shifts_over_time || []).map(item => `- Shift: ${item}`),
+      "",
+      "Preferences:",
+      ...(report.preferences || []).map(item => `- ${item}`),
+      "",
+      "Objections & Blockers:",
+      ...(report.objections_blockers || []).map(item => `- ${item}`),
+      "",
+      "Buying Signals:",
+      `- Intent: ${report.buying_signals?.intent_score ?? "—"}/10`,
+      `- Urgency: ${report.buying_signals?.urgency_score ?? "—"}/10`,
+      `- Trust: ${report.buying_signals?.trust_score ?? "—"}/10`,
+      `- Close Probability: ${report.buying_signals?.close_probability ?? "—"}%`,
+      ...(report.buying_signals?.signals || []).map(item => `- Signal: ${item}`),
+      "",
+      "Behavior Pattern:",
+      ...(report.behavior_pattern || []).map(item => `- ${item}`),
+      "",
+      "Recommended Sales Approach:",
+      ...(report.recommended_sales_approach || []).map(item => `- ${item}`),
+      "",
+      "Risk Flags:",
+      ...(report.risk_flags || []).map(item => `- ${item}`),
+      "",
+      "Evidence Lines:",
+      ...(report.evidence_lines || []).map(item => `- ${item}`),
+    ].join("\n");
+
+    await base44.entities.CustomerNote.create({
+      client_name: title.replace(/^-\s*/, "").slice(0, 120),
+      note_type: "General",
+      priority: "Medium",
+      content,
+      tags: ["sales-intelligence", "whatsapp-analysis"]
+    });
+
+    setSaving(false);
+  };
+
   return (
     <div style={{ ...cardStyle, marginBottom: "28px" }}>
       <div style={{ marginBottom: "16px" }}>
@@ -104,13 +162,24 @@ Conversation:\n${sanitizedConversation}`,
         />
       </div>
 
-      <button
-        onClick={analyzeConversation}
-        disabled={loading || !conversation.trim()}
-        style={{ background: "transparent", border: "1px solid #C9A84C", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 20px", cursor: loading ? "default" : "pointer", opacity: loading ? 0.6 : 1 }}
-      >
-        {loading ? "Analyzing..." : "Generate Report"}
-      </button>
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        <button
+          onClick={analyzeConversation}
+          disabled={loading || !conversation.trim()}
+          style={{ background: "transparent", border: "1px solid #C9A84C", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 20px", cursor: loading ? "default" : "pointer", opacity: loading ? 0.6 : 1 }}
+        >
+          {loading ? "Analyzing..." : "Generate Report"}
+        </button>
+        {report && (
+          <button
+            onClick={saveReport}
+            disabled={saving}
+            style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.4)", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 20px", cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1 }}
+          >
+            {saving ? "Saving..." : "Save Report"}
+          </button>
+        )}
+      </div>
 
       {report && (
         <div style={{ marginTop: "22px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
