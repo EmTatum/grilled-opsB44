@@ -17,6 +17,20 @@ const cardStyle = {
   padding: "22px",
 };
 
+const bodyText = {
+  fontFamily: "'Raleway', sans-serif",
+  fontSize: "12px",
+  color: "rgba(245,240,232,0.72)",
+  lineHeight: 1.7,
+  margin: 0,
+};
+
+const maskSensitiveDetails = (text) =>
+  text
+    .replace(/\+?\d[\d\s\-()]{7,}\d/g, "[redacted phone]")
+    .replace(/\b\d{12,19}\b/g, "[redacted payment]")
+    .replace(/\b\d{3,6}\s+[A-Za-z0-9\s,.-]{6,}/g, "[redacted address]");
+
 export default function ConversationIntelligencePanel() {
   const [conversation, setConversation] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,16 +39,45 @@ export default function ConversationIntelligencePanel() {
   const analyzeConversation = async () => {
     if (!conversation.trim()) return;
     setLoading(true);
+    const sanitizedConversation = maskSensitiveDetails(conversation);
     const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a sales intelligence assistant for a luxury retail operations team. Analyze this pasted WhatsApp conversation and return a concise structured report. Focus only on business-relevant insights.\n\nConversation:\n${conversation}`,
+      prompt: `Analyze full customer WhatsApp logs and extract only the details a salesperson or account manager needs before replying. Focus on sentiment, sentiment shifts over time, explicit preferences, inferred preferences, objections, blockers, buying intent, urgency, trust level, communication style, reliability, loyalty indicators, churn or ghosting risk, and next-best action.
+
+Be concise, commercial, structured, and evidence-based. Do not summarize the whole chat unless necessary. Separate facts from inferences and clearly mark uncertainty. Respect chronology and patterns over time. Do not over-interpret one emotional message. Treat silence carefully and do not assume rejection unless supported. Redact or mask sensitive personal details where possible, including phone numbers, addresses, and payment details. Do not infer protected traits or make medical, legal, or criminal conclusions.
+
+Return a scan-friendly client sheet.
+
+Conversation:\n${sanitizedConversation}`,
       response_json_schema: {
         type: "object",
         properties: {
-          sentiment: { type: "string" },
-          buying_intent: { type: "string" },
-          summary: { type: "string" },
-          key_signals: { type: "array", items: { type: "string" } },
-          recommended_next_actions: { type: "array", items: { type: "string" } }
+          client_snapshot: { type: "array", items: { type: "string" } },
+          salesperson_brief: { type: "array", items: { type: "string" } },
+          sentiment_profile: {
+            type: "object",
+            properties: {
+              current: { type: "string" },
+              shifts_over_time: { type: "array", items: { type: "string" } },
+              trust_level: { type: "string" },
+              communication_style: { type: "string" }
+            }
+          },
+          preferences: { type: "array", items: { type: "string" } },
+          objections_blockers: { type: "array", items: { type: "string" } },
+          buying_signals: {
+            type: "object",
+            properties: {
+              intent_score: { type: "number" },
+              urgency_score: { type: "number" },
+              trust_score: { type: "number" },
+              close_probability: { type: "number" },
+              signals: { type: "array", items: { type: "string" } }
+            }
+          },
+          behavior_pattern: { type: "array", items: { type: "string" } },
+          recommended_sales_approach: { type: "array", items: { type: "string" } },
+          risk_flags: { type: "array", items: { type: "string" } },
+          evidence_lines: { type: "array", items: { type: "string" } }
         }
       }
     });
@@ -46,7 +89,7 @@ export default function ConversationIntelligencePanel() {
     <div style={{ ...cardStyle, marginBottom: "28px" }}>
       <div style={{ marginBottom: "16px" }}>
         <p style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase", margin: 0 }}>Sales Intelligence</p>
-        <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.45)", margin: "6px 0 0" }}>Paste a WhatsApp conversation to detect sentiment, buying intent, and next steps.</p>
+        <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.45)", margin: "6px 0 0" }}>Paste full WhatsApp logs to generate a concise, evidence-based client sheet before replying.</p>
       </div>
 
       <div style={{ marginBottom: "16px" }}>
@@ -70,32 +113,91 @@ export default function ConversationIntelligencePanel() {
       </button>
 
       {report && (
-        <div style={{ marginTop: "22px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
+        <div style={{ marginTop: "22px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
           <div style={{ ...cardStyle, padding: "16px" }}>
-            <p style={labelStyle}>Sentiment</p>
-            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "24px", color: "#C9A84C", margin: 0 }}>{report.sentiment}</p>
-          </div>
-          <div style={{ ...cardStyle, padding: "16px" }}>
-            <p style={labelStyle}>Buying Intent</p>
-            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "24px", color: "#C9A84C", margin: 0 }}>{report.buying_intent}</p>
-          </div>
-          <div style={{ ...cardStyle, padding: "16px", gridColumn: "1 / -1" }}>
-            <p style={labelStyle}>Summary</p>
-            <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.72)", lineHeight: 1.7, margin: 0 }}>{report.summary}</p>
-          </div>
-          <div style={{ ...cardStyle, padding: "16px" }}>
-            <p style={labelStyle}>Key Signals</p>
-            <ul style={{ margin: 0, paddingLeft: "18px", color: "rgba(245,240,232,0.72)" }}>
-              {(report.key_signals || []).map((item, index) => (
-                <li key={index} style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", marginBottom: "8px" }}>{item}</li>
+            <p style={labelStyle}>Client Snapshot</p>
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              {(report.client_snapshot || []).map((item, index) => (
+                <li key={index} style={bodyText}>{item}</li>
               ))}
             </ul>
           </div>
           <div style={{ ...cardStyle, padding: "16px" }}>
-            <p style={labelStyle}>Recommended Next Actions</p>
-            <ul style={{ margin: 0, paddingLeft: "18px", color: "rgba(245,240,232,0.72)" }}>
-              {(report.recommended_next_actions || []).map((item, index) => (
-                <li key={index} style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", marginBottom: "8px" }}>{item}</li>
+            <p style={labelStyle}>Salesperson Brief</p>
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              {(report.salesperson_brief || []).map((item, index) => (
+                <li key={index} style={bodyText}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div style={{ ...cardStyle, padding: "16px" }}>
+            <p style={labelStyle}>Sentiment Profile</p>
+            <p style={bodyText}><strong>Current:</strong> {report.sentiment_profile?.current || "—"}</p>
+            <p style={bodyText}><strong>Trust:</strong> {report.sentiment_profile?.trust_level || "—"}</p>
+            <p style={bodyText}><strong>Style:</strong> {report.sentiment_profile?.communication_style || "—"}</p>
+            <ul style={{ margin: "10px 0 0", paddingLeft: "18px" }}>
+              {(report.sentiment_profile?.shifts_over_time || []).map((item, index) => (
+                <li key={index} style={bodyText}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div style={{ ...cardStyle, padding: "16px" }}>
+            <p style={labelStyle}>Preferences</p>
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              {(report.preferences || []).map((item, index) => (
+                <li key={index} style={bodyText}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div style={{ ...cardStyle, padding: "16px" }}>
+            <p style={labelStyle}>Objections & Blockers</p>
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              {(report.objections_blockers || []).map((item, index) => (
+                <li key={index} style={bodyText}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div style={{ ...cardStyle, padding: "16px" }}>
+            <p style={labelStyle}>Buying Signals</p>
+            <p style={bodyText}><strong>Intent:</strong> {report.buying_signals?.intent_score ?? "—"}/10</p>
+            <p style={bodyText}><strong>Urgency:</strong> {report.buying_signals?.urgency_score ?? "—"}/10</p>
+            <p style={bodyText}><strong>Trust:</strong> {report.buying_signals?.trust_score ?? "—"}/10</p>
+            <p style={bodyText}><strong>Close Probability:</strong> {report.buying_signals?.close_probability ?? "—"}%</p>
+            <ul style={{ margin: "10px 0 0", paddingLeft: "18px" }}>
+              {(report.buying_signals?.signals || []).map((item, index) => (
+                <li key={index} style={bodyText}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div style={{ ...cardStyle, padding: "16px" }}>
+            <p style={labelStyle}>Behavior Pattern</p>
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              {(report.behavior_pattern || []).map((item, index) => (
+                <li key={index} style={bodyText}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div style={{ ...cardStyle, padding: "16px" }}>
+            <p style={labelStyle}>Recommended Sales Approach</p>
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              {(report.recommended_sales_approach || []).map((item, index) => (
+                <li key={index} style={bodyText}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div style={{ ...cardStyle, padding: "16px" }}>
+            <p style={labelStyle}>Risk Flags</p>
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              {(report.risk_flags || []).map((item, index) => (
+                <li key={index} style={bodyText}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div style={{ ...cardStyle, padding: "16px", gridColumn: "1 / -1" }}>
+            <p style={labelStyle}>Evidence Lines</p>
+            <ul style={{ margin: 0, paddingLeft: "18px" }}>
+              {(report.evidence_lines || []).map((item, index) => (
+                <li key={index} style={bodyText}>{item}</li>
               ))}
             </ul>
           </div>
