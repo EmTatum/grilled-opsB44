@@ -6,6 +6,7 @@ import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
 import NoteFormDialog from "../components/NoteFormDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
+import ConversationIntelligencePanel from "../components/notes/ConversationIntelligencePanel";
 import moment from "moment";
 
 const noteTypeAccent = {
@@ -76,9 +77,11 @@ export default function CustomerNotes() {
 
   return (
     <div>
-      <PageHeader title="Client Notes" subtitle="CRM — Notes, credits, debts, and client intelligence">
+      <PageHeader title="Client Notes" subtitle="CRM — Notes, credits, debts, client intelligence, and conversation analysis">
         <GoldBtn onClick={() => { setEditNote(null); setFormOpen(true); }}><Plus size={12} /> New Note</GoldBtn>
       </PageHeader>
+
+      <ConversationIntelligencePanel />
 
       {/* Filters */}
       <div style={{ display: "flex", gap: "12px", marginBottom: "28px", flexWrap: "wrap" }}>
