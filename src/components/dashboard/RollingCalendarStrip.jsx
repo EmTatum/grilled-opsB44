@@ -5,8 +5,8 @@ export default function RollingCalendarStrip({ days, selectedDate, getDayMeta, o
   const safeDays = days ?? [];
 
   return (
-    <div style={{ marginBottom: "28px", overflowX: "auto", paddingBottom: "6px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${safeDays.length}, minmax(110px, 1fr))`, gap: "10px", minWidth: "max-content" }}>
+    <div style={{ marginBottom: "28px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(110px, 1fr))", gap: "10px" }}>
         {safeDays.map((day) => {
           const currentDay = new Date(day);
           const meta = getDayMeta?.(currentDay) ?? { orderCount: 0, hasAlert: false, isCritical: false };
