@@ -204,17 +204,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <RollingCalendarStrip
-        days={rollingDays}
-        selectedDate={selectedDate}
-        getDayMeta={getDayMeta}
-        onSelectDay={(dayKey) => {
-          setSelectedDate(dayKey);
-          setOrderStatusFilter("all");
-          setShowOrdersPanel(true);
-        }}
-      />
-
       {(showOrdersPanel || filteredOrders.length > 0) && (
         <TodayOrdersCard
           selectedDate={selectedDate}
@@ -225,6 +214,17 @@ export default function Dashboard() {
           }}
         />
       )}
+
+      <RollingCalendarStrip
+        days={rollingDays}
+        selectedDate={selectedDate}
+        getDayMeta={getDayMeta}
+        onSelectDay={(dayKey) => {
+          setSelectedDate(dayKey);
+          setOrderStatusFilter("all");
+          setShowOrdersPanel(true);
+        }}
+      />
 
       <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: "14px" }}>
         Live Intelligence
