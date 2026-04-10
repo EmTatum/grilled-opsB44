@@ -41,6 +41,8 @@ export default function Orders() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [pendingBulkStatus, setPendingBulkStatus] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const urlParams = new URLSearchParams(window.location.search);
+  const highlightedOrderId = urlParams.get("orderId");
   const toggleExpanded = (id) => setExpandedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
 
   const load = async () => {
@@ -138,6 +140,15 @@ export default function Orders() {
     load();
   };
   const handleExportSelected = () => exportOrdersPdf(selectedOrders);
+
+  useEffect(() => {
+    if (!highlightedOrderId || orders.length === 0) return;
+    setExpandedIds(new Set([highlightedOrderId]));
+    requestAnimationFrame(() => {
+      const target = document.getElementById(`order-row-${highlightedOrderId}`);
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [highlightedOrderId, orders]);
 
   if (loading) return <Spinner />;
 
@@ -278,9 +289,10 @@ export default function Orders() {
                     return (
                     <Fragment key={order.id}>
                     <tr
-                      style={{ borderBottom: expandedIds.has(order.id) ? "none" : "1px solid rgba(255,255,255,0.04)", transition: "background 0.15s", cursor: "pointer", background: urgent ? "rgba(194,24,91,0.06)" : "transparent", borderLeft: urgent ? "2px solid rgba(194,24,91,0.6)" : "2px solid transparent" }}
-                      onMouseEnter={e => e.currentTarget.style.background = urgent ? "rgba(194,24,91,0.1)" : "rgba(201,168,76,0.04)"}
-                      onMouseLeave={e => e.currentTarget.style.background = urgent ? "rgba(194,24,91,0.06)" : (expandedIds.has(order.id) ? "rgba(201,168,76,0.04)" : "transparent")}
+                      id={`order-row-${order.id}`}
+                      style={{ borderBottom: expandedIds.has(order.id) ? "none" : "1px solid rgba(255,255,255,0.04)", transition: "background 0.15s", cursor: "pointer", background: highlightedOrderId === order.id ? "rgba(201,168,76,0.08)" : urgent ? "rgba(194,24,91,0.06)" : "transparent", borderLeft: highlightedOrderId === order.id ? "2px solid #C9A84C" : urgent ? "2px solid rgba(194,24,91,0.6)" : "2px solid transparent" }}
+                      onMouseEnter={e => e.currentTarget.style.background = highlightedOrderId === order.id ? "rgba(201,168,76,0.12)" : urgent ? "rgba(194,24,91,0.1)" : "rgba(201,168,76,0.04)"}
+                      onMouseLeave={e => e.currentTarget.style.background = highlightedOrderId === order.id ? "rgba(201,168,76,0.08)" : urgent ? "rgba(194,24,91,0.06)" : (expandedIds.has(order.id) ? "rgba(201,168,76,0.04)" : "transparent")}
                       onClick={() => toggleExpanded(order.id)}
                     >
                       {currentUser?.role === "admin" && (

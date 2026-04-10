@@ -1,4 +1,5 @@
 import moment from "moment";
+import { Link } from "react-router-dom";
 import StatusBadge from "../StatusBadge";
 
 const getSlotLabel = (order) => order.time_slot || moment(order.order_date).format("h:mm A");
@@ -15,14 +16,19 @@ const orderCardStyle = {
 
 function OrderCard({ order, onDragStart }) {
   return (
-    <div draggable onDragStart={() => onDragStart(order)} style={orderCardStyle}>
+    <Link
+      to={`/orders?orderId=${order.id}`}
+      draggable
+      onDragStart={() => onDragStart(order)}
+      style={{ ...orderCardStyle, textDecoration: "none" }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "flex-start" }}>
         <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", fontWeight: 600, color: "#F5F0E8", margin: 0 }}>{order.client_name}</p>
         <StatusBadge status={order.status} />
       </div>
       <p style={{ fontFamily: "'Cinzel', serif", fontSize: "14px", color: "#C9A84C", margin: 0 }}>{getSlotLabel(order)}</p>
       <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.42)", margin: 0 }}>{order.order_details}</p>
-    </div>
+    </Link>
   );
 }
 
