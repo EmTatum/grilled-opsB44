@@ -9,7 +9,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
-import OrdersPlanner from './pages/OrdersPlanner';
+
 import DailyDispatchManifest from './pages/DailyDispatchManifest';
 import Inventory from './pages/Inventory';
 import CustomerNotes from './pages/CustomerNotes';
@@ -44,7 +44,6 @@ const AuthenticatedApp = () => {
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/orders" element={<Orders />} />
-        <Route path="/orders-planner" element={<OrdersPlanner />} />
         <Route path="/daily-dispatch-manifest" element={<DailyDispatchManifest />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/notes" element={<CustomerNotes />} />

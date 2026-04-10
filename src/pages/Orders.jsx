@@ -8,6 +8,8 @@ import StatusBadge from "../components/StatusBadge";
 import OrderFormDialog from "../components/OrderFormDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
 import BulkActionsBar from "../components/orders/BulkActionsBar";
+import OrdersCalendarToolbar from "../components/orders/OrdersCalendarToolbar";
+import OrdersCalendarGrid from "../components/orders/OrdersCalendarGrid";
 import { exportOrdersPdf } from "../utils/exportOrdersPdf";
 import moment from "moment";
 
@@ -41,6 +43,8 @@ export default function Orders() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [pendingBulkStatus, setPendingBulkStatus] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [cursorDate, setCursorDate] = useState(moment().startOf("month"));
+  const [draggedOrder, setDraggedOrder] = useState(null);
   const urlParams = new URLSearchParams(window.location.search);
   const highlightedOrderId = urlParams.get("orderId");
   const toggleExpanded = (id) => setExpandedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
@@ -114,6 +118,26 @@ export default function Orders() {
     });
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [upcomingOrders]);
+
+  const plannerDays = useMemo(() => {
+    const start = cursorDate.clone().startOf("month").startOf("week");
+    const end = cursorDate.clone().endOf("month").endOf("week");
+    const count = end.diff(start, "days") + 1;
+    return Array.from({ length: count }, (_, index) => start.clone().add(index, "days"));
+  }, [cursorDate]);
+
+  const plannerOrdersByDay = useMemo(() => {
+    return orders.reduce((acc, order) => {
+      const key = moment(order.order_date).format("YYYY-MM-DD");
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(order);
+      acc[key].sort((a, b) => moment(a.order_date).valueOf() - moment(b.order_date).valueOf());
+      return acc;
+    }, {});
+  }, [orders]);
+
+  const plannerLabel = cursorDate.format("MMMM YYYY");
+
   useEffect(() => { load(); }, []);
 
   const handleSave = async (data) => {
@@ -142,6 +166,15 @@ export default function Orders() {
     load();
   };
   const handleExportSelected = () => exportOrdersPdf(selectedOrders);
+
+  const handleDropOrder = async (day) => {
+    if (!draggedOrder) return;
+    const original = moment(draggedOrder.order_date);
+    const nextDate = day.clone().hour(original.hour()).minute(original.minute()).second(0).millisecond(0).toISOString();
+    await base44.entities.Order.update(draggedOrder.id, { order_date: nextDate });
+    setDraggedOrder(null);
+    load();
+  };
 
   useEffect(() => {
     if (!highlightedOrderId || orders.length === 0) return;
@@ -178,9 +211,6 @@ export default function Orders() {
               </div>
             )}
           </div>
-          <Link to="/orders-planner" style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.3)", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 18px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px" }}>
-            <CalendarDays size={12} /> Calendar View
-          </Link>
           <Link to="/daily-dispatch-manifest" style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.3)", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 18px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px" }}>
             <CalendarDays size={12} /> Dispatch Sheet
           </Link>
@@ -251,6 +281,26 @@ export default function Orders() {
             ))}
           </div>
         )}
+      </div>
+
+      <div style={{ marginBottom: "40px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+          <div style={{ height: "1px", flex: 1, background: "rgba(201,168,76,0.15)" }} />
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: "11px", letterSpacing: "0.3em", color: "rgba(201,168,76,0.45)", textTransform: "uppercase" }}>Orders Planner</span>
+          <div style={{ height: "1px", flex: 1, background: "rgba(201,168,76,0.15)" }} />
+        </div>
+        <OrdersCalendarToolbar
+          label={plannerLabel}
+          onPrev={() => setCursorDate((prev) => prev.clone().subtract(1, "month"))}
+          onNext={() => setCursorDate((prev) => prev.clone().add(1, "month"))}
+          onToday={() => setCursorDate(moment().startOf("month"))}
+        />
+        <OrdersCalendarGrid
+          days={plannerDays}
+          ordersByDay={plannerOrdersByDay}
+          onDropOrder={handleDropOrder}
+          onDragStart={setDraggedOrder}
+        />
       </div>
 
       {/* ── Past Order Log ── */}
