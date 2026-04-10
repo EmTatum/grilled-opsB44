@@ -94,7 +94,7 @@ export default function Orders() {
     return reference.diff(moment(), "hours") <= 24 && reference.isAfter(moment());
   };
 
-  const pendingCount = useMemo(() => orders.filter(o => o.status === "Pending" || o.status === "Confirmed").length, [orders]);
+  const pendingCount = useMemo(() => orders.filter(o => getPlannerStatus(o) === "Pending" || getPlannerStatus(o) === "Processing").length, [orders]);
   const urgentCount = useMemo(() => orders.filter(o => isUrgent(o)).length, [orders]);
 
   const upcomingStart = useMemo(() => moment().startOf("day"), []);
@@ -144,8 +144,13 @@ export default function Orders() {
   useEffect(() => { load(); }, []);
 
   const handleSave = async (data) => {
-    if (editOrder) await base44.entities.Order.update(editOrder.id, data);
-    else await base44.entities.Order.create(data);
+    const payload = {
+      ...data,
+      status: data.status || statusToLegacyStatus[data.planner_status] || "Pending",
+      planner_status: data.planner_status || getPlannerStatus(data),
+    };
+    if (editOrder) await base44.entities.Order.update(editOrder.id, payload);
+    else await base44.entities.Order.create(payload);
     setEditOrder(null); load();
   };
   const handleDelete = async () => { await base44.entities.Order.delete(deleteId); setDeleteId(null); load(); };
@@ -179,6 +184,20 @@ export default function Orders() {
     load();
   };
 
+  const handleMoveStatus = async (order, plannerStatus) => {
+    await base44.entities.Order.update(order.id, {
+      planner_status: plannerStatus,
+      status: statusToLegacyStatus[plannerStatus] || order.status,
+    });
+    load();
+  };
+
+  const handleDropStatus = async (plannerStatus) => {
+    if (!draggedOrder) return;
+    await handleMoveStatus(draggedOrder, plannerStatus);
+    setDraggedOrder(null);
+  };
+
   useEffect(() => {
     if (!highlightedOrderId || orders.length === 0) return;
     setExpandedIds(new Set([highlightedOrderId]));
@@ -194,7 +213,7 @@ export default function Orders() {
     <div>
       <PageHeader title="Orders" subtitle="Today and the next two days, with past orders logged below">
         <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
             <div style={{ padding: "6px 14px", border: "1px solid rgba(201,168,76,0.35)", background: "rgba(201,168,76,0.07)" }}>
               <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Upcoming</span>
               <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "#C9A84C", lineHeight: 1 }}>{upcomingOrders.length}</span>
@@ -206,6 +225,10 @@ export default function Orders() {
             <div style={{ padding: "6px 14px", border: "1px solid rgba(245,240,232,0.18)", background: "rgba(255,255,255,0.04)" }}>
               <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(245,240,232,0.55)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Past Log</span>
               <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "rgba(245,240,232,0.7)", lineHeight: 1 }}>{pastOrders.length}</span>
+            </div>
+            <div style={{ padding: "6px 14px", border: "1px solid rgba(201,168,76,0.35)", background: "rgba(201,168,76,0.07)" }}>
+              <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Board Stages</span>
+              <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "#C9A84C", lineHeight: 1 }}>{ORDER_STATUSES.length}</span>
             </div>
             {urgentCount > 0 && (
               <div style={{ padding: "6px 14px", border: "1px solid rgba(194,24,91,0.5)", background: "rgba(194,24,91,0.08)" }}>
@@ -287,11 +310,7 @@ export default function Orders() {
       </div>
 
       <div style={{ marginBottom: "40px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-          <div style={{ height: "1px", flex: 1, background: "rgba(201,168,76,0.15)" }} />
-          <span style={{ fontFamily: "'Cinzel', serif", fontSize: "11px", letterSpacing: "0.3em", color: "rgba(201,168,76,0.45)", textTransform: "uppercase" }}>Orders Planner</span>
-          <div style={{ height: "1px", flex: 1, background: "rgba(201,168,76,0.15)" }} />
-        </div>
+        <PlannerSectionTitle title="Orders Planner" />
         <OrdersCalendarToolbar
           label={plannerLabel}
           onPrev={() => setCursorDate((prev) => prev.clone().subtract(1, "month"))}
@@ -303,6 +322,17 @@ export default function Orders() {
           ordersByDay={plannerOrdersByDay}
           onDropOrder={handleDropOrder}
           onDragStart={setDraggedOrder}
+        />
+      </div>
+
+      <div style={{ marginBottom: "40px" }}>
+        <PlannerSectionTitle title="Status Board" />
+        <OrdersStatusBoard
+          orders={orders.filter((order) => order.status !== "Cancelled")}
+          onEdit={(order) => { setEditOrder(order); setFormOpen(true); }}
+          onDragStart={setDraggedOrder}
+          onDropStatus={handleDropStatus}
+          onMoveStatus={handleMoveStatus}
         />
       </div>
 
