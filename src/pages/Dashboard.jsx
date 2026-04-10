@@ -185,13 +185,11 @@ export default function Dashboard() {
         position: "relative",
         marginBottom: "40px",
         padding: "36px 40px",
-        background: "linear-gradient(135deg, #0f0a00 0%, #0a0a0a 50%, #100808 100%)",
-        border: "1px solid rgba(201,168,76,0.25)",
+        background: "linear-gradient(135deg, #0c0c0c 0%, #0a0a0a 55%, #120d0d 100%)",
+        border: "1px solid rgba(201,168,76,0.18)",
         overflow: "hidden",
       }}>
-        <CornerBracket />
-        <CornerBracket flip />
-        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "500px", height: "300px", background: "radial-gradient(ellipse, rgba(201,168,76,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "420px", height: "220px", background: "radial-gradient(ellipse, rgba(201,168,76,0.025) 0%, transparent 72%)", pointerEvents: "none" }} />
 
         <div style={{ display: "flex", alignItems: "center", gap: "40px", position: "relative", zIndex: 1, flexWrap: "wrap" }}>
           <div style={{ flexShrink: 0 }}>
