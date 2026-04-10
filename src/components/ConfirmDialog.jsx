@@ -7,7 +7,7 @@ import {
 const F = { fontFamily: "'Raleway', sans-serif" };
 const btnBase = { ...F, fontSize: "11px", fontWeight: 600, letterSpacing: "0.2em", textTransform: "uppercase", padding: "10px 28px", borderRadius: "0", cursor: "pointer", transition: "all 0.2s ease" };
 
-export default function ConfirmDialog({ open, onOpenChange, title, description, onConfirm }) {
+export default function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, confirmLabel = "Delete" }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent style={{
@@ -34,7 +34,7 @@ export default function ConfirmDialog({ open, onOpenChange, title, description, 
             onMouseEnter={(e) => { e.currentTarget.style.background = "#C2185B"; e.currentTarget.style.color = "#F5F0E8"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#C2185B"; }}
           >
-            Delete
+            {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -7,6 +7,8 @@ import PageHeader from "../components/PageHeader";
 import StatusBadge from "../components/StatusBadge";
 import OrderFormDialog from "../components/OrderFormDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
+import BulkActionsBar from "../components/orders/BulkActionsBar";
+import { exportOrdersPdf } from "../utils/exportOrdersPdf";
 import moment from "moment";
 
 const GoldBtn = ({ onClick, children }) => (
@@ -36,9 +38,14 @@ export default function Orders() {
   const [deleteId, setDeleteId] = useState(null);
   const [expandedIds, setExpandedIds] = useState(new Set());
   const [archivedFulfilled, setArchivedFulfilled] = useState([]);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [pendingBulkStatus, setPendingBulkStatus] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const toggleExpanded = (id) => setExpandedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
 
   const load = async () => {
+    const me = await base44.auth.me();
+    setCurrentUser(me);
     const all = await base44.entities.Order.list("-order_date", 200);
     // Auto-remove cancelled orders
     const cancelled = all.filter(o => o.status === "Cancelled");
@@ -48,6 +55,7 @@ export default function Orders() {
     await Promise.all(pastFulfilled.map(o => base44.entities.Order.delete(o.id)));
     const active = all.filter(o => o.status !== "Cancelled" && !(o.status === "Fulfilled" && moment(o.order_date).isBefore(moment(), "day")));
     setOrders(active);
+    setSelectedIds((prev) => new Set([...prev].filter((id) => active.some((order) => order.id === id))));
     // Keep past fulfilled as archive cards
     setArchivedFulfilled(pastFulfilled);
     setLoading(false);
@@ -110,6 +118,26 @@ export default function Orders() {
     setEditOrder(null); load();
   };
   const handleDelete = async () => { await base44.entities.Order.delete(deleteId); setDeleteId(null); load(); };
+  const toggleSelected = (id) => setSelectedIds((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+  const toggleSelectAll = () => {
+    if (selectedIds.size === orders.length) {
+      setSelectedIds(new Set());
+      return;
+    }
+    setSelectedIds(new Set(orders.map((order) => order.id)));
+  };
+  const selectedOrders = orders.filter((order) => selectedIds.has(order.id));
+  const handleBulkUpdate = async () => {
+    await Promise.all(selectedOrders.map((order) => base44.entities.Order.update(order.id, { status: pendingBulkStatus })));
+    setPendingBulkStatus(null);
+    setSelectedIds(new Set());
+    load();
+  };
+  const handleExportSelected = () => exportOrdersPdf(selectedOrders);
 
   if (loading) return <Spinner />;
 
@@ -215,12 +243,30 @@ export default function Orders() {
             <div style={{ background: "#0a0a0a", borderBottom: "1px solid rgba(201,168,76,0.25)", padding: "14px 20px" }}>
               <span style={{ fontFamily: "'Cinzel', serif", fontSize: "13px", letterSpacing: "0.25em", color: "rgba(201,168,76,0.7)", textTransform: "uppercase" }}>Order Log</span>
             </div>
+            {currentUser?.role === "admin" && (
+              <BulkActionsBar
+                selectedCount={selectedIds.size}
+                onMarkFulfilled={() => setPendingBulkStatus("Fulfilled")}
+                onMarkCancelled={() => setPendingBulkStatus("Cancelled")}
+                onExport={handleExportSelected}
+              />
+            )}
 
             {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto">
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "#0d0d0d", borderBottom: "1px solid rgba(201,168,76,0.3)" }}>
+                    {currentUser?.role === "admin" && (
+                      <th style={{ padding: "14px 16px", width: "44px", textAlign: "center" }}>
+                        <input
+                          type="checkbox"
+                          checked={orders.length > 0 && selectedIds.size === orders.length}
+                          onChange={toggleSelectAll}
+                          style={{ accentColor: "#C9A84C", cursor: "pointer" }}
+                        />
+                      </th>
+                    )}
                     {["Client Name", "Order Value", "Items Summary", "Time Slot", "Payment Method", "Status", ""].map((h, i) => (
                     <th key={i} style={{ padding: "14px 16px", textAlign: i === 6 ? "right" : "left", fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 600, color: "rgba(201,168,76,0.55)", letterSpacing: "0.18em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
@@ -237,6 +283,16 @@ export default function Orders() {
                       onMouseLeave={e => e.currentTarget.style.background = urgent ? "rgba(194,24,91,0.06)" : (expandedIds.has(order.id) ? "rgba(201,168,76,0.04)" : "transparent")}
                       onClick={() => toggleExpanded(order.id)}
                     >
+                      {currentUser?.role === "admin" && (
+                        <td style={{ padding: "14px 16px", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(order.id)}
+                            onChange={() => toggleSelected(order.id)}
+                            style={{ accentColor: "#C9A84C", cursor: "pointer" }}
+                          />
+                        </td>
+                      )}
                       <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "#F5F0E8", fontWeight: 500, whiteSpace: "nowrap" }}>{order.client_name}</td>
                       <td style={{ padding: "14px 16px", fontFamily: "'Cinzel', serif", fontSize: "14px", color: "#C9A84C", whiteSpace: "nowrap" }}>{order.order_value ? `R${Number(order.order_value).toLocaleString()}` : "—"}</td>
                       <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.55)", maxWidth: "220px" }}>
@@ -261,7 +317,7 @@ export default function Orders() {
                     </tr>
                     {expandedIds.has(order.id) && (
                       <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                        <td colSpan={5} style={{ padding: 0 }}>
+                        <td colSpan={currentUser?.role === "admin" ? 8 : 7} style={{ padding: 0 }}>
                           <OrderLifecycle order={order} />
                         </td>
                       </tr>
@@ -319,6 +375,14 @@ export default function Orders() {
 
       <OrderFormDialog open={formOpen} onOpenChange={setFormOpen} order={editOrder} onSave={handleSave} />
       <ConfirmDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} title="Delete Order" description="This order will be permanently removed from the log." onConfirm={handleDelete} />
+      <ConfirmDialog
+        open={!!pendingBulkStatus}
+        onOpenChange={() => setPendingBulkStatus(null)}
+        title="Update Selected Orders"
+        description={`This will mark ${selectedIds.size} selected order${selectedIds.size === 1 ? "" : "s"} as ${pendingBulkStatus}.`}
+        onConfirm={handleBulkUpdate}
+        confirmLabel="Confirm"
+      />
     </div>
   );
 }
