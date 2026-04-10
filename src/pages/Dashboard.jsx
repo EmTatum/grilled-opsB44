@@ -134,10 +134,22 @@ export default function Dashboard() {
   const fulfillmentRate = useMemo(() => todayOrders.length > 0 ? Math.round((completedToday / todayOrders.length) * 100) : 0, [todayOrders, completedToday]);
 
   const getDayMeta = (day) => {
-    const dayOrders = normalizedOrders.filter((order) => isSameDay(order.scheduledFor || order.order_date, day));
+    const dayOrders = normalizedOrders
+      .filter((order) => isSameDay(order.scheduledFor || order.order_date, day))
+      .sort((a, b) => moment(a.order_date).valueOf() - moment(b.order_date).valueOf());
     const hasOverdue = dayOrders.some((order) => (order.status === "Pending" || order.status === "Confirmed") && moment(order.order_date).isBefore(moment(), "day"));
     const hasCritical = dayOrders.some((order) => isUrgentOrder(order));
-    return { orderCount: dayOrders.length, hasAlert: hasOverdue || hasCritical, isCritical: hasCritical };
+    return {
+      orderCount: dayOrders.length,
+      hasOrders: dayOrders.length > 0,
+      hasAlert: hasOverdue || hasCritical,
+      isCritical: hasCritical,
+      entries: dayOrders.slice(0, 2).map((order) => ({
+        id: order.id,
+        client_name: order.client_name,
+        time: order.time_slot || moment(order.order_date).format("h:mm A"),
+      })),
+    };
   };
 
   const handleMetricSelect = (filter) => {
@@ -204,17 +216,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {(showOrdersPanel || filteredOrders.length > 0) && (
-        <TodayOrdersCard
-          selectedDate={selectedDate}
-          orders={filteredOrders}
-          onClientClick={(clientIdOrName) => {
-            setSelectedClientId(clientIdOrName);
-            setShowOrdersPanel(true);
-          }}
-        />
-      )}
-
       <RollingCalendarStrip
         days={rollingDays}
         selectedDate={selectedDate}
@@ -225,6 +226,17 @@ export default function Dashboard() {
           setShowOrdersPanel(true);
         }}
       />
+
+      {(showOrdersPanel || filteredOrders.length > 0) && (
+        <TodayOrdersCard
+          selectedDate={selectedDate}
+          orders={filteredOrders}
+          onClientClick={(clientIdOrName) => {
+            setSelectedClientId(clientIdOrName);
+            setShowOrdersPanel(true);
+          }}
+        />
+      )}
 
       <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: "14px" }}>
         Live Intelligence

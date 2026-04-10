@@ -6,7 +6,7 @@ export default function TodayOrdersCard({ selectedDate, orders, onClientClick })
     <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.22)", marginBottom: "28px" }}>
       <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(201,168,76,0.18)", background: "#0a0a0a" }}>
         <p style={{ margin: 0, fontFamily: "'Cinzel', serif", fontSize: "16px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#C9A84C" }}>
-          Orders · {moment(selectedDate).format("ddd D MMM")}
+          Active Bookings · {moment(selectedDate).format("ddd D MMM")}
         </p>
       </div>
       <div style={{ padding: "8px 18px 16px" }}>
