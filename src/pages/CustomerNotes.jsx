@@ -1,21 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import PageHeader from "../components/PageHeader";
-import StatusBadge from "../components/StatusBadge";
 import NoteFormDialog from "../components/NoteFormDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
 import ConversationIntelligencePanel from "../components/notes/ConversationIntelligencePanel";
-import moment from "moment";
-
-const noteTypeAccent = {
-  "Credit on Account": "#4caf82",
-  "Debt on Account": "#C2185B",
-  "Needs Attention": "#C9A84C",
-  "Client Retention": "#9b7fcb",
-  "General": "rgba(245,240,232,0.25)",
-};
+import CustomerNoteCard from "../components/notes/CustomerNoteCard";
+import DuplicateNotesBanner from "../components/notes/DuplicateNotesBanner";
+import { getDeduplicatedNotes } from "../utils/customerNotes";
 
 const noteTypes = ["Credit on Account", "Debt on Account", "Needs Attention", "Client Retention", "General"];
 
@@ -51,6 +44,7 @@ export default function CustomerNotes() {
   const [deleteId, setDeleteId] = useState(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [mergingDuplicates, setMergingDuplicates] = useState(false);
 
   const location = useLocation();
   const load = async () => { setNotes(await base44.entities.CustomerNote.list("-created_date", 100)); setLoading(false); };
@@ -60,11 +54,18 @@ export default function CustomerNotes() {
     if (params.get("new") === "1") { setEditNote(null); setFormOpen(true); }
   }, [location.search]);
 
-  const filtered = useMemo(() => notes.filter(n => {
+  const { deduped, duplicateSets } = useMemo(() => getDeduplicatedNotes(notes), [notes]);
+
+  const filtered = useMemo(() => deduped.filter(n => {
     const matchSearch = !search || n.client_name.toLowerCase().includes(search.toLowerCase());
     const matchType = typeFilter === "all" || n.note_type === typeFilter;
     return matchSearch && matchType;
-  }), [notes, search, typeFilter]);
+  }), [deduped, search, typeFilter]);
+
+  const duplicateCount = useMemo(
+    () => duplicateSets.reduce((sum, group) => sum + group.length - 1, 0),
+    [duplicateSets]
+  );
 
   const handleSave = async (data) => {
     if (editNote) await base44.entities.CustomerNote.update(editNote.id, data);
@@ -72,6 +73,22 @@ export default function CustomerNotes() {
     setEditNote(null); load();
   };
   const handleDelete = async () => { await base44.entities.CustomerNote.delete(deleteId); setDeleteId(null); load(); };
+
+  const handleMergeDuplicates = async () => {
+    if (!duplicateSets.length || mergingDuplicates) return;
+    setMergingDuplicates(true);
+
+    const duplicateIds = duplicateSets.flatMap((group) =>
+      [...group]
+        .sort((a, b) => new Date(a.created_date).getTime() - new Date(b.created_date).getTime())
+        .slice(1)
+        .map((note) => note.id)
+    );
+
+    await Promise.all(duplicateIds.map((id) => base44.entities.CustomerNote.delete(id)));
+    await load();
+    setMergingDuplicates(false);
+  };
 
   if (loading) return <Spinner />;
 
@@ -82,6 +99,8 @@ export default function CustomerNotes() {
       </PageHeader>
 
       <ConversationIntelligencePanel />
+
+      <DuplicateNotesBanner duplicateCount={duplicateCount} onMerge={handleMergeDuplicates} merging={mergingDuplicates} />
 
       {/* Filters */}
       <div style={{ display: "flex", gap: "12px", marginBottom: "28px", flexWrap: "wrap" }}>
@@ -112,79 +131,14 @@ export default function CustomerNotes() {
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
-          {filtered.map(note => {
-            const accent = noteTypeAccent[note.note_type] || noteTypeAccent.General;
-            return (
-              <div key={note.id}
-                style={{
-                  background: "#141414",
-                  borderLeft: `3px solid ${accent}`,
-                  borderTop: "1px solid rgba(201,168,76,0.15)",
-                  borderRight: "1px solid rgba(201,168,76,0.15)",
-                  borderBottom: "1px solid rgba(201,168,76,0.15)",
-                  borderRadius: 0,
-                  padding: "20px",
-                  transition: "all 0.25s ease",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderTopColor = "rgba(201,168,76,0.4)"; e.currentTarget.style.boxShadow = "0 8px 40px rgba(0,0,0,0.5)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderTopColor = "rgba(201,168,76,0.15)"; e.currentTarget.style.boxShadow = "none"; }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
-                  <div>
-                    <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", fontWeight: 600, color: "#F5F0E8" }}>{note.client_name}</p>
-                    <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", color: "rgba(245,240,232,0.3)", letterSpacing: "0.1em", marginTop: "2px" }}>{moment(note.created_date).format("MMM D, YYYY")}</p>
-                  </div>
-                  <div style={{ display: "flex", gap: "4px" }}>
-                    <button onClick={() => { setEditNote(note); setFormOpen(true); }} style={{ padding: "4px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.28)", transition: "color 0.15s" }}
-                      onMouseEnter={e => e.currentTarget.style.color = "#C9A84C"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.28)"}>
-                      <Pencil size={12} strokeWidth={1.5} />
-                    </button>
-                    <button onClick={() => setDeleteId(note.id)} style={{ padding: "4px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.28)", transition: "color 0.15s" }}
-                      onMouseEnter={e => e.currentTarget.style.color = "#C2185B"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.28)"}>
-                      <Trash2 size={12} strokeWidth={1.5} />
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
-                  <span style={{
-                    background: `${accent}18`, border: `1px solid ${accent}55`,
-                    color: accent, fontFamily: "'Raleway', sans-serif",
-                    fontSize: "9px", fontWeight: 500, letterSpacing: "0.15em", textTransform: "uppercase",
-                    padding: "4px 9px", borderRadius: "2px",
-                  }}>
-                    {note.note_type}
-                  </span>
-                  <StatusBadge status={note.priority} />
-                </div>
-
-                <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.65)", lineHeight: 1.8, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", marginBottom: "12px" }}>
-                  {note.content}
-                </p>
-                {(note.tags && note.tags.length > 0) && (
-                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
-                    {note.tags.map((tag, i) => (
-                      <span key={i} style={{ padding: "3px 8px", background: "rgba(201,168,76,0.06)", border: "1px solid rgba(201,168,76,0.2)", color: "rgba(201,168,76,0.6)", fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase" }}>{tag}</span>
-                    ))}
-                  </div>
-                )}
-                <div style={{ display: "flex", gap: "20px", paddingTop: "10px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                  {note.last_order_date && (
-                    <div>
-                      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", color: "rgba(245,240,232,0.25)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "2px" }}>Last Order</p>
-                      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.5)" }}>{moment(note.last_order_date).format("D MMM YYYY")}</p>
-                    </div>
-                  )}
-                  {note.total_spend > 0 && (
-                    <div>
-                      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", color: "rgba(245,240,232,0.25)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "2px" }}>Total Spend</p>
-                      <p style={{ fontFamily: "'Cinzel', serif", fontSize: "14px", color: "#C9A84C", fontWeight: 600 }}>R{Number(note.total_spend).toLocaleString()}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {filtered.map(note => (
+            <CustomerNoteCard
+              key={note.id}
+              note={note}
+              onEdit={(currentNote) => { setEditNote(currentNote); setFormOpen(true); }}
+              onDelete={setDeleteId}
+            />
+          ))}
         </div>
       )}
 
