@@ -15,20 +15,34 @@ export default function TodayOrdersCard({ selectedDate, orders, onClientClick })
         ) : (
           <div style={{ display: "grid", gap: "10px" }}>
             {orders.map((order) => (
-              <div key={order.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", padding: "10px 0" }}>
+              <div key={order.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", padding: "14px 0" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
                   <button onClick={() => onClientClick(order.client_name)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "#C9A84C", fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", textAlign: "left" }}>
                     {order.client_name}
                   </button>
                   <StatusBadge status={order.status} />
                 </div>
-                <div style={{ display: "flex", gap: "18px", flexWrap: "wrap", marginTop: "8px" }}>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "10px 18px", marginTop: "10px" }}>
                   <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.55)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Ref: {order.id.slice(0, 8)}</span>
                   <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.55)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Time: {order.time_slot || moment(order.order_date).format("h:mm A")}</span>
                   <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: order.isUrgent ? "#C2185B" : "rgba(245,240,232,0.55)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Priority: {order.isUrgent ? "Urgent" : order.status}</span>
                   <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.55)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Notes: {order.notesCount}</span>
-                  {order.order_value > 0 && <span style={{ fontFamily: "'Cinzel', serif", fontSize: "14px", color: "#C9A84C" }}>R{Number(order.order_value).toLocaleString()}</span>}
+                  <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.55)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Payment: {order.payment_method || "—"}</span>
+                  <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.55)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Scheduled: {moment(order.order_date).format("ddd D MMM · h:mm A")}</span>
+                  {order.order_value > 0 && <span style={{ fontFamily: "'Cinzel', serif", fontSize: "14px", color: "#C9A84C" }}>Value: R{Number(order.order_value).toLocaleString()}</span>}
                 </div>
+
+                {order.order_details && (
+                  <div style={{ marginTop: "12px", padding: "10px 12px", background: "rgba(201,168,76,0.05)", border: "1px solid rgba(201,168,76,0.16)" }}>
+                    <p style={{ margin: "0 0 6px", fontFamily: "'Raleway', sans-serif", fontSize: "10px", color: "rgba(201,168,76,0.65)", textTransform: "uppercase", letterSpacing: "0.14em" }}>
+                      Order Details
+                    </p>
+                    <p style={{ margin: 0, fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.72)", lineHeight: 1.7 }}>
+                      {order.order_details}
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
