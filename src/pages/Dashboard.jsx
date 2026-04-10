@@ -1,9 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { ShoppingCart, Package, StickyNote, Clock, ArrowRight } from "lucide-react";
 import IntelligenceCards from "../components/IntelligenceCards";
 import StatusBadge from "../components/StatusBadge";
+import RollingCalendarStrip from "../components/dashboard/RollingCalendarStrip";
+import TodayOrdersCard from "../components/dashboard/TodayOrdersCard";
+import ClientNotesDrawer from "../components/dashboard/ClientNotesDrawer";
+import ThemeToneSwitch from "../components/dashboard/ThemeToneSwitch";
+import { createInitialDashboardState } from "../lib/dashboardStore";
+import { getRollingDays, isSameDay } from "../lib/dashboardDateUtils";
 import moment from "moment";
 
 const quickLinks = [
@@ -33,6 +39,7 @@ export default function Dashboard() {
   const [products, setProducts] = useState([]);
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [dashboardState, setDashboardState] = useState(createInitialDashboardState());
 
   useEffect(() => {
     Promise.all([
@@ -43,6 +50,15 @@ export default function Dashboard() {
   }, []);
 
   if (loading) return <Spinner />;
+
+  const isUrgentOrder = (order) => {
+    if (order.status !== "Pending") return false;
+    const slotMoment = order.time_slot
+      ? moment(`${moment(order.order_date).format("YYYY-MM-DD")} ${order.time_slot}`, "YYYY-MM-DD h:mm A", true)
+      : null;
+    const reference = slotMoment?.isValid() ? slotMoment : moment(order.order_date);
+    return reference.diff(moment(), "hours") <= 24 && reference.isAfter(moment());
+  };
 
   const todayOrders = orders.filter(o => moment(o.order_date).isSame(moment(), "day"));
   const pendingOrders = orders.filter(o => o.status === "Pending");
@@ -81,8 +97,39 @@ export default function Dashboard() {
   const potentialMonthlyRevenue = Math.max(totalCreditOnAccount - totalDebtOnAccount, 0);
   const fulfillmentRate = todayOrders.length > 0 ? Math.round((completedToday / todayOrders.length) * 100) : 0;
 
+  const rollingDays = useMemo(() => getRollingDays(moment(), 14), []);
+  const selectedDateOrders = useMemo(() => {
+    const dayOrders = orders.filter((order) => isSameDay(order.order_date, dashboardState.selectedDate));
+    const filtered = dashboardState.activeFilter === "all" ? dayOrders : dayOrders.filter((order) => {
+      if (dashboardState.activeFilter === "pending") return order.status === "Pending";
+      if (dashboardState.activeFilter === "confirmed") return order.status === "Confirmed";
+      if (dashboardState.activeFilter === "fulfilled") return order.status === "Fulfilled";
+      if (dashboardState.activeFilter === "overdue") return (order.status === "Pending" || order.status === "Confirmed") && moment(order.order_date).isBefore(moment(), "day");
+      if (dashboardState.activeFilter === "urgent") return isUrgentOrder(order);
+      return true;
+    });
+    return filtered.map((order) => ({
+      ...order,
+      isUrgent: isUrgentOrder(order),
+      notesCount: notes.filter((note) => note.client_name === order.client_name).length,
+    }));
+  }, [orders, notes, dashboardState]);
+
+  const selectedClientNotes = useMemo(() => notes.filter((note) => note.client_name === dashboardState.selectedClientName), [notes, dashboardState.selectedClientName]);
+
+  const getDayMeta = (day) => {
+    const dayOrders = orders.filter((order) => isSameDay(order.order_date, day));
+    const hasOverdue = dayOrders.some((order) => (order.status === "Pending" || order.status === "Confirmed") && moment(order.order_date).isBefore(moment(), "day"));
+    const hasCritical = dayOrders.some((order) => isUrgentOrder(order));
+    return { orderCount: dayOrders.length, hasAlert: hasOverdue || hasCritical, isCritical: hasCritical };
+  };
+
+  const handleMetricSelect = (filter) => {
+    setDashboardState((prev) => ({ ...prev, activeFilter: filter, selectedDate: new Date().toISOString() }));
+  };
+
   return (
-    <div>
+    <div style={{ filter: dashboardState.themeMode === "soft-noir" ? "brightness(1.04) saturate(0.92)" : "none" }}>
       {/* Hero header with brand imagery */}
       <div style={{
         position: "relative",
@@ -131,12 +178,31 @@ export default function Dashboard() {
           </div>
 
           {/* Date stamp */}
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <p style={{ fontFamily: "'Cinzel', serif", fontSize: "22px", fontWeight: 400, color: "rgba(201,168,76,0.6)", lineHeight: 1 }}>{moment().format("DD")}</p>
-            <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", color: "rgba(245,240,232,0.3)", letterSpacing: "0.2em", textTransform: "uppercase" }}>{moment().format("MMM YYYY")}</p>
+          <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "12px" }}>
+            <ThemeToneSwitch
+              mode={dashboardState.themeMode}
+              onToggle={() => setDashboardState((prev) => ({ ...prev, themeMode: prev.themeMode === "noir" ? "soft-noir" : "noir" }))}
+            />
+            <div>
+              <p style={{ fontFamily: "'Cinzel', serif", fontSize: "22px", fontWeight: 400, color: "rgba(201,168,76,0.6)", lineHeight: 1 }}>{moment().format("DD")}</p>
+              <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", color: "rgba(245,240,232,0.3)", letterSpacing: "0.2em", textTransform: "uppercase" }}>{moment().format("MMM YYYY")}</p>
+            </div>
           </div>
         </div>
       </div>
+
+      <RollingCalendarStrip
+        days={rollingDays}
+        selectedDate={dashboardState.selectedDate}
+        getDayMeta={getDayMeta}
+        onSelectDay={(selectedDate) => setDashboardState((prev) => ({ ...prev, selectedDate, activeFilter: "all" }))}
+      />
+
+      <TodayOrdersCard
+        selectedDate={dashboardState.selectedDate}
+        orders={selectedDateOrders}
+        onClientClick={(clientName) => setDashboardState((prev) => ({ ...prev, selectedClientName: clientName, notesDrawerOpen: true }))}
+      />
 
       {/* Stats */}
       <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: "14px" }}>
@@ -149,6 +215,7 @@ export default function Dashboard() {
           processing: processingOrders.length,
           completed: completedOrders.length,
           overdue: overdueOrders.length,
+          onSelectFilter: handleMetricSelect,
         }}
         inventoryStatus={{
           lowStock: lowStock.length,
@@ -159,6 +226,7 @@ export default function Dashboard() {
           lateOrders: overdueOrders.length,
           lowInventory: lowStock.length,
           clientIssues: unresolvedClientIssues.length,
+          onSelectFilter: handleMetricSelect,
         }}
         clientActivity={{
           recentInteractions,
@@ -274,6 +342,13 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <ClientNotesDrawer
+        open={dashboardState.notesDrawerOpen}
+        clientName={dashboardState.selectedClientName}
+        notes={selectedClientNotes}
+        onClose={() => setDashboardState((prev) => ({ ...prev, notesDrawerOpen: false }))}
+      />
     </div>
   );
 }
