@@ -210,7 +210,7 @@ export default function Dashboard() {
               Operations
             </h1>
             <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: "clamp(26px, 4vw, 42px)", fontWeight: 700, color: "#F5F0E8", letterSpacing: "0.18em", textTransform: "uppercase", margin: 0, lineHeight: 1.1, opacity: 0.9 }}>
-              Command
+              Terminal
             </h1>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "14px" }}>
               <div style={{ height: "1px", width: "40px", background: "linear-gradient(90deg, transparent, #C9A84C)" }} />
