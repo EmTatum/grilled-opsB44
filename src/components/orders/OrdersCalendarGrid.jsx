@@ -28,20 +28,30 @@ function OrderCard({ order, onDragStart }) {
 
 function DayCell({ day, orders, onDropOrder, onDragStart, isMonth }) {
   const isBottleneck = orders.length >= 4;
+  const isToday = day.isSame(moment(), "day");
 
   return (
     <div
       onDragOver={(e) => e.preventDefault()}
       onDrop={() => onDropOrder(day)}
-      style={{ minHeight: isMonth ? "190px" : "280px", background: "#111111", border: "1px solid rgba(201,168,76,0.14)", padding: "12px", display: "flex", flexDirection: "column", gap: "10px", boxShadow: isBottleneck ? "inset 0 0 0 1px rgba(194,24,91,0.4)" : "none" }}
+      style={{
+        minHeight: isMonth ? "190px" : "280px",
+        background: isToday ? "rgba(232,122,37,0.08)" : "#111111",
+        border: `1px solid ${isToday ? "rgba(232,122,37,0.65)" : "rgba(201,168,76,0.14)"}`,
+        padding: "12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+        boxShadow: isToday ? "0 0 22px rgba(232,122,37,0.16)" : isBottleneck ? "inset 0 0 0 1px rgba(194,24,91,0.4)" : "none"
+      }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
         <div>
-          <p style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", color: "#C9A84C", margin: 0 }}>{day.format("D")}</p>
-          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(245,240,232,0.28)", margin: 0 }}>{day.format("ddd")}</p>
+          <p style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", color: isToday ? "#E87A25" : "#C9A84C", margin: 0, textShadow: isToday ? "0 0 16px rgba(232,122,37,0.35)" : "none" }}>{day.format("D")}</p>
+          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", letterSpacing: "0.16em", textTransform: "uppercase", color: isToday ? "rgba(232,122,37,0.8)" : "rgba(245,240,232,0.28)", margin: 0 }}>{day.format("ddd")}</p>
         </div>
-        <span style={{ padding: "4px 8px", border: `1px solid ${isBottleneck ? "rgba(194,24,91,0.45)" : "rgba(201,168,76,0.25)"}`, background: isBottleneck ? "rgba(194,24,91,0.08)" : "rgba(201,168,76,0.05)", color: isBottleneck ? "#C2185B" : "rgba(245,240,232,0.7)", fontFamily: "'Raleway', sans-serif", fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-          {orders.length} deliveries
+        <span style={{ padding: "4px 8px", border: `1px solid ${isToday ? "rgba(232,122,37,0.45)" : isBottleneck ? "rgba(194,24,91,0.45)" : "rgba(201,168,76,0.25)"}`, background: isToday ? "rgba(232,122,37,0.12)" : isBottleneck ? "rgba(194,24,91,0.08)" : "rgba(201,168,76,0.05)", color: isToday ? "#E87A25" : isBottleneck ? "#C2185B" : "rgba(245,240,232,0.7)", fontFamily: "'Raleway', sans-serif", fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+          {isToday ? "Today" : `${orders.length} deliveries`}
         </span>
       </div>
 
