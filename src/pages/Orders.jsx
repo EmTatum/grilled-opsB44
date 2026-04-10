@@ -49,16 +49,25 @@ export default function Orders() {
     const me = await base44.auth.me();
     setCurrentUser(me);
     const all = await base44.entities.Order.list("-order_date", 200);
-    // Auto-remove cancelled orders
-    const cancelled = all.filter(o => o.status === "Cancelled");
-    await Promise.all(cancelled.map(o => base44.entities.Order.delete(o.id)));
-    // Auto-remove fulfilled orders whose date has passed
-    const pastFulfilled = all.filter(o => o.status === "Fulfilled" && moment(o.order_date).isBefore(moment(), "day"));
-    await Promise.all(pastFulfilled.map(o => base44.entities.Order.delete(o.id)));
-    const active = all.filter(o => o.status !== "Cancelled" && !(o.status === "Fulfilled" && moment(o.order_date).isBefore(moment(), "day")));
+
+    const pastUnconfirmed = all.filter((o) =>
+      (o.status === "Pending" || o.status === "Confirmed") && moment(o.order_date).isBefore(moment(), "day")
+    );
+    await Promise.all(pastUnconfirmed.map((o) => base44.entities.Order.update(o.id, { status: "Cancelled" })));
+
+    const refreshed = pastUnconfirmed.length > 0
+      ? await base44.entities.Order.list("-order_date", 200)
+      : all;
+
+    const cancelled = refreshed.filter((o) => o.status === "Cancelled");
+    await Promise.all(cancelled.map((o) => base44.entities.Order.delete(o.id)));
+
+    const pastFulfilled = refreshed.filter((o) => o.status === "Fulfilled" && moment(o.order_date).isBefore(moment(), "day"));
+    await Promise.all(pastFulfilled.map((o) => base44.entities.Order.delete(o.id)));
+
+    const active = refreshed.filter((o) => o.status !== "Cancelled" && !(o.status === "Fulfilled" && moment(o.order_date).isBefore(moment(), "day")));
     setOrders(active);
     setSelectedIds((prev) => new Set([...prev].filter((id) => active.some((order) => order.id === id))));
-    // Keep past fulfilled as archive cards
     setArchivedFulfilled(pastFulfilled);
     setLoading(false);
   };
@@ -78,7 +87,7 @@ export default function Orders() {
     return reference.diff(moment(), "hours") <= 24 && reference.isAfter(moment());
   };
 
-  const pendingCount = useMemo(() => orders.filter(o => o.status === "Pending").length, [orders]);
+  const pendingCount = useMemo(() => orders.filter(o => o.status === "Pending" || o.status === "Confirmed").length, [orders]);
   const urgentCount = useMemo(() => orders.filter(o => isUrgent(o)).length, [orders]);
 
   // Chronological calendar data — sorted ascending by date, grouped by day

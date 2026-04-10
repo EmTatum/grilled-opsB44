@@ -20,7 +20,17 @@ export default function OrdersPlanner() {
 
   const load = async () => {
     const data = await base44.entities.Order.list("order_date", 300);
-    setOrders(data.filter((order) => order.status !== "Cancelled"));
+
+    const pastUnconfirmed = data.filter((order) =>
+      (order.status === "Pending" || order.status === "Confirmed") && moment(order.order_date).isBefore(moment(), "day")
+    );
+    await Promise.all(pastUnconfirmed.map((order) => base44.entities.Order.update(order.id, { status: "Cancelled" })));
+
+    const refreshed = pastUnconfirmed.length > 0
+      ? await base44.entities.Order.list("order_date", 300)
+      : data;
+
+    setOrders(refreshed.filter((order) => order.status !== "Cancelled"));
     setLoading(false);
   };
 
