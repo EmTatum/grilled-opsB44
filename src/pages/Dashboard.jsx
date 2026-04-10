@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import moment from "moment";
-import { ShoppingCart, Package, StickyNote, Clock, ArrowRight } from "lucide-react";
+import { ShoppingCart, Package, StickyNote, Clock, ArrowRight, Plus } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import IntelligenceCards from "../components/IntelligenceCards";
 import StatusBadge from "../components/StatusBadge";
@@ -9,6 +9,7 @@ import RollingCalendarStrip from "../components/dashboard/RollingCalendarStrip";
 import TodayOrdersCard from "../components/dashboard/TodayOrdersCard";
 import ClientNotesDrawer from "../components/dashboard/ClientNotesDrawer";
 import ThemeToneSwitch from "../components/dashboard/ThemeToneSwitch";
+import OrderFormDialog from "../components/OrderFormDialog";
 import { getRollingDays, isSameDay, toDayKey, getTodayKey } from "../lib/dashboardDateUtils";
 
 const quickLinks = [
@@ -42,6 +43,7 @@ export default function Dashboard() {
   const [showOrdersPanel, setShowOrdersPanel] = useState(false);
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
   const [themeMode, setThemeMode] = useState("noir");
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -158,6 +160,23 @@ export default function Dashboard() {
     setShowOrdersPanel(true);
   };
 
+  const handleQuickAddOrder = async (data) => {
+    await base44.entities.Order.create({
+      ...data,
+      quantity: Number(data.quantity) || 0,
+    });
+
+    const [orderData, productData, noteData] = await Promise.all([
+      base44.entities.Order.list("-created_date", 50),
+      base44.entities.Product.list("-created_date", 50),
+      base44.entities.CustomerNote.list("-created_date", 50),
+    ]);
+
+    setOrders(orderData ?? []);
+    setProducts(productData ?? []);
+    setNotes(noteData ?? []);
+  };
+
   if (loading) return <Spinner />;
 
   return (
@@ -204,6 +223,14 @@ export default function Dashboard() {
           </div>
 
           <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "12px" }}>
+            <button
+              onClick={() => setQuickAddOpen(true)}
+              style={{ background: "transparent", border: "1px solid #C9A84C", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 16px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px", transition: "all 0.2s ease" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#C9A84C"; e.currentTarget.style.color = "#0a0a0a"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#C9A84C"; }}
+            >
+              <Plus size={12} /> Quick Add Order
+            </button>
             <ThemeToneSwitch
               mode={themeMode}
               onToggle={() => setThemeMode((prev) => prev === "noir" ? "soft-noir" : "noir")}
@@ -354,14 +381,14 @@ export default function Dashboard() {
               <p style={{ padding: "24px 20px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.2)" }}>All products well stocked.</p>
             ) : lowStock.map(p => (
               <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                <div>
-                  <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", fontWeight: 500, color: "#F5F0E8" }}>{p.product_name}</p>
-                  <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.3)", marginTop: "2px" }}>{p.category}</p>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <p style={{ fontFamily: "'Cinzel', serif", fontSize: "28px", fontWeight: 600, color: "#C2185B", lineHeight: 1 }}>{p.current_stock}</p>
-                  <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", color: "rgba(245,240,232,0.22)", letterSpacing: "0.15em", textTransform: "uppercase", marginTop: "2px" }}>units</p>
-                </div>
+              <div>
+               <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", fontWeight: 500, color: "#F5F0E8" }}>{p.product_name}</p>
+               <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.3)", marginTop: "2px" }}>{p.category} · Threshold {p.low_stock_threshold || 5}</p>
+              </div>
+              <div style={{ textAlign: "right" }}>
+               <p style={{ fontFamily: "'Cinzel', serif", fontSize: "28px", fontWeight: 600, color: "#C2185B", lineHeight: 1 }}>{p.current_stock}</p>
+               <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", color: "rgba(245,240,232,0.22)", letterSpacing: "0.15em", textTransform: "uppercase", marginTop: "2px" }}>units</p>
+              </div>
               </div>
             ))}
           </div>
@@ -373,6 +400,13 @@ export default function Dashboard() {
         clientName={selectedClientName}
         notes={selectedClientNotes}
         onClose={() => setSelectedClientId(null)}
+      />
+
+      <OrderFormDialog
+        open={quickAddOpen}
+        onOpenChange={setQuickAddOpen}
+        order={null}
+        onSave={handleQuickAddOrder}
       />
     </div>
   );

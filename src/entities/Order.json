@@ -1,0 +1,118 @@
+{
+  "name": "Order",
+  "type": "object",
+  "properties": {
+    "client_name": {
+      "type": "string",
+      "title": "Client Name"
+    },
+    "order_details": {
+      "type": "string",
+      "title": "Items Summary"
+    },
+    "quantity": {
+      "type": "number",
+      "title": "Quantity",
+      "default": 1
+    },
+    "delivery_address": {
+      "type": "string",
+      "title": "Delivery Address"
+    },
+    "special_instructions": {
+      "type": "string",
+      "title": "Special Instructions"
+    },
+    "priority_level": {
+      "type": "string",
+      "enum": [
+        "Low",
+        "Medium",
+        "High"
+      ],
+      "title": "Priority Level",
+      "default": "Medium"
+    },
+    "planner_status": {
+      "type": "string",
+      "enum": [
+        "Pending",
+        "Processing",
+        "Dispatched",
+        "Complete"
+      ],
+      "title": "Planner Status",
+      "default": "Pending"
+    },
+    "order_value": {
+      "type": "number",
+      "title": "Order Value",
+      "default": 0
+    },
+    "time_slot": {
+      "type": "string",
+      "title": "Time Slot"
+    },
+    "payment_method": {
+      "type": "string",
+      "title": "Payment Method",
+      "enum": [
+        "Cash",
+        "Card",
+        "Bank Transfer",
+        "Credit on Account",
+        "Other"
+      ]
+    },
+    "order_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Order Date & Time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Pending",
+        "Confirmed",
+        "Fulfilled",
+        "Cancelled",
+        "Complete"
+      ],
+      "title": "Status"
+    }
+  },
+  "required": [
+    "client_name",
+    "order_details",
+    "order_date",
+    "status"
+  ],
+  "rls": {
+    "create": null,
+    "read": null,
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
