@@ -49,8 +49,6 @@ export default function Dashboard() {
     ]).then(([o, p, n]) => { setOrders(o); setProducts(p); setNotes(n); setLoading(false); });
   }, []);
 
-  if (loading) return <Spinner />;
-
   const isUrgentOrder = (order) => {
     if (order.status !== "Pending") return false;
     const slotMoment = order.time_slot
@@ -127,6 +125,8 @@ export default function Dashboard() {
   const handleMetricSelect = (filter) => {
     setDashboardState((prev) => ({ ...prev, activeFilter: filter, selectedDate: new Date().toISOString() }));
   };
+
+  if (loading) return <Spinner />;
 
   return (
     <div style={{ filter: dashboardState.themeMode === "soft-noir" ? "brightness(1.04) saturate(0.92)" : "none" }}>
