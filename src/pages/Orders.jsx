@@ -163,6 +163,10 @@ export default function Orders() {
               <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Upcoming</span>
               <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "#C9A84C", lineHeight: 1 }}>{upcomingOrders.length}</span>
             </div>
+            <div style={{ padding: "6px 14px", border: "1px solid rgba(201,168,76,0.35)", background: "rgba(201,168,76,0.07)" }}>
+              <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Pending</span>
+              <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "#C9A84C", lineHeight: 1 }}>{pendingCount}</span>
+            </div>
             <div style={{ padding: "6px 14px", border: "1px solid rgba(245,240,232,0.18)", background: "rgba(255,255,255,0.04)" }}>
               <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(245,240,232,0.55)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Past Log</span>
               <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "rgba(245,240,232,0.7)", lineHeight: 1 }}>{pastOrders.length}</span>
