@@ -18,7 +18,7 @@ export function getRollingDays(baseDate = new Date()) {
   const start = new Date(baseDate);
   start.setHours(0, 0, 0, 0);
 
-  return Array.from({ length: 14 }, (_, i) => {
+  return Array.from({ length: 5 }, (_, i) => {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
     return d;
