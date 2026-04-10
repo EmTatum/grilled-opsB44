@@ -223,24 +223,14 @@ export default function Dashboard() {
           </div>
 
           <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "12px" }}>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: "10px", width: "100%", minWidth: "200px" }}>
-              <button
-                onClick={() => setQuickAddOpen(true)}
-                style={{ background: "transparent", border: "1px solid #C9A84C", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 16px", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s ease", borderRadius: "2px" }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "#C9A84C"; e.currentTarget.style.color = "#0a0a0a"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#C9A84C"; }}
-              >
-                <Plus size={12} /> New Order
-              </button>
-              <Link
-                to="/client-analytics"
-                style={{ background: "transparent", border: "1px solid rgba(194,24,91,0.6)", color: "#C2185B", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 16px", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s ease", borderRadius: "2px", textDecoration: "none" }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "#C2185B"; e.currentTarget.style.color = "#F5F0E8"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#C2185B"; }}
-              >
-                <Plus size={12} /> New Client
-              </Link>
-            </div>
+            <button
+              onClick={() => setQuickAddOpen(true)}
+              style={{ background: "transparent", border: "1px solid #C9A84C", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 16px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px", transition: "all 0.2s ease" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#C9A84C"; e.currentTarget.style.color = "#0a0a0a"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#C9A84C"; }}
+            >
+              <Plus size={12} /> Quick Add Order
+            </button>
             <ThemeToneSwitch
               mode={themeMode}
               onToggle={() => setThemeMode((prev) => prev === "noir" ? "soft-noir" : "noir")}
