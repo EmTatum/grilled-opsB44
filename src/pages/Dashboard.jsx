@@ -74,6 +74,11 @@ export default function Dashboard() {
   const revenueMonth = orders
     .filter(o => o.status === "Fulfilled" && moment(o.order_date).isSame(moment(), "month"))
     .reduce((sum, order) => sum + Number(order.order_value || 0), 0);
+  const creditOnAccountNotes = notes.filter(n => n.note_type === "Credit on Account");
+  const debtOnAccountNotes = notes.filter(n => n.note_type === "Debt on Account");
+  const totalCreditOnAccount = creditOnAccountNotes.reduce((sum, note) => sum + Number(note.total_spend || 0), 0);
+  const totalDebtOnAccount = debtOnAccountNotes.reduce((sum, note) => sum + Number(note.total_spend || 0), 0);
+  const potentialMonthlyRevenue = Math.max(totalCreditOnAccount - totalDebtOnAccount, 0);
   const fulfillmentRate = todayOrders.length > 0 ? Math.round((completedToday / todayOrders.length) * 100) : 0;
 
   return (
@@ -170,6 +175,11 @@ export default function Dashboard() {
           today: revenueToday,
           week: revenueWeek,
           month: revenueMonth,
+        }}
+        liquidityTracking={{
+          totalDebt: totalDebtOnAccount,
+          totalCredit: totalCreditOnAccount,
+          potentialMonthlyRevenue,
         }}
       />
 

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Box, ClipboardList, DollarSign, Users, TrendingUp } from "lucide-react";
+import { AlertTriangle, Box, ClipboardList, DollarSign, Users, TrendingUp, Wallet } from "lucide-react";
 
 const cardBase = {
   position: "relative",
@@ -207,7 +207,23 @@ function FinancialSummaryWidget({ stats }) {
   );
 }
 
-export default function IntelligenceCards({ ordersOverview, inventoryStatus, alertsIssues, clientActivity, dailyPerformance, financialSummary }) {
+function LiquidityTrackingWidget({ stats }) {
+  const navigate = useNavigate();
+  return (
+    <WidgetCard icon={Wallet} title="Liquidity Tracking" onClick={() => navigate("/notes")} actionLabel="Review Client Notes" danger={stats.totalDebt > stats.totalCredit}>
+      <p style={{ ...valueStyle, color: stats.totalDebt > 0 ? "#C2185B" : "#C9A84C" }}>
+        {stats.totalDebt > 0 ? `R${Number(stats.totalDebt).toLocaleString()}` : "—"}
+      </p>
+      <div style={{ marginTop: "10px" }}>
+        <MetricRow label="Outstanding Debt" value={stats.totalDebt > 0 ? `R${Number(stats.totalDebt).toLocaleString()}` : "—"} danger={stats.totalDebt > 0} />
+        <MetricRow label="Credit on Account" value={stats.totalCredit > 0 ? `R${Number(stats.totalCredit).toLocaleString()}` : "—"} />
+        <MetricRow label="Potential Monthly Revenue" value={stats.potentialMonthlyRevenue > 0 ? `R${Number(stats.potentialMonthlyRevenue).toLocaleString()}` : "—"} />
+      </div>
+    </WidgetCard>
+  );
+}
+
+export default function IntelligenceCards({ ordersOverview, inventoryStatus, alertsIssues, clientActivity, dailyPerformance, financialSummary, liquidityTracking }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px", marginBottom: "40px" }} className="intelligence-grid">
       <style>{`
@@ -224,6 +240,7 @@ export default function IntelligenceCards({ ordersOverview, inventoryStatus, ale
       <ClientActivityWidget stats={clientActivity} />
       <DailyPerformanceWidget stats={dailyPerformance} />
       <FinancialSummaryWidget stats={financialSummary} />
+      <LiquidityTrackingWidget stats={liquidityTracking} />
     </div>
   );
 }
