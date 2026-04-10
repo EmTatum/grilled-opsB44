@@ -37,17 +37,19 @@ const splitItems = (text) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-export default function DispatchManifestTable({ orders }) {
+export default function DispatchManifestTable({ orders, title = "Daily Dispatch Manifest", subtitle, showPrintButton = false }) {
   return (
     <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.2)", overflow: "hidden" }}>
       <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(201,168,76,0.2)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
         <div>
-          <p style={{ fontFamily: "'Cinzel', serif", fontSize: "18px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#C9A84C", margin: 0 }}>Daily Dispatch Manifest</p>
-          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.4)", margin: "4px 0 0" }}>{moment().format("dddd, D MMMM YYYY")}</p>
+          <p style={{ fontFamily: "'Cinzel', serif", fontSize: "18px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#C9A84C", margin: 0 }}>{title}</p>
+          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.4)", margin: "4px 0 0" }}>{subtitle || moment().format("dddd, D MMMM YYYY")}</p>
         </div>
-        <button onClick={() => window.print()} style={{ background: "transparent", border: "1px solid #C9A84C", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", padding: "10px 16px", cursor: "pointer" }}>
-          Print Manifest
-        </button>
+        {showPrintButton && (
+          <button onClick={() => window.print()} style={{ background: "transparent", border: "1px solid #C9A84C", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", padding: "10px 16px", cursor: "pointer" }}>
+            Print Manifest
+          </button>
+        )}
       </div>
 
       <div style={{ overflowX: "auto" }}>
