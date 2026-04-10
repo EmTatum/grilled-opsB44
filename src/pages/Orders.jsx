@@ -90,37 +90,30 @@ export default function Orders() {
   const pendingCount = useMemo(() => orders.filter(o => o.status === "Pending" || o.status === "Confirmed").length, [orders]);
   const urgentCount = useMemo(() => orders.filter(o => isUrgent(o)).length, [orders]);
 
-  // Chronological calendar data — sorted ascending by date, grouped by day
-  const calendarGroups = useMemo(() => {
-    const sorted = [...orders].sort((a, b) => moment(a.order_date).diff(moment(b.order_date)));
-    const total = sorted.length;
-    // Intense gradient: vivid red → vivid yellow → vivid green
-    const interpolate = (idx) => {
-      const t = total <= 1 ? 0.5 : idx / (total - 1);
-      let r, g, b;
-      if (t < 0.5) {
-        const s = t / 0.5;
-        // Vivid red (#FF1744) → vivid yellow (#FFD600)
-        r = 255;
-        g = Math.round(23 + (214 - 23) * s);
-        b = Math.round(68 + (0 - 68) * s);
-      } else {
-        const s = (t - 0.5) / 0.5;
-        // Vivid yellow (#FFD600) → vivid green (#00E676)
-        r = Math.round(255 + (0 - 255) * s);
-        g = Math.round(214 + (230 - 214) * s);
-        b = Math.round(0 + (118 - 0) * s);
-      }
-      return `rgb(${r},${g},${b})`;
-    };
+  const upcomingStart = useMemo(() => moment().startOf("day"), []);
+  const upcomingEnd = useMemo(() => moment().startOf("day").add(2, "days").endOf("day"), []);
+
+  const upcomingOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const orderMoment = moment(order.order_date);
+      return orderMoment.isSameOrAfter(upcomingStart) && orderMoment.isSameOrBefore(upcomingEnd);
+    });
+  }, [orders, upcomingStart, upcomingEnd]);
+
+  const pastOrders = useMemo(() => {
+    return orders.filter((order) => moment(order.order_date).isBefore(upcomingStart));
+  }, [orders, upcomingStart]);
+
+  const upcomingGroups = useMemo(() => {
+    const sorted = [...upcomingOrders].sort((a, b) => moment(a.order_date).diff(moment(b.order_date)));
     const groups = {};
-    sorted.forEach((order, idx) => {
+    sorted.forEach((order) => {
       const day = moment(order.order_date).format("YYYY-MM-DD");
       if (!groups[day]) groups[day] = [];
-      groups[day].push({ order, color: interpolate(idx) });
+      groups[day].push(order);
     });
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [orders]);
+  }, [upcomingOrders]);
   useEffect(() => { load(); }, []);
 
   const handleSave = async (data) => {
@@ -163,12 +156,16 @@ export default function Orders() {
 
   return (
     <div>
-      <PageHeader title="Order Log" subtitle="Manage and track all client orders">
+      <PageHeader title="Orders" subtitle="Today and the next two days, with past orders logged below">
         <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", justifyContent: "flex-end" }}>
           <div style={{ display: "flex", gap: "10px" }}>
             <div style={{ padding: "6px 14px", border: "1px solid rgba(201,168,76,0.35)", background: "rgba(201,168,76,0.07)" }}>
-              <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Pending</span>
-              <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "#C9A84C", lineHeight: 1 }}>{pendingCount}</span>
+              <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Upcoming</span>
+              <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "#C9A84C", lineHeight: 1 }}>{upcomingOrders.length}</span>
+            </div>
+            <div style={{ padding: "6px 14px", border: "1px solid rgba(245,240,232,0.18)", background: "rgba(255,255,255,0.04)" }}>
+              <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(245,240,232,0.55)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Past Log</span>
+              <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "rgba(245,240,232,0.7)", lineHeight: 1 }}>{pastOrders.length}</span>
             </div>
             {urgentCount > 0 && (
               <div style={{ padding: "6px 14px", border: "1px solid rgba(194,24,91,0.5)", background: "rgba(194,24,91,0.08)" }}>
@@ -187,18 +184,23 @@ export default function Orders() {
         </div>
       </PageHeader>
 
-      {/* ── Calendar View ── */}
-      {calendarGroups.length > 0 && (
-        <div style={{ marginBottom: "40px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-            <div style={{ height: "1px", flex: 1, background: "rgba(201,168,76,0.15)" }} />
-            <span style={{ fontFamily: "'Cinzel', serif", fontSize: "11px", letterSpacing: "0.3em", color: "rgba(201,168,76,0.45)", textTransform: "uppercase" }}>Schedule</span>
-            <div style={{ height: "1px", flex: 1, background: "rgba(201,168,76,0.15)" }} />
+      {/* ── Upcoming Orders ── */}
+      <div style={{ marginBottom: "40px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+          <div style={{ height: "1px", flex: 1, background: "rgba(201,168,76,0.15)" }} />
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: "11px", letterSpacing: "0.3em", color: "rgba(201,168,76,0.45)", textTransform: "uppercase" }}>Upcoming Orders</span>
+          <div style={{ height: "1px", flex: 1, background: "rgba(201,168,76,0.15)" }} />
+        </div>
+
+        {upcomingGroups.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 20px", border: "1px dashed rgba(201,168,76,0.15)" }}>
+            <p style={{ fontFamily: "'Cinzel', serif", fontSize: "18px", color: "rgba(201,168,76,0.4)", letterSpacing: "0.15em" }}>No Upcoming Orders</p>
+            <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.25)", marginTop: "8px" }}>There are no orders scheduled for today or the next two days.</p>
           </div>
+        ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            {calendarGroups.map(([day, entries]) => (
+            {upcomingGroups.map(([day, entries]) => (
               <div key={day}>
-                {/* Date header */}
                 <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px" }}>
                   <div style={{ minWidth: "80px" }}>
                     <p style={{ fontFamily: "'Cinzel', serif", fontSize: "22px", fontWeight: 600, color: "#C9A84C", lineHeight: 1, margin: 0 }}>{moment(day).format("D")}</p>
@@ -207,34 +209,31 @@ export default function Orders() {
                   </div>
                   <div style={{ flex: 1, height: "1px", background: "rgba(201,168,76,0.12)" }} />
                   <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", color: "rgba(245,240,232,0.2)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
-                    {moment(day).isSame(moment(), "day") ? "Today" : moment(day).isSame(moment().add(1, "day"), "day") ? "Tomorrow" : moment(day).fromNow()}
+                    {moment(day).isSame(moment(), "day") ? "Today" : moment(day).isSame(moment().add(1, "day"), "day") ? "Tomorrow" : "In 2 days"}
                   </span>
                 </div>
-                {/* Order cards */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px", paddingLeft: "92px" }}>
-                  {entries.map(({ order, color }) => (
+                  {entries.map((order) => (
                     <div key={order.id}
                       onClick={() => { setEditOrder(order); setFormOpen(true); }}
                       style={{
-                        background: `linear-gradient(135deg, ${color}30 0%, rgba(14,14,14,1) 65%)`,
-                        border: `1px solid ${color}70`,
-                        borderLeft: `4px solid ${color}`,
-                        boxShadow: `0 0 18px ${color}22, inset 0 0 40px ${color}08`,
+                        background: "#141414",
+                        border: "1px solid rgba(201,168,76,0.22)",
+                        borderLeft: `4px solid ${order.status === "Pending" ? "#C9A84C" : order.status === "Confirmed" ? "rgba(245,240,232,0.7)" : "#C2185B"}`,
+                        boxShadow: "0 0 18px rgba(0,0,0,0.35)",
                         padding: "12px 14px",
                         cursor: "pointer",
                         transition: "all 0.2s ease",
                         position: "relative",
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background = `linear-gradient(135deg, ${color}45 0%, rgba(14,14,14,1) 65%)`; e.currentTarget.style.boxShadow = `0 0 30px ${color}44`; e.currentTarget.style.borderColor = `${color}99`; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = `linear-gradient(135deg, ${color}30 0%, rgba(14,14,14,1) 65%)`; e.currentTarget.style.boxShadow = `0 0 18px ${color}22, inset 0 0 40px ${color}08`; e.currentTarget.style.borderColor = `${color}70`; }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "#1a1a1a"; e.currentTarget.style.borderColor = "rgba(201,168,76,0.4)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "#141414"; e.currentTarget.style.borderColor = "rgba(201,168,76,0.22)"; }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
                         <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", fontWeight: 600, color: "#F5F0E8", margin: 0 }}>{order.client_name}</p>
                         <StatusBadge status={order.status} />
                       </div>
-                      {order.time_slot && (
-                        <p style={{ fontFamily: "'Cinzel', serif", fontSize: "11px", color, margin: "0 0 4px", letterSpacing: "0.05em" }}>{order.time_slot}</p>
-                      )}
+                      <p style={{ fontFamily: "'Cinzel', serif", fontSize: "12px", color: "#C9A84C", margin: "0 0 4px", letterSpacing: "0.05em" }}>{order.time_slot || moment(order.order_date).format("h:mm A")}</p>
                       {order.order_value > 0 && (
                         <p style={{ fontFamily: "'Cinzel', serif", fontSize: "13px", color: "rgba(201,168,76,0.7)", margin: "0 0 4px" }}>R{Number(order.order_value).toLocaleString()}</p>
                       )}
@@ -247,32 +246,29 @@ export default function Orders() {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {orders.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "80px 20px", border: "1px dashed rgba(201,168,76,0.15)" }}>
-          <p style={{ fontFamily: "'Cinzel', serif", fontSize: "18px", color: "rgba(201,168,76,0.4)", letterSpacing: "0.15em" }}>No Orders Recorded</p>
-          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.25)", marginTop: "8px" }}>Add your first order to get started.</p>
+      {/* ── Past Order Log ── */}
+      <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 0, overflow: "hidden" }}>
+        <div style={{ background: "#0a0a0a", borderBottom: "1px solid rgba(201,168,76,0.25)", padding: "14px 20px" }}>
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: "13px", letterSpacing: "0.25em", color: "rgba(201,168,76,0.7)", textTransform: "uppercase" }}>Past Order Log</span>
         </div>
-      ) : (
-        <>
-          {/* Table wrapper */}
-          <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 0, overflow: "hidden" }}>
-            {/* Decorative header bar */}
-            <div style={{ background: "#0a0a0a", borderBottom: "1px solid rgba(201,168,76,0.25)", padding: "14px 20px" }}>
-              <span style={{ fontFamily: "'Cinzel', serif", fontSize: "13px", letterSpacing: "0.25em", color: "rgba(201,168,76,0.7)", textTransform: "uppercase" }}>Order Log</span>
-            </div>
-            {currentUser?.role === "admin" && (
-              <BulkActionsBar
-                selectedCount={selectedIds.size}
-                onMarkFulfilled={() => setPendingBulkStatus("Fulfilled")}
-                onMarkCancelled={() => setPendingBulkStatus("Cancelled")}
-                onExport={handleExportSelected}
-              />
-            )}
+        {currentUser?.role === "admin" && (
+          <BulkActionsBar
+            selectedCount={selectedIds.size}
+            onMarkFulfilled={() => setPendingBulkStatus("Fulfilled")}
+            onMarkCancelled={() => setPendingBulkStatus("Cancelled")}
+            onExport={handleExportSelected}
+          />
+        )}
 
-            {/* Desktop table */}
+        {pastOrders.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "48px 20px" }}>
+            <p style={{ fontFamily: "'Cinzel', serif", fontSize: "18px", color: "rgba(201,168,76,0.4)", letterSpacing: "0.15em" }}>No Past Orders</p>
+          </div>
+        ) : (
+          <>
             <div className="hidden md:block overflow-x-auto">
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -281,98 +277,103 @@ export default function Orders() {
                       <th style={{ padding: "14px 16px", width: "44px", textAlign: "center" }}>
                         <input
                           type="checkbox"
-                          checked={orders.length > 0 && selectedIds.size === orders.length}
-                          onChange={toggleSelectAll}
+                          checked={pastOrders.length > 0 && selectedIds.size === pastOrders.length}
+                          onChange={() => {
+                            if (selectedIds.size === pastOrders.length) {
+                              setSelectedIds(new Set());
+                              return;
+                            }
+                            setSelectedIds(new Set(pastOrders.map((order) => order.id)));
+                          }}
                           style={{ accentColor: "#C9A84C", cursor: "pointer" }}
                         />
                       </th>
                     )}
                     {["Client Name", "Order Value", "Items Summary", "Time Slot", "Payment Method", "Status", ""].map((h, i) => (
-                    <th key={i} style={{ padding: "14px 16px", textAlign: i === 6 ? "right" : "left", fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 600, color: "rgba(201,168,76,0.55)", letterSpacing: "0.18em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
-                  ))}
+                      <th key={i} style={{ padding: "14px 16px", textAlign: i === 6 ? "right" : "left", fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 600, color: "rgba(201,168,76,0.55)", letterSpacing: "0.18em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map(order => {
+                  {pastOrders.map(order => {
                     const urgent = isUrgent(order);
                     return (
-                    <Fragment key={order.id}>
-                    <tr
-                      id={`order-row-${order.id}`}
-                      style={{ borderBottom: expandedIds.has(order.id) ? "none" : "1px solid rgba(255,255,255,0.04)", transition: "background 0.15s", cursor: "pointer", background: highlightedOrderId === order.id ? "rgba(201,168,76,0.08)" : urgent ? "rgba(194,24,91,0.06)" : "transparent", borderLeft: highlightedOrderId === order.id ? "2px solid #C9A84C" : urgent ? "2px solid rgba(194,24,91,0.6)" : "2px solid transparent" }}
-                      onMouseEnter={e => e.currentTarget.style.background = highlightedOrderId === order.id ? "rgba(201,168,76,0.12)" : urgent ? "rgba(194,24,91,0.1)" : "rgba(201,168,76,0.04)"}
-                      onMouseLeave={e => e.currentTarget.style.background = highlightedOrderId === order.id ? "rgba(201,168,76,0.08)" : urgent ? "rgba(194,24,91,0.06)" : (expandedIds.has(order.id) ? "rgba(201,168,76,0.04)" : "transparent")}
-                      onClick={() => toggleExpanded(order.id)}
-                    >
-                      {currentUser?.role === "admin" && (
-                        <td style={{ padding: "14px 16px", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.has(order.id)}
-                            onChange={() => toggleSelected(order.id)}
-                            style={{ accentColor: "#C9A84C", cursor: "pointer" }}
-                          />
-                        </td>
-                      )}
-                      <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "#F5F0E8", fontWeight: 500, whiteSpace: "nowrap" }}>{order.client_name}</td>
-                      <td style={{ padding: "14px 16px", fontFamily: "'Cinzel', serif", fontSize: "14px", color: "#C9A84C", whiteSpace: "nowrap" }}>{order.order_value ? `R${Number(order.order_value).toLocaleString()}` : "—"}</td>
-                      <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.55)", maxWidth: "220px" }}>
-                        <span style={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>{order.order_details}</span>
-                      </td>
-                      <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.45)", whiteSpace: "nowrap" }}>{order.time_slot || moment(order.order_date).format("h:mm A")}</td>
-                      <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.4)", whiteSpace: "nowrap", letterSpacing: "0.05em" }}>{order.payment_method || "—"}</td>
-                      <td style={{ padding: "14px 16px" }}><StatusBadge status={order.status} /></td>
-                      <td style={{ padding: "14px 16px", textAlign: "right" }}>
-                        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "4px" }}>
-                          <button onClick={(e) => { e.stopPropagation(); setEditOrder(order); setFormOpen(true); }} style={{ padding: "6px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.28)", transition: "color 0.15s" }}
-                            onMouseEnter={e => e.currentTarget.style.color = "#C9A84C"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.28)"} >
-                            <Pencil size={13} strokeWidth={1.5} />
-                          </button>
-                          <button onClick={(e) => { e.stopPropagation(); setDeleteId(order.id); }} style={{ padding: "6px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.28)", transition: "color 0.15s" }}
-                            onMouseEnter={e => e.currentTarget.style.color = "#C2185B"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.28)"} >
-                            <Trash2 size={13} strokeWidth={1.5} />
-                          </button>
-                          <ChevronDown size={13} strokeWidth={1.5} style={{ color: "rgba(245,240,232,0.2)", transition: "transform 0.2s", transform: expandedIds.has(order.id) ? "rotate(180deg)" : "rotate(0deg)", marginLeft: "4px" }} />
-                        </div>
-                      </td>
-                    </tr>
-                    {expandedIds.has(order.id) && (
-                      <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                        <td colSpan={currentUser?.role === "admin" ? 8 : 7} style={{ padding: 0 }}>
-                          <OrderLifecycle order={order} />
-                        </td>
-                      </tr>
-                    )}
-                    </Fragment>
-                  );
+                      <Fragment key={order.id}>
+                        <tr
+                          id={`order-row-${order.id}`}
+                          style={{ borderBottom: expandedIds.has(order.id) ? "none" : "1px solid rgba(255,255,255,0.04)", transition: "background 0.15s", cursor: "pointer", background: highlightedOrderId === order.id ? "rgba(201,168,76,0.08)" : urgent ? "rgba(194,24,91,0.06)" : "transparent", borderLeft: highlightedOrderId === order.id ? "2px solid #C9A84C" : urgent ? "2px solid rgba(194,24,91,0.6)" : "2px solid transparent" }}
+                          onMouseEnter={e => e.currentTarget.style.background = highlightedOrderId === order.id ? "rgba(201,168,76,0.12)" : urgent ? "rgba(194,24,91,0.1)" : "rgba(201,168,76,0.04)"}
+                          onMouseLeave={e => e.currentTarget.style.background = highlightedOrderId === order.id ? "rgba(201,168,76,0.08)" : urgent ? "rgba(194,24,91,0.06)" : (expandedIds.has(order.id) ? "rgba(201,168,76,0.04)" : "transparent")}
+                          onClick={() => toggleExpanded(order.id)}
+                        >
+                          {currentUser?.role === "admin" && (
+                            <td style={{ padding: "14px 16px", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.has(order.id)}
+                                onChange={() => toggleSelected(order.id)}
+                                style={{ accentColor: "#C9A84C", cursor: "pointer" }}
+                              />
+                            </td>
+                          )}
+                          <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "#F5F0E8", fontWeight: 500, whiteSpace: "nowrap" }}>{order.client_name}</td>
+                          <td style={{ padding: "14px 16px", fontFamily: "'Cinzel', serif", fontSize: "14px", color: "#C9A84C", whiteSpace: "nowrap" }}>{order.order_value ? `R${Number(order.order_value).toLocaleString()}` : "—"}</td>
+                          <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.55)", maxWidth: "220px" }}>
+                            <span style={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>{order.order_details}</span>
+                          </td>
+                          <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.45)", whiteSpace: "nowrap" }}>{order.time_slot || moment(order.order_date).format("h:mm A")}</td>
+                          <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.4)", whiteSpace: "nowrap", letterSpacing: "0.05em" }}>{order.payment_method || "—"}</td>
+                          <td style={{ padding: "14px 16px" }}><StatusBadge status={order.status} /></td>
+                          <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "4px" }}>
+                              <button onClick={(e) => { e.stopPropagation(); setEditOrder(order); setFormOpen(true); }} style={{ padding: "6px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.28)", transition: "color 0.15s" }}
+                                onMouseEnter={e => e.currentTarget.style.color = "#C9A84C"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.28)"} >
+                                <Pencil size={13} strokeWidth={1.5} />
+                              </button>
+                              <button onClick={(e) => { e.stopPropagation(); setDeleteId(order.id); }} style={{ padding: "6px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.28)", transition: "color 0.15s" }}
+                                onMouseEnter={e => e.currentTarget.style.color = "#C2185B"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.28)"} >
+                                <Trash2 size={13} strokeWidth={1.5} />
+                              </button>
+                              <ChevronDown size={13} strokeWidth={1.5} style={{ color: "rgba(245,240,232,0.2)", transition: "transform 0.2s", transform: expandedIds.has(order.id) ? "rotate(180deg)" : "rotate(0deg)", marginLeft: "4px" }} />
+                            </div>
+                          </td>
+                        </tr>
+                        {expandedIds.has(order.id) && (
+                          <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                            <td colSpan={currentUser?.role === "admin" ? 8 : 7} style={{ padding: 0 }}>
+                              <OrderLifecycle order={order} />
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
                   })}
                 </tbody>
               </table>
             </div>
 
-            {/* Mobile cards */}
             <div className="md:hidden">
-              {orders.map((order, idx) => {
+              {pastOrders.map((order, idx) => {
                 const urgent = isUrgent(order);
                 return (
-                 <div key={order.id} style={{ padding: "18px 20px", borderBottom: idx < orders.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", background: urgent ? "rgba(194,24,91,0.06)" : "transparent", borderLeft: urgent ? "3px solid rgba(194,24,91,0.6)" : "3px solid transparent" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
-                    <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "14px", color: "#F5F0E8", fontWeight: 500 }}>{order.client_name}</p>
-                    <StatusBadge status={order.status} />
+                  <div key={order.id} style={{ padding: "18px 20px", borderBottom: idx < pastOrders.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", background: urgent ? "rgba(194,24,91,0.06)" : "transparent", borderLeft: urgent ? "3px solid rgba(194,24,91,0.6)" : "3px solid transparent" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
+                      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "14px", color: "#F5F0E8", fontWeight: 500 }}>{order.client_name}</p>
+                      <StatusBadge status={order.status} />
+                    </div>
+                    <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.4)", marginBottom: "4px" }}>{moment(order.order_date).format("MMM D, YYYY · h:mm A")}</p>
+                    <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.5)", marginBottom: "12px" }}>{order.order_details}</p>
+                    <div style={{ display: "flex", gap: "16px" }}>
+                      <button onClick={() => { setEditOrder(order); setFormOpen(true); }} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "#C9A84C", letterSpacing: "0.15em", textTransform: "uppercase", padding: 0 }}>Edit</button>
+                      <button onClick={() => setDeleteId(order.id)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "#C2185B", letterSpacing: "0.15em", textTransform: "uppercase", padding: 0 }}>Delete</button>
+                    </div>
                   </div>
-                  <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.4)", marginBottom: "4px" }}>{moment(order.order_date).format("MMM D, YYYY · h:mm A")}</p>
-                  <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.5)", marginBottom: "12px" }}>{order.order_details}</p>
-                  <div style={{ display: "flex", gap: "16px" }}>
-                    <button onClick={() => { setEditOrder(order); setFormOpen(true); }} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "#C9A84C", letterSpacing: "0.15em", textTransform: "uppercase", padding: 0 }}>Edit</button>
-                    <button onClick={() => setDeleteId(order.id)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "#C2185B", letterSpacing: "0.15em", textTransform: "uppercase", padding: 0 }}>Delete</button>
-                  </div>
-                </div>
                 );
               })}
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
 
       {/* ── Archived Fulfilled Orders ── */}
       {archivedFulfilled.length > 0 && (
