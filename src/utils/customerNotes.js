@@ -19,47 +19,67 @@ export const getNoteDuplicateKey = (note) => {
   return `${client}::id::${note.id}`;
 };
 
+const normalizeTags = (tags = []) => [...tags].map((tag) => normalizeText(tag)).filter(Boolean).sort();
+
+const getTagKey = (tags = []) => normalizeTags(tags).join("|");
+
 export const getDeduplicatedNotes = (notes = []) => {
-  const seen = new Set();
-  const deduped = [];
+  const dedupeMap = new Map();
   const duplicateGroups = new Map();
 
   notes.forEach((note) => {
-    const byContentKey = normalizeText(note.content)
-      ? `${normalizeClientName(note.client_name)}::content::${normalizeText(note.content)}`
-      : "";
-    const byDateKey = getDayKey(note.created_date)
-      ? `${normalizeClientName(note.client_name)}::date::${getDayKey(note.created_date)}`
-      : "";
+    const clientKey = normalizeClientName(note.client_name);
+    const contentKey = normalizeText(note.content);
+    const dateKey = getDayKey(note.created_date);
+    const tagsKey = getTagKey(note.tags || []);
 
-    const matchedKey = [byContentKey, byDateKey].find((key) => key && seen.has(key));
-    const primaryKey = byContentKey || byDateKey || `${normalizeClientName(note.client_name)}::id::${note.id}`;
+    const keys = [
+      contentKey ? `${clientKey}::content::${contentKey}` : "",
+      dateKey ? `${clientKey}::date::${dateKey}` : "",
+      dateKey && tagsKey ? `${clientKey}::tags-date::${tagsKey}::${dateKey}` : "",
+    ].filter(Boolean);
 
-    if (matchedKey) {
-      const group = duplicateGroups.get(matchedKey) || [];
+    const matchedEntry = keys.find((key) => dedupeMap.has(key));
+
+    if (matchedEntry) {
+      const primary = dedupeMap.get(matchedEntry);
+      const groupId = `${primary.id}::${matchedEntry}`;
+      const group = duplicateGroups.get(groupId) || [primary];
       group.push(note);
-      duplicateGroups.set(matchedKey, group);
+      duplicateGroups.set(groupId, group);
       return;
     }
 
-    deduped.push(note);
-    if (byContentKey) {
-      seen.add(byContentKey);
-      duplicateGroups.set(byContentKey, [note]);
-    }
-    if (byDateKey) {
-      seen.add(byDateKey);
-      if (!duplicateGroups.has(byDateKey)) duplicateGroups.set(byDateKey, [note]);
-    }
+    keys.forEach((key) => dedupeMap.set(key, note));
   });
 
-  const duplicateSets = Array.from(new Map(
-    Array.from(duplicateGroups.values())
-      .filter((group) => group.length > 1)
-      .map((group) => [group.map((item) => item.id).sort().join("-"), group])
-  ).values());
+  const duplicateNoteIds = new Set(Array.from(duplicateGroups.values()).flatMap((group) => group.slice(1).map((note) => note.id)));
+  const deduped = notes.filter((note) => !duplicateNoteIds.has(note.id));
+  const duplicateSets = Array.from(duplicateGroups.values());
 
   return { deduped, duplicateSets };
+};
+
+export const getGeneratedIntelligenceKey = (note) => {
+  const clientKey = normalizeClientName(note.client_name);
+  const tagsKey = getTagKey(note.tags || []);
+  return `${clientKey}::${tagsKey}`;
+};
+
+export const getGeneratedDuplicateSets = (notes = []) => {
+  const groups = new Map();
+
+  notes.forEach((note) => {
+    const key = getGeneratedIntelligenceKey(note);
+    const dateKey = getDayKey(note.created_date);
+    if (!key || !dateKey) return;
+    const groupKey = `${key}::${dateKey}`;
+    const group = groups.get(groupKey) || [];
+    group.push(note);
+    groups.set(groupKey, group);
+  });
+
+  return Array.from(groups.values()).filter((group) => group.length > 1);
 };
 
 export const getNotePreview = (content = "") => {

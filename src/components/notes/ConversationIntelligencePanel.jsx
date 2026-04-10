@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import ConfirmDialog from "../ConfirmDialog";
+import { getGeneratedIntelligenceKey } from "../../utils/customerNotes";
 
 const labelStyle = {
   fontFamily: "'Raleway', sans-serif",
@@ -31,11 +33,16 @@ const maskSensitiveDetails = (text) =>
     .replace(/\b\d{12,19}\b/g, "[redacted payment]")
     .replace(/\b\d{3,6}\s+[A-Za-z0-9\s,.-]{6,}/g, "[redacted address]");
 
-export default function ConversationIntelligencePanel() {
+export default function ConversationIntelligencePanel({ notes = [], onSaved }) {
   const [conversation, setConversation] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [report, setReport] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const existingGeneratedNotes = useMemo(() => {
+    return notes.filter((note) => getGeneratedIntelligenceKey(note) === getGeneratedIntelligenceKey({ client_name: report?.client_snapshot?.[0] || "", tags: ["sales-intelligence", "whatsapp-analysis"] }));
+  }, [notes, report]);
 
   const analyzeConversation = async () => {
     if (!conversation.trim()) return;
@@ -90,7 +97,8 @@ Conversation:\n${sanitizedConversation}`,
     if (!report || saving) return;
     setSaving(true);
 
-    const title = report.client_snapshot?.[0] || "Client sales intelligence report";
+    const title = (report.client_snapshot?.[0] || "Client sales intelligence report").replace(/^-\s*/, "").slice(0, 120);
+    const tags = ["sales-intelligence", "whatsapp-analysis"];
     const content = [
       "CLIENT SALES INTELLIGENCE REPORT",
       "",
@@ -132,15 +140,24 @@ Conversation:\n${sanitizedConversation}`,
       ...(report.evidence_lines || []).map(item => `- ${item}`),
     ].join("\n");
 
-    await base44.entities.CustomerNote.create({
-      client_name: title.replace(/^-\s*/, "").slice(0, 120),
+    const existing = notes.find((note) => getGeneratedIntelligenceKey(note) === getGeneratedIntelligenceKey({ client_name: title, tags }));
+    const payload = {
+      client_name: title,
       note_type: "General",
       priority: "Medium",
       content,
-      tags: ["sales-intelligence", "whatsapp-analysis"]
-    });
+      tags,
+    };
+
+    if (existing) {
+      await base44.entities.CustomerNote.update(existing.id, payload);
+    } else {
+      await base44.entities.CustomerNote.create(payload);
+    }
 
     setSaving(false);
+    setConfirmOpen(false);
+    onSaved?.();
   };
 
   return (
@@ -172,7 +189,7 @@ Conversation:\n${sanitizedConversation}`,
         </button>
         {report && (
           <button
-            onClick={saveReport}
+            onClick={() => setConfirmOpen(true)}
             disabled={saving}
             style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.4)", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 20px", cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1 }}
           >
@@ -183,95 +200,17 @@ Conversation:\n${sanitizedConversation}`,
 
       {report && (
         <div style={{ marginTop: "22px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
-          <div style={{ ...cardStyle, padding: "16px" }}>
-            <p style={labelStyle}>Client Snapshot</p>
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              {(report.client_snapshot || []).map((item, index) => (
-                <li key={index} style={bodyText}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div style={{ ...cardStyle, padding: "16px" }}>
-            <p style={labelStyle}>Salesperson Brief</p>
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              {(report.salesperson_brief || []).map((item, index) => (
-                <li key={index} style={bodyText}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div style={{ ...cardStyle, padding: "16px" }}>
-            <p style={labelStyle}>Sentiment Profile</p>
-            <p style={bodyText}><strong>Current:</strong> {report.sentiment_profile?.current || "—"}</p>
-            <p style={bodyText}><strong>Trust:</strong> {report.sentiment_profile?.trust_level || "—"}</p>
-            <p style={bodyText}><strong>Style:</strong> {report.sentiment_profile?.communication_style || "—"}</p>
-            <ul style={{ margin: "10px 0 0", paddingLeft: "18px" }}>
-              {(report.sentiment_profile?.shifts_over_time || []).map((item, index) => (
-                <li key={index} style={bodyText}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div style={{ ...cardStyle, padding: "16px" }}>
-            <p style={labelStyle}>Preferences</p>
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              {(report.preferences || []).map((item, index) => (
-                <li key={index} style={bodyText}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div style={{ ...cardStyle, padding: "16px" }}>
-            <p style={labelStyle}>Objections & Blockers</p>
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              {(report.objections_blockers || []).map((item, index) => (
-                <li key={index} style={bodyText}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div style={{ ...cardStyle, padding: "16px" }}>
-            <p style={labelStyle}>Buying Signals</p>
-            <p style={bodyText}><strong>Intent:</strong> {report.buying_signals?.intent_score ?? "—"}/10</p>
-            <p style={bodyText}><strong>Urgency:</strong> {report.buying_signals?.urgency_score ?? "—"}/10</p>
-            <p style={bodyText}><strong>Trust:</strong> {report.buying_signals?.trust_score ?? "—"}/10</p>
-            <p style={bodyText}><strong>Close Probability:</strong> {report.buying_signals?.close_probability ?? "—"}%</p>
-            <ul style={{ margin: "10px 0 0", paddingLeft: "18px" }}>
-              {(report.buying_signals?.signals || []).map((item, index) => (
-                <li key={index} style={bodyText}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div style={{ ...cardStyle, padding: "16px" }}>
-            <p style={labelStyle}>Behavior Pattern</p>
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              {(report.behavior_pattern || []).map((item, index) => (
-                <li key={index} style={bodyText}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div style={{ ...cardStyle, padding: "16px" }}>
-            <p style={labelStyle}>Recommended Sales Approach</p>
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              {(report.recommended_sales_approach || []).map((item, index) => (
-                <li key={index} style={bodyText}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div style={{ ...cardStyle, padding: "16px" }}>
-            <p style={labelStyle}>Risk Flags</p>
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              {(report.risk_flags || []).map((item, index) => (
-                <li key={index} style={bodyText}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div style={{ ...cardStyle, padding: "16px", gridColumn: "1 / -1" }}>
-            <p style={labelStyle}>Evidence Lines</p>
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              {(report.evidence_lines || []).map((item, index) => (
-                <li key={index} style={bodyText}>{item}</li>
-              ))}
-            </ul>
-          </div>
+...
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Update Existing Intelligence"
+        description={`This will update existing intelligence for ${existingGeneratedNotes.length || 0} client${existingGeneratedNotes.length === 1 ? "" : "s"}. Continue?`}
+        onConfirm={saveReport}
+      />
     </div>
   );
 }

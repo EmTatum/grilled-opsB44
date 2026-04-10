@@ -8,7 +8,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import ConversationIntelligencePanel from "../components/notes/ConversationIntelligencePanel";
 import CustomerNoteCard from "../components/notes/CustomerNoteCard";
 import DuplicateNotesBanner from "../components/notes/DuplicateNotesBanner";
-import { getDeduplicatedNotes } from "../utils/customerNotes";
+import { getDeduplicatedNotes, getGeneratedDuplicateSets } from "../utils/customerNotes";
 
 const noteTypes = ["Credit on Account", "Debt on Account", "Needs Attention", "Client Retention", "General"];
 
@@ -55,6 +55,7 @@ export default function CustomerNotes() {
   }, [location.search]);
 
   const { deduped, duplicateSets } = useMemo(() => getDeduplicatedNotes(notes), [notes]);
+  const generatedDuplicateSets = useMemo(() => getGeneratedDuplicateSets(notes), [notes]);
 
   const filtered = useMemo(() => deduped.filter(n => {
     const matchSearch = !search || n.client_name.toLowerCase().includes(search.toLowerCase());
@@ -63,8 +64,8 @@ export default function CustomerNotes() {
   }), [deduped, search, typeFilter]);
 
   const duplicateCount = useMemo(
-    () => duplicateSets.reduce((sum, group) => sum + group.length - 1, 0),
-    [duplicateSets]
+    () => generatedDuplicateSets.reduce((sum, group) => sum + group.length - 1, 0),
+    [generatedDuplicateSets]
   );
 
   const handleSave = async (data) => {
@@ -75,12 +76,12 @@ export default function CustomerNotes() {
   const handleDelete = async () => { await base44.entities.CustomerNote.delete(deleteId); setDeleteId(null); load(); };
 
   const handleMergeDuplicates = async () => {
-    if (!duplicateSets.length || mergingDuplicates) return;
+    if (!generatedDuplicateSets.length || mergingDuplicates) return;
     setMergingDuplicates(true);
 
-    const duplicateIds = duplicateSets.flatMap((group) =>
+    const duplicateIds = generatedDuplicateSets.flatMap((group) =>
       [...group]
-        .sort((a, b) => new Date(a.created_date).getTime() - new Date(b.created_date).getTime())
+        .sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime())
         .slice(1)
         .map((note) => note.id)
     );
@@ -98,7 +99,7 @@ export default function CustomerNotes() {
         <GoldBtn onClick={() => { setEditNote(null); setFormOpen(true); }}><Plus size={12} /> New Note</GoldBtn>
       </PageHeader>
 
-      <ConversationIntelligencePanel />
+      <ConversationIntelligencePanel notes={notes} onSaved={load} />
 
       <DuplicateNotesBanner duplicateCount={duplicateCount} onMerge={handleMergeDuplicates} merging={mergingDuplicates} />
 
