@@ -60,9 +60,9 @@ function DayCell({ day, orders, onDropOrder, onDragStart, isMonth }) {
   );
 }
 
-export default function OrdersCalendarGrid({ view, days, ordersByDay, onDropOrder, onDragStart }) {
+export default function OrdersCalendarGrid({ days, ordersByDay, onDropOrder, onDragStart }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: view === "month" ? "repeat(7, minmax(0, 1fr))" : "repeat(7, minmax(240px, 1fr))", gap: "12px", overflowX: "auto" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "12px", overflowX: "auto" }}>
       {days.map((day) => (
         <DayCell
           key={day.format("YYYY-MM-DD")}
@@ -70,7 +70,7 @@ export default function OrdersCalendarGrid({ view, days, ordersByDay, onDropOrde
           orders={ordersByDay[day.format("YYYY-MM-DD")] || []}
           onDropOrder={onDropOrder}
           onDragStart={onDragStart}
-          isMonth={view === "month"}
+          isMonth={true}
         />
       ))}
     </div>

@@ -15,8 +15,7 @@ const Spinner = () => (
 export default function OrdersPlanner() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState("week");
-  const [cursorDate, setCursorDate] = useState(moment().startOf("week"));
+  const [cursorDate, setCursorDate] = useState(moment().startOf("month"));
   const [draggedOrder, setDraggedOrder] = useState(null);
 
   const load = async () => {
@@ -28,10 +27,11 @@ export default function OrdersPlanner() {
   useEffect(() => { load(); }, []);
 
   const days = useMemo(() => {
-    const start = view === "week" ? cursorDate.clone().startOf("week") : cursorDate.clone().startOf("month").startOf("week");
-    const count = view === "week" ? 7 : 35;
+    const start = cursorDate.clone().startOf("month").startOf("week");
+    const end = cursorDate.clone().endOf("month").endOf("week");
+    const count = end.diff(start, "days") + 1;
     return Array.from({ length: count }, (_, index) => start.clone().add(index, "days"));
-  }, [cursorDate, view]);
+  }, [cursorDate]);
 
   const ordersByDay = useMemo(() => {
     return orders.reduce((acc, order) => {
@@ -52,25 +52,20 @@ export default function OrdersPlanner() {
     load();
   };
 
-  const label = view === "week"
-    ? `${days[0].format("D MMM")} — ${days[days.length - 1].format("D MMM YYYY")}`
-    : cursorDate.format("MMMM YYYY");
+  const label = cursorDate.format("MMMM YYYY");
 
   if (loading) return <Spinner />;
 
   return (
     <div>
-      <PageHeader title="Upcoming Orders Planner" subtitle="Weekly and monthly delivery calendar with rescheduling and bottleneck visibility" />
+      <PageHeader title="Upcoming Orders Planner" subtitle="Monthly delivery calendar with rescheduling and bottleneck visibility" />
       <OrdersCalendarToolbar
-        view={view}
-        onViewChange={setView}
         label={label}
-        onPrev={() => setCursorDate((prev) => prev.clone().subtract(1, view === "week" ? "week" : "month"))}
-        onNext={() => setCursorDate((prev) => prev.clone().add(1, view === "week" ? "week" : "month"))}
-        onToday={() => setCursorDate(moment().startOf(view === "week" ? "week" : "month"))}
+        onPrev={() => setCursorDate((prev) => prev.clone().subtract(1, "month"))}
+        onNext={() => setCursorDate((prev) => prev.clone().add(1, "month"))}
+        onToday={() => setCursorDate(moment().startOf("month"))}
       />
       <OrdersCalendarGrid
-        view={view}
         days={days}
         ordersByDay={ordersByDay}
         onDropOrder={handleDropOrder}
