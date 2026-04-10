@@ -29,6 +29,7 @@ function OrderCard({ order, onDragStart }) {
 function DayCell({ day, orders, onDropOrder, onDragStart, isMonth }) {
   const isBottleneck = orders.length >= 4;
   const isToday = day.isSame(moment(), "day");
+  const isPastDay = day.clone().endOf("day").isBefore(moment());
 
   return (
     <div
@@ -47,8 +48,8 @@ function DayCell({ day, orders, onDropOrder, onDragStart, isMonth }) {
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
         <div>
-          <p style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", color: isToday ? "#E87A25" : "#C9A84C", margin: 0, textShadow: isToday ? "0 0 16px rgba(232,122,37,0.35)" : "none" }}>{day.format("D")}</p>
-          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", letterSpacing: "0.16em", textTransform: "uppercase", color: isToday ? "rgba(232,122,37,0.8)" : "rgba(245,240,232,0.28)", margin: 0 }}>{day.format("ddd")}</p>
+          <p style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", color: isToday ? "#E87A25" : "#C9A84C", margin: 0, textShadow: isToday ? "0 0 16px rgba(232,122,37,0.35)" : "none", textDecoration: isPastDay ? "line-through" : "none", textDecorationColor: isToday ? "#E87A25" : "rgba(245,240,232,0.5)", textDecorationThickness: "1px", opacity: isPastDay ? 0.6 : 1 }}>{day.format("D")}</p>
+          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", letterSpacing: "0.16em", textTransform: "uppercase", color: isToday ? "rgba(232,122,37,0.8)" : "rgba(245,240,232,0.28)", margin: 0, textDecoration: isPastDay ? "line-through" : "none", textDecorationColor: "rgba(245,240,232,0.35)", textDecorationThickness: "1px", opacity: isPastDay ? 0.5 : 1 }}>{day.format("ddd")}</p>
         </div>
         <span style={{ padding: "4px 8px", border: `1px solid ${isToday ? "rgba(232,122,37,0.45)" : isBottleneck ? "rgba(194,24,91,0.45)" : "rgba(201,168,76,0.25)"}`, background: isToday ? "rgba(232,122,37,0.12)" : isBottleneck ? "rgba(194,24,91,0.08)" : "rgba(201,168,76,0.05)", color: isToday ? "#E87A25" : isBottleneck ? "#C2185B" : "rgba(245,240,232,0.7)", fontFamily: "'Raleway', sans-serif", fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase" }}>
           {isToday ? "Today" : `${orders.length} deliveries`}
