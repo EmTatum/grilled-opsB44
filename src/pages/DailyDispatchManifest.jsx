@@ -60,6 +60,7 @@ export default function DailyDispatchManifest() {
           orders={upcomingOrders}
           title="Upcoming Dispatch Manifest"
           subtitle="All remaining active scheduled orders"
+          showDateAboveTime={true}
         />
       )}
     </div>

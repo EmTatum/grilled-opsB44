@@ -37,7 +37,7 @@ const splitItems = (text) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-export default function DispatchManifestTable({ orders, title = "Daily Dispatch Manifest", subtitle, showPrintButton = false }) {
+export default function DispatchManifestTable({ orders, title = "Daily Dispatch Manifest", subtitle, showPrintButton = false, showDateAboveTime = false }) {
   return (
     <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.2)", overflow: "hidden" }}>
       <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(201,168,76,0.2)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
@@ -68,6 +68,11 @@ export default function DispatchManifestTable({ orders, title = "Daily Dispatch 
               return (
                 <tr key={order.id}>
                   <td style={bodyCell}>
+                    {showDateAboveTime && (
+                      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", color: "rgba(245,240,232,0.45)", margin: "0 0 4px", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                        {moment(order.order_date).format("ddd D MMM YYYY")}
+                      </p>
+                    )}
                     <p style={{ fontFamily: "'Cinzel', serif", fontSize: "15px", color: "#C9A84C", margin: 0 }}>{order.time_slot || moment(order.order_date).format("h:mm A")}</p>
                   </td>
                   <td style={bodyCell}>
