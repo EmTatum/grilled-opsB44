@@ -218,7 +218,7 @@ export default function Dashboard() {
               <div style={{ height: "1px", width: "40px", background: "linear-gradient(90deg, #C9A84C, transparent)" }} />
             </div>
             <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", fontWeight: 300, color: "rgba(245,240,232,0.35)", letterSpacing: "0.15em", marginTop: "10px" }}>
-              Grilled.inc — Members-only dashboard
+              AFRICA BURN 2026
             </p>
           </div>
 
