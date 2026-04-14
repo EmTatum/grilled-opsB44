@@ -1,27 +1,15 @@
 import React, { useMemo } from "react";
 import { getRollingDays, formatMonth, formatWeekday, toDayKey } from "../../lib/dashboardDateUtils";
-import type { Order } from "../../lib/dashboardStore";
-
-type RollingTwoWeekCalendarProps = {
-  baseDate?: Date;
-  selectedDate: string;
-  orders: Order[];
-  onSelectDate: (date: string) => void;
-};
-
 export default function RollingTwoWeekCalendar({
   baseDate,
   selectedDate,
   orders,
   onSelectDate,
-}: RollingTwoWeekCalendarProps) {
+}) {
   const days = useMemo(() => getRollingDays(baseDate ?? new Date()), [baseDate]);
 
   const orderStatsByDay = useMemo(() => {
-    const map = new Map<
-      string,
-      { totalOrders: number; overdueCount: number; criticalCount: number }
-    >();
+    const map = new Map();
 
     for (const order of orders) {
       const key = toDayKey(order.scheduledFor);
