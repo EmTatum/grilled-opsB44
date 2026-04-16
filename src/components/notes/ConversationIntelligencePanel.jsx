@@ -48,6 +48,17 @@ const maskSensitiveDetails = (text) =>
     .replace(/\b\d{12,19}\b/g, "[redacted payment]")
     .replace(/\b\d{3,6}\s+[A-Za-z0-9\s,.-]{6,}/g, "[redacted address]");
 
+const replacePickupWithDelivery = (value) => {
+  if (typeof value !== "string") return value;
+  return value
+    .replace(/pick\s*up/gi, "delivery")
+    .replace(/pickup/gi, "delivery");
+};
+
+const sanitizeGeneratedReport = (data) => Object.fromEntries(
+  Object.entries(data || {}).map(([key, value]) => [key, replacePickupWithDelivery(value)])
+);
+
 export default function ConversationIntelligencePanel({ onSaved }) {
   const [conversation, setConversation] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,7 +76,7 @@ export default function ConversationIntelligencePanel({ onSaved }) {
     setLoading(true);
     const sanitizedConversation = maskSensitiveDetails(conversation);
 
-    const result = await base44.integrations.Core.InvokeLLM({
+    const rawResult = await base44.integrations.Core.InvokeLLM({
       prompt: `You are generating an internal Grilled.inc intelligence dossier from a pasted WhatsApp conversation.
 
 Your job is to extract aggressively, thoroughly, and operationally.
@@ -89,7 +100,7 @@ EXTRACTION RULES:
   - PAID = payment clearly confirmed as received or already sent.
   - CASH = cash on delivery / cash on pickup clearly agreed.
   - PENDING = payment not confirmed, deferred, vague, or still outstanding.
-- delivery_date: the delivery or pickup date/timeframe discussed, such as 23 April, tonight, tomorrow, this weekend.
+- delivery_date: the delivery date/timeframe discussed, such as 23 April, tonight, tomorrow, this weekend.
 - delivery_address: any physical address, suburb, landmark, meeting point, or implied repeat-location reference.
 - order_list: every product and quantity mentioned from the VERY LAST time the client spoke to us about the order.
 - Treat the conversation as chronological and prioritize the final exchange only for the active order.
@@ -99,7 +110,11 @@ EXTRACTION RULES:
 - Do not group items.
 - Do not summarise.
 - If the final exchange contains no clear order, return exactly Not recorded.
-- order_total: use the exact total in ZAR if mentioned or reasonably calculable from the conversation. If not, return exactly Not confirmed.
+- order_total: actively look for any Rand amount mentioned anywhere in the entire conversation, not only in the last exchange.
+- This includes totals, amounts owed, prices mentioned in passing, shorthand like R8k, values like R16,250, and written-out amounts such as sixteen thousand.
+- If any monetary value appears anywhere, extract the most relevant overall Rand amount and format it as ZAR text like R16,250.
+- Only return exactly Not confirmed. if absolutely no money amount appears anywhere in the conversation.
+- The words pickup and pick up must never appear in any output field. Replace them with delivery everywhere.
 - sentiment_analysis: 2-3 concise sentences describing the client's tone, communication style, and attitude. Observational only.
 - red_flags: concerning signals only. If none, return exactly None recorded.
 - green_flags: positive signals only. If none, return exactly None recorded.
@@ -138,6 +153,8 @@ Conversation:\n${sanitizedConversation}`,
         ]
       }
     });
+
+    const result = sanitizeGeneratedReport(rawResult);
 
     setReport(result);
     setLoading(false);
