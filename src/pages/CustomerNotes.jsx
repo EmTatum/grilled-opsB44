@@ -53,6 +53,27 @@ export default function CustomerNotes() {
   const load = async () => { setNotes(await base44.entities.CustomerNote.list("-created_date", 100)); setLoading(false); };
   useEffect(() => { load(); }, []);
   useEffect(() => {
+    const unsubscribe = base44.entities.CustomerNote.subscribe((event) => {
+      if (event.type === "create") {
+        setNotes((prev) => [event.data, ...prev.filter((note) => note.id !== event.data.id)]);
+        return;
+      }
+
+      if (event.type === "update") {
+        setNotes((prev) => prev.map((note) => (note.id === event.id ? event.data : note)));
+        setActiveReport((prev) => (prev?.id === event.id ? getIntelligenceReportViewModel(event.data) : prev));
+        return;
+      }
+
+      if (event.type === "delete") {
+        setNotes((prev) => prev.filter((note) => note.id !== event.id));
+        setActiveReport((prev) => (prev?.id === event.id ? null : prev));
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("new") === "1") { setEditNote(null); setFormOpen(true); }
   }, [location.search]);
@@ -81,55 +102,65 @@ export default function CustomerNotes() {
   };
 
   const handleReportSave = async (reportData) => {
+    const normalizedStatus = normalizePaymentStatus(reportData.payment_status, reportData.payment_method);
     const content = [
       "CLIENT INFORMATION",
       `Client Name: ${reportData.client_name || "Not recorded."}`,
-      `Client Number: ${reportData.client_number || "Not recorded."}`,
-      `Drop-off Date: ${reportData.dropoff_date || "Not recorded."}`,
-      `Client Address / Drop-off Location: ${reportData.client_address || "Not recorded."}`,
+      `Cell Number: ${reportData.cell_number || "Not recorded."}`,
+      `Payment Method: ${reportData.payment_method || "Not recorded."}`,
+      `Payment Status: ${normalizedStatus}`,
+      "",
+      "DELIVERY INFORMATION",
+      `Delivery Date: ${reportData.delivery_date || "Not recorded."}`,
+      `Delivery Address: ${reportData.delivery_address || "Not recorded."}`,
       "",
       "ORDER DETAILS",
-      `${reportData.full_order_description || "Not recorded."}`,
-      `Payment Method: ${reportData.payment_method || "Not recorded."}`,
-      `Total Amount in ZAR: ${reportData.total_amount_zar || "Not confirmed."}`,
-      `Payment Status: ${normalizePaymentStatus(reportData.payment_status, reportData.payment_method)}`,
+      `${reportData.order_list || "Not recorded."}`,
+      `Order Total: ${reportData.order_total || "Not confirmed."}`,
       "",
-      "CLIENT NOTES",
-      `Behavioral Insights: ${reportData.behavioral_insights || "Not recorded."}`,
+      "CLIENT SENTIMENT",
+      `Sentiment Analysis: ${reportData.sentiment_analysis || "Not recorded."}`,
+      "",
+      "FLAGS",
       `Red Flags: ${reportData.red_flags || "None recorded."}`,
       `Green Flags: ${reportData.green_flags || "None recorded."}`,
-      `Action Item: ${reportData.action_item || "Not recorded."}`,
+      "",
+      "NEXT STEPS",
+      `Next Action: ${reportData.next_action || "Not recorded."}`,
     ].join("\n");
 
     const currentNote = notes.find((note) => note.id === reportData.id);
     const nextTags = [
       ...(currentNote?.tags || []).filter((tag) => !String(tag).startsWith("report-data:") && !String(tag).startsWith("payment-status:")),
-      `payment-status:${normalizePaymentStatus(reportData.payment_status, reportData.payment_method)}`,
+      `payment-status:${normalizedStatus}`,
       `report-data:${JSON.stringify({
         client_name: reportData.client_name || "Not recorded.",
-        client_number: reportData.client_number || "Not recorded.",
-        dropoff_date: reportData.dropoff_date || "Not recorded.",
-        client_address: reportData.client_address || "Not recorded.",
-        full_order_description: reportData.full_order_description || "Not recorded.",
+        cell_number: reportData.cell_number || "Not recorded.",
         payment_method: reportData.payment_method || "Not recorded.",
-        total_amount_zar: reportData.total_amount_zar || "Not confirmed.",
-        payment_status: normalizePaymentStatus(reportData.payment_status, reportData.payment_method),
-        behavioral_insights: reportData.behavioral_insights || "Not recorded.",
+        payment_status: normalizedStatus,
+        delivery_date: reportData.delivery_date || "Not recorded.",
+        delivery_address: reportData.delivery_address || "Not recorded.",
+        order_list: reportData.order_list || "Not recorded.",
+        order_total: reportData.order_total || "Not confirmed.",
+        sentiment_analysis: reportData.sentiment_analysis || "Not recorded.",
         red_flags: reportData.red_flags || "None recorded.",
         green_flags: reportData.green_flags || "None recorded.",
-        action_item: reportData.action_item || "Not recorded.",
+        next_action: reportData.next_action || "Not recorded.",
       })}`,
     ];
 
+    const updatedReport = {
+      ...reportData,
+      payment_status: normalizedStatus,
+    };
+
+    setActiveReport(updatedReport);
     await base44.entities.CustomerNote.update(reportData.id, {
       client_name: reportData.client_name,
       content,
       tags: nextTags,
-      total_spend: Number(String(reportData.total_amount_zar || "").replace(/[^\d.]/g, "")) || 0,
+      total_spend: Number(String(reportData.order_total || "").replace(/[^\d.]/g, "")) || 0,
     });
-
-    setActiveReport(reportData);
-    await load();
   };
 
   const handleDelete = async () => { await base44.entities.CustomerNote.delete(deleteId); setDeleteId(null); load(); };
@@ -158,7 +189,10 @@ export default function CustomerNotes() {
         <GoldBtn onClick={() => { setEditNote(null); setFormOpen(true); }}><Plus size={12} /> New Note</GoldBtn>
       </PageHeader>
 
-      <ConversationIntelligencePanel notes={notes} onSaved={load} />
+      <ConversationIntelligencePanel onSaved={(savedRecord) => {
+        if (!savedRecord) return;
+        setActiveReport(getIntelligenceReportViewModel(savedRecord));
+      }} />
 
       <DuplicateNotesBanner duplicateCount={duplicateCount} onMerge={handleMergeDuplicates} merging={mergingDuplicates} />
 

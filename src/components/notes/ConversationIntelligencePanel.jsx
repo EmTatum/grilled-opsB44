@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 
 const labelStyle = {
@@ -64,16 +64,31 @@ export default function ConversationIntelligencePanel({ onSaved }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [report, setReport] = useState(null);
+  const [savedIndicator, setSavedIndicator] = useState(false);
+  const [isComposerCollapsed, setIsComposerCollapsed] = useState(false);
+  const reportRef = useRef(null);
 
   const headerMeta = useMemo(() => {
     const parts = [report?.cell_number, report?.delivery_date, report?.delivery_address].filter((value) => value && value !== "Not recorded.");
     return parts.join(" · ");
   }, [report]);
 
+  useEffect(() => {
+    if (!savedIndicator) return undefined;
+    const timeout = window.setTimeout(() => setSavedIndicator(false), 2200);
+    return () => window.clearTimeout(timeout);
+  }, [savedIndicator]);
+
+  useEffect(() => {
+    if (!report || !reportRef.current) return;
+    reportRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [report]);
+
   const analyzeConversation = async () => {
     if (!conversation.trim() || loading || saving) return;
 
     setLoading(true);
+    setSavedIndicator(false);
     const sanitizedConversation = maskSensitiveDetails(conversation);
 
     const rawResult = await base44.integrations.Core.InvokeLLM({
@@ -157,6 +172,7 @@ Conversation:\n${sanitizedConversation}`,
     const result = sanitizeGeneratedReport(rawResult);
 
     setReport(result);
+    setIsComposerCollapsed(true);
     setLoading(false);
     setSaving(true);
 
@@ -210,9 +226,11 @@ Conversation:\n${sanitizedConversation}`,
       ],
     };
 
-    await base44.entities.CustomerNote.create(payload);
+    const savedRecord = await base44.entities.CustomerNote.create(payload);
     setSaving(false);
-    onSaved?.();
+    setSavedIndicator(true);
+    setConversation("");
+    onSaved?.(savedRecord);
   };
 
   return (
@@ -222,30 +240,55 @@ Conversation:\n${sanitizedConversation}`,
         <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.45)", margin: "6px 0 0" }}>Paste full WhatsApp logs to generate and auto-save a structured client dossier.</p>
       </div>
 
-      <div style={{ marginBottom: "16px" }}>
-        <label style={labelStyle}>WhatsApp Conversation</label>
-        <textarea
-          value={conversation}
-          onChange={(e) => setConversation(e.target.value)}
-          placeholder="Paste the conversation here..."
-          style={{ width: "100%", minHeight: "180px", background: "#0f0f0f", border: "1px solid rgba(201,168,76,0.2)", color: "#F5F0E8", padding: "14px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", resize: "vertical", outline: "none" }}
-          onFocus={e => { e.target.style.borderColor = "#C9A84C"; e.target.style.boxShadow = "0 0 0 1px rgba(201,168,76,0.2)"; }}
-          onBlur={e => { e.target.style.borderColor = "rgba(201,168,76,0.2)"; e.target.style.boxShadow = "none"; }}
-        />
-      </div>
+      {!isComposerCollapsed ? (
+        <>
+          <div style={{ marginBottom: "16px" }}>
+            <label style={labelStyle}>WhatsApp Conversation</label>
+            <textarea
+              value={conversation}
+              onChange={(e) => setConversation(e.target.value)}
+              placeholder="Paste the conversation here..."
+              style={{ width: "100%", minHeight: "180px", background: "#0f0f0f", border: "1px solid rgba(201,168,76,0.2)", color: "#F5F0E8", padding: "14px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", resize: "vertical", outline: "none" }}
+              onFocus={e => { e.target.style.borderColor = "#C9A84C"; e.target.style.boxShadow = "0 0 0 1px rgba(201,168,76,0.2)"; }}
+              onBlur={e => { e.target.style.borderColor = "rgba(201,168,76,0.2)"; e.target.style.boxShadow = "none"; }}
+            />
+          </div>
 
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-        <button
-          onClick={analyzeConversation}
-          disabled={loading || saving || !conversation.trim()}
-          style={{ background: "transparent", border: "1px solid #C9A84C", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 20px", cursor: loading || saving ? "default" : "pointer", opacity: loading || saving ? 0.6 : 1 }}
-        >
-          {loading ? "Generating..." : saving ? "Auto-saving..." : "Generate Report"}
-        </button>
-      </div>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+            <button
+              onClick={analyzeConversation}
+              disabled={loading || saving || !conversation.trim()}
+              style={{ background: "transparent", border: "1px solid #C9A84C", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 20px", cursor: loading || saving ? "default" : "pointer", opacity: loading || saving ? 0.6 : 1 }}
+            >
+              {loading ? "Generating..." : saving ? "Auto-saving..." : "Generate Report"}
+            </button>
+            {(loading || saving) && (
+              <span style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(201,168,76,0.75)", letterSpacing: "0.08em" }}>
+                {loading ? "Processing conversation..." : "Saving dossier..."}
+              </span>
+            )}
+          </div>
+        </>
+      ) : (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", padding: "10px 14px", border: "1px solid rgba(201,168,76,0.18)", background: "rgba(201,168,76,0.04)", marginBottom: "4px", flexWrap: "wrap" }}>
+          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(201,168,76,0.7)" }}>WhatsApp paste block minimised</p>
+          <button
+            onClick={() => setIsComposerCollapsed(false)}
+            style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.28)", color: "#C9A84C", fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.16em", textTransform: "uppercase", padding: "8px 12px", cursor: "pointer" }}
+          >
+            New Conversation
+          </button>
+        </div>
+      )}
+
+      {savedIndicator && (
+        <p style={{ margin: "12px 0 0", fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(201,168,76,0.72)", letterSpacing: "0.08em", transition: "opacity 0.3s ease" }}>
+          Saved.
+        </p>
+      )}
 
       {report && (
-        <div style={{ marginTop: "22px", display: "flex", flexDirection: "column", gap: "18px" }}>
+        <div ref={reportRef} style={{ marginTop: "22px", display: "flex", flexDirection: "column", gap: "18px" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             <p style={{ fontFamily: "var(--font-heading)", fontSize: "32px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#d29c6c", margin: 0 }}>
               {report.client_name || "Client Dossier"}
