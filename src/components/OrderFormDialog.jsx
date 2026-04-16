@@ -55,7 +55,7 @@ export default function OrderFormDialog({ open, onOpenChange, order, onSave }) {
       order_details: product.product_description
         ? `${product.product_name} — ${product.product_description}`
         : product.product_name,
-      order_value: (Number(product.unit_price || 0) * quantity).toFixed(2)
+      order_value: (Number(product.retail_price || 0) * quantity).toFixed(2)
     });
   };
 
@@ -65,7 +65,7 @@ export default function OrderFormDialog({ open, onOpenChange, order, onSave }) {
       ...current,
       quantity: value,
       order_value: current.selected_product_id
-        ? (Number(selectedProduct?.unit_price || 0) * quantity).toFixed(2)
+        ? (Number(selectedProduct?.retail_price || 0) * quantity).toFixed(2)
         : current.order_value
     }));
   };
@@ -92,7 +92,7 @@ export default function OrderFormDialog({ open, onOpenChange, order, onSave }) {
               <option value="">Select a product</option>
               {products.map((product) => (
                 <option key={product.id} value={product.id}>
-                  {product.product_name} · R{Number(product.unit_price || 0).toFixed(2)}
+                  {product.product_name} · {product.category} · R{Number(product.retail_price || 0).toFixed(2)} · Stock {Number(product.current_stock || 0)}
                 </option>
               ))}
             </select>
@@ -100,7 +100,7 @@ export default function OrderFormDialog({ open, onOpenChange, order, onSave }) {
               <div style={{ marginTop: "10px", padding: "10px 12px", background: "rgba(210,156,108,0.08)", border: "1px solid rgba(210,156,108,0.18)", borderRadius: "2px" }}>
                 <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "18px", color: "var(--color-gold)" }}>{selectedProduct.product_name}</p>
                 {selectedProduct.product_description && <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.72)", lineHeight: 1.6 }}>{selectedProduct.product_description}</p>}
-                <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(210,156,108,0.75)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Unit price R{Number(selectedProduct.unit_price || 0).toFixed(2)} · Wholesale R{Number(selectedProduct.wholesale_price || 0).toFixed(2)}</p>
+                <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(210,156,108,0.75)", letterSpacing: "0.08em", textTransform: "uppercase" }}>{selectedProduct.category} · Retail R{Number(selectedProduct.retail_price || 0).toFixed(2)} · Stock {Number(selectedProduct.current_stock || 0)}</p>
               </div>
             )}
           </div>
