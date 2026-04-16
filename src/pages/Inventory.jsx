@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Plus, Pencil } from "lucide-react";
-import PageHeader from "../components/PageHeader";
 import ProductFormDialog from "../components/ProductFormDialog";
 
 
@@ -158,9 +157,9 @@ export default function Inventory() {
 
   return (
     <div>
-      <PageHeader title="The Catalogue" subtitle="Product list + Inventory levels">
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "24px" }}>
         <GoldBtn onClick={() => { setEditProduct(null); setFormOpen(true); }}><Plus size={12} /> Add Product</GoldBtn>
-      </PageHeader>
+      </div>
 
       {filteredProducts.length === 0 ? (
         <div style={{ textAlign: "center", padding: "80px 20px", border: "1px dashed rgba(210,156,108,0.15)" }}>
