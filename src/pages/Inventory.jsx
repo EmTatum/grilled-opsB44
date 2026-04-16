@@ -21,24 +21,66 @@ const Spinner = () => (
   </div>
 );
 
-function ProcurementStatus({ latestStockCount, threshold }) {
+const PRODUCT_RULES = {
+  "Changa": { warn: 5, critical: 3 },
+  "Cola": { warn: 20, critical: 10 },
+  "Dougies": { warn: 4, critical: 2 },
+  "MD": { warn: 6, critical: 2 },
+  "Bud": { warn: 10, critical: 6 },
+  "Mushrooms": { warn: 20, critical: 10 },
+  "Ketamine": { warn: 3, critical: 2 },
+  "Ecstasy": { warn: 10, critical: 8 },
+  "Zolpidiem": { warn: 4, critical: 2 },
+  "Acid": { warn: 40, critical: 10 },
+  "Xannie Pots": { warn: 4, critical: 2 }
+};
+
+const PRODUCT_NAME_MAP = {
+  "Changaland": "Changa",
+  "Changa": "Changa",
+  "Cola": "Cola",
+  "Dougies": "Dougies",
+  "Love MD": "MD",
+  "MD": "MD",
+  "Mary Jane": "Bud",
+  "Bud": "Bud",
+  "Mushie Nuggets": "Mushrooms",
+  "Mushrooms": "Mushrooms",
+  "Special k": "Ketamine",
+  "Ketamine": "Ketamine",
+  "Sweets": "Ecstasy",
+  "Ecstasy": "Ecstasy",
+  "Zol-Pies": "Zolpidiem",
+  "Zolpidiem": "Zolpidiem",
+  "Acid": "Acid",
+  "Xannie pots": "Xannie Pots",
+  "Xannie Pots": "Xannie Pots"
+};
+
+function normalizeProductName(name) {
+  return PRODUCT_NAME_MAP[name] || name;
+}
+
+function ProcurementStatus({ productName, latestStockCount }) {
+  const normalizedName = normalizeProductName(productName);
   const latest = Number(latestStockCount || 0);
-  const limit = Number(threshold || 0);
+  const rule = PRODUCT_RULES[normalizedName];
 
-  let label = "Sufficient.";
-  let color = "#eee3b4";
-  let fontWeight = 400;
+  let label = "Sufficient";
+  let color = "#2E8B57";
+  let background = "rgba(46,139,87,0.18)";
 
-  if (latest <= limit) {
-    label = "Order immediately.";
-    color = "#8d201c";
-    fontWeight = 700;
-  } else if (latest <= limit * 1.3) {
-    label = "Order soon.";
-    color = "#d29c6c";
+  if (rule && latest < rule.critical) {
+    label = "NB ORDER";
+    color = "#F5F0E8";
+    background = "#8d201c";
+  } else if (rule && latest < rule.warn) {
+    label = "Need to Order";
+    color = "#0a0a0a";
+    background = "#d29c6c";
   }
 
-  return <span style={{ fontFamily: "var(--font-body)", fontSize: "13px", color, whiteSpace: "nowrap", fontWeight }}>{label}</span>;
+  return <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap", color, background, fontWeight: 600, borderRadius: "2px" }}>{label}</span>;
 }
 
 export default function Inventory() {
@@ -106,16 +148,19 @@ export default function Inventory() {
   };
 
   const filteredProducts = useMemo(() => {
-    return [...products].sort((a, b) => (a.product_name || "").localeCompare(b.product_name || ""));
+    return [...products]
+      .map((product) => ({ ...product, display_name: normalizeProductName(product.product_name || "") }))
+      .filter((product) => Object.keys(PRODUCT_RULES).includes(product.display_name))
+      .sort((a, b) => (a.display_name || "").localeCompare(b.display_name || ""));
   }, [products]);
 
   if (loading) return <Spinner />;
 
   return (
     <div>
-      <PageHeader title="The Catalogue" subtitle="Internal reference. Private operations only.">
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "24px" }}>
         <GoldBtn onClick={() => { setEditProduct(null); setFormOpen(true); }}><Plus size={12} /> Add Product</GoldBtn>
-      </PageHeader>
+      </div>
 
       {filteredProducts.length === 0 ? (
         <div style={{ textAlign: "center", padding: "80px 20px", border: "1px dashed rgba(210,156,108,0.15)" }}>
@@ -128,7 +173,7 @@ export default function Inventory() {
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "860px" }}>
               <thead>
                 <tr style={{ background: "#0b0e11", borderBottom: "1px solid rgba(210,156,108,0.28)" }}>
-                  {["Product Name", "Last Stock Count", "Latest Stock Count", "Procurement Status"].map((header) => (
+                  {["Product Name", "Last Stock Count", "Latest Stock Count", "Status"].map((header) => (
                     <th key={header} style={{ padding: "14px 16px", textAlign: "left", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, color: "#eee3b4", letterSpacing: "0.14em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{header}</th>
                   ))}
                 </tr>
@@ -138,7 +183,7 @@ export default function Inventory() {
                   const latestCount = Number(product.latest_stock_count ?? product.current_stock ?? product.last_stock_count ?? 0);
                   return (
                     <tr key={product.id} style={{ background: "#111111", borderBottom: "1px solid rgba(255,255,255,0.04)" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(201,168,76,0.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "#111111"; }}>
-                      <td style={{ padding: "12px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "#f0ede8", fontWeight: 700, whiteSpace: "nowrap" }}>{product.product_name}</td>
+                      <td style={{ padding: "12px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "#f0ede8", fontWeight: 700, whiteSpace: "nowrap" }}>{product.display_name}</td>
                       <td style={{ padding: "12px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(240,237,232,0.72)" }}>{Number(product.last_stock_count || 0)}</td>
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -154,7 +199,7 @@ export default function Inventory() {
                           <button onClick={() => { setEditProduct(product); setFormOpen(true); }} style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.16)", color: "rgba(240,237,232,0.52)", width: "34px", height: "34px", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Pencil size={13} /></button>
                         </div>
                       </td>
-                      <td style={{ padding: "12px 16px" }}><ProcurementStatus latestStockCount={latestCount} threshold={product.low_stock_threshold} /></td>
+                      <td style={{ padding: "12px 16px" }}><ProcurementStatus productName={product.display_name} latestStockCount={latestCount} /></td>
                     </tr>
                   );
                 })}

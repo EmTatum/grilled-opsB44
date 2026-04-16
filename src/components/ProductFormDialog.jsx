@@ -5,7 +5,8 @@ const categoryOptions = ["Cannabis — Standard", "Cannabis — Premium", "In-St
 const unitOptions = ["Per Unit", "Per Gram", "Per Bag", "Per Bottle", "Per Pack"];
 const statusOptions = ["Active", "Inactive", "Seasonal", "Coming Soon"];
 
-const emptyProduct = { product_name: "", category: "Cannabis — Standard", retail_price: 0, wholesale_price: 0, unit_of_measure: "Per Unit", product_description: "", internal_notes: "", product_status: "Active", supplier: "", last_stock_count: 0, latest_stock_count: 0, low_stock_threshold: 5 };
+const productNameOptions = ["Changa", "Cola", "Dougies", "MD", "Bud", "Mushrooms", "Ketamine", "Ecstasy", "Zolpidiem", "Acid", "Xannie Pots"];
+const emptyProduct = { product_name: "Changa", category: "Cannabis — Standard", retail_price: 0, wholesale_price: 0, unit_of_measure: "Per Unit", product_description: "", internal_notes: "", product_status: "Active", supplier: "", last_stock_count: 0, latest_stock_count: 0, low_stock_threshold: 5 };
 const F = { fontFamily: "'Raleway', sans-serif" };
 const inputStyle = { ...F, width: "100%", background: "#0f0f0f", border: "1px solid rgba(201,168,76,0.2)", borderRadius: "2px", padding: "10px 14px", color: "#F5F0E8", fontSize: "13px", outline: "none", marginTop: "8px", transition: "border-color 0.2s, box-shadow 0.2s" };
 const labelStyle = { ...F, display: "block", fontSize: "10px", fontWeight: 500, color: "rgba(201,168,76,0.6)", letterSpacing: "0.15em", textTransform: "uppercase" };
@@ -18,7 +19,7 @@ export default function ProductFormDialog({ open, onOpenChange, product, onSave 
 
   useEffect(() => {
     setForm(product ? {
-      product_name: product.product_name || "",
+      product_name: product.product_name || "Changa",
       category: product.category || "Cannabis — Standard",
       retail_price: product.retail_price || 0,
       wholesale_price: product.wholesale_price || 0,
@@ -59,7 +60,7 @@ export default function ProductFormDialog({ open, onOpenChange, product, onSave 
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "8px" }}>
-          <div><label style={labelStyle}>Product Name</label><input required value={form.product_name} onChange={e => setForm({ ...form, product_name: e.target.value })} style={inputStyle} placeholder="Product name" onFocus={onFocus} onBlur={onBlur} /></div>
+          <div><label style={labelStyle}>Product Name</label><select required value={form.product_name} onChange={e => setForm({ ...form, product_name: e.target.value })} style={{ ...inputStyle, cursor: "pointer" }} onFocus={onFocus} onBlur={onBlur}>{productNameOptions.map(option => <option key={option} value={option}>{option}</option>)}</select></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div><label style={labelStyle}>Category</label><select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} style={{ ...inputStyle, cursor: "pointer" }} onFocus={onFocus} onBlur={onBlur}>{categoryOptions.map(option => <option key={option} value={option}>{option}</option>)}</select></div>
             <div><label style={labelStyle}>Status</label><select value={form.product_status} onChange={e => setForm({ ...form, product_status: e.target.value })} style={{ ...inputStyle, cursor: "pointer" }} onFocus={onFocus} onBlur={onBlur}>{statusOptions.map(option => <option key={option} value={option}>{option}</option>)}</select></div>
