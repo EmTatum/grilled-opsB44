@@ -49,44 +49,97 @@ export default function ConversationIntelligencePanel({ notes = [], onSaved }) {
     setLoading(true);
     const sanitizedConversation = maskSensitiveDetails(conversation);
     const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `Analyze full customer WhatsApp logs and extract only the details a salesperson or account manager needs before replying. Focus on sentiment, sentiment shifts over time, explicit preferences, inferred preferences, objections, blockers, buying intent, urgency, trust level, communication style, reliability, loyalty indicators, churn or ghosting risk, and next-best action.
+      prompt: `You are generating a fixed internal Grilled.inc member intelligence report from a pasted WhatsApp conversation.
 
-Be concise, commercial, structured, and evidence-based. Do not summarize the whole chat unless necessary. Separate facts from inferences and clearly mark uncertainty. Respect chronology and patterns over time. Do not over-interpret one emotional message. Treat silence carefully and do not assume rejection unless supported. Redact or mask sensitive personal details where possible, including phone numbers, addresses, and payment details. Do not infer protected traits or make medical, legal, or criminal conclusions.
+Use a controlled, precise, concierge-level tone.
 
-Return a scan-friendly client sheet.
+Follow these rules exactly:
+- Extract intelligence only. Do not summarise the conversation.
+- Declarative sentences only.
+- No hype.
+- No exclamation marks.
+- If a field has no data from the conversation, write exactly: Not recorded.
+- Output only the requested structure. Nothing more. Nothing less.
+- Use the exact section names and field order provided below.
+
+Return the report using this exact structure and order:
+
+MEMBER SNAPSHOT
+- Name
+- Contact number
+- Location / Area
+- Referred by
+
+ORDER PROFILE
+- Products ordered or discussed
+- Quantities
+- Preferred delivery method
+- Preferred delivery area or meeting point
+- Any standing preferences noted
+
+FINANCIAL STATUS
+- Amount owed
+- Credit on account
+- Payment method used or preferred
+- Any outstanding payment flag
+
+CONCIERGE BRIEF
+- How this member communicates
+- Response style recommended
+- Any red flags noted from the conversation
+- Any green flags
+
+NEXT ACTION
+- One clear sentence stating exactly what needs to happen next with this member.
 
 Conversation:\n${sanitizedConversation}`,
       response_json_schema: {
         type: "object",
         properties: {
-          client_snapshot: { type: "array", items: { type: "string" } },
-          salesperson_brief: { type: "array", items: { type: "string" } },
-          sentiment_profile: {
+          member_snapshot: {
             type: "object",
             properties: {
-              current: { type: "string" },
-              shifts_over_time: { type: "array", items: { type: "string" } },
-              trust_level: { type: "string" },
-              communication_style: { type: "string" }
-            }
+              name: { type: "string" },
+              contact_number: { type: "string" },
+              location_area: { type: "string" },
+              referred_by: { type: "string" }
+            },
+            required: ["name", "contact_number", "location_area", "referred_by"]
           },
-          preferences: { type: "array", items: { type: "string" } },
-          objections_blockers: { type: "array", items: { type: "string" } },
-          buying_signals: {
+          order_profile: {
             type: "object",
             properties: {
-              intent_score: { type: "number" },
-              urgency_score: { type: "number" },
-              trust_score: { type: "number" },
-              close_probability: { type: "number" },
-              signals: { type: "array", items: { type: "string" } }
-            }
+              products_ordered_or_discussed: { type: "string" },
+              quantities: { type: "string" },
+              preferred_delivery_method: { type: "string" },
+              preferred_delivery_area_or_meeting_point: { type: "string" },
+              standing_preferences: { type: "string" }
+            },
+            required: ["products_ordered_or_discussed", "quantities", "preferred_delivery_method", "preferred_delivery_area_or_meeting_point", "standing_preferences"]
           },
-          behavior_pattern: { type: "array", items: { type: "string" } },
-          recommended_sales_approach: { type: "array", items: { type: "string" } },
-          risk_flags: { type: "array", items: { type: "string" } },
-          evidence_lines: { type: "array", items: { type: "string" } }
-        }
+          financial_status: {
+            type: "object",
+            properties: {
+              amount_owed: { type: "string" },
+              credit_on_account: { type: "string" },
+              payment_method: { type: "string" },
+              outstanding_payment_flag: { type: "string" }
+            },
+            required: ["amount_owed", "credit_on_account", "payment_method", "outstanding_payment_flag"]
+          },
+          concierge_brief: {
+            type: "object",
+            properties: {
+              communication_style: { type: "string" },
+              response_style_recommended: { type: "string" },
+              red_flags: { type: "string" },
+              green_flags: { type: "string" }
+            },
+            required: ["communication_style", "response_style_recommended", "red_flags", "green_flags"]
+          },
+          next_action: { type: "string" }
+        },
+        required: ["member_snapshot", "order_profile", "financial_status", "concierge_brief", "next_action"]
       }
     });
     setReport(result);
@@ -97,47 +150,36 @@ Conversation:\n${sanitizedConversation}`,
     if (!report || saving) return;
     setSaving(true);
 
-    const title = (report.client_snapshot?.[0] || "Client sales intelligence report").replace(/^-\s*/, "").slice(0, 120);
+    const title = (report.member_snapshot?.name || "Member intelligence report").replace(/^-\s*/, "").slice(0, 120);
     const tags = ["sales-intelligence", "whatsapp-analysis"];
     const content = [
-      "CLIENT SALES INTELLIGENCE REPORT",
+      "MEMBER SNAPSHOT",
+      `- Name: ${report.member_snapshot?.name || "Not recorded."}`,
+      `- Contact number: ${report.member_snapshot?.contact_number || "Not recorded."}`,
+      `- Location / Area: ${report.member_snapshot?.location_area || "Not recorded."}`,
+      `- Referred by: ${report.member_snapshot?.referred_by || "Not recorded."}`,
       "",
-      "Client Snapshot:",
-      ...(report.client_snapshot || []).map(item => `- ${item}`),
+      "ORDER PROFILE",
+      `- Products ordered or discussed: ${report.order_profile?.products_ordered_or_discussed || "Not recorded."}`,
+      `- Quantities: ${report.order_profile?.quantities || "Not recorded."}`,
+      `- Preferred delivery method: ${report.order_profile?.preferred_delivery_method || "Not recorded."}`,
+      `- Preferred delivery area or meeting point: ${report.order_profile?.preferred_delivery_area_or_meeting_point || "Not recorded."}`,
+      `- Any standing preferences noted: ${report.order_profile?.standing_preferences || "Not recorded."}`,
       "",
-      "Salesperson Brief:",
-      ...(report.salesperson_brief || []).map(item => `- ${item}`),
+      "FINANCIAL STATUS",
+      `- Amount owed: ${report.financial_status?.amount_owed || "Not recorded."}`,
+      `- Credit on account: ${report.financial_status?.credit_on_account || "Not recorded."}`,
+      `- Payment method used or preferred: ${report.financial_status?.payment_method || "Not recorded."}`,
+      `- Any outstanding payment flag: ${report.financial_status?.outstanding_payment_flag || "Not recorded."}`,
       "",
-      "Sentiment Profile:",
-      `- Current: ${report.sentiment_profile?.current || "—"}`,
-      `- Trust: ${report.sentiment_profile?.trust_level || "—"}`,
-      `- Style: ${report.sentiment_profile?.communication_style || "—"}`,
-      ...(report.sentiment_profile?.shifts_over_time || []).map(item => `- Shift: ${item}`),
+      "CONCIERGE BRIEF",
+      `- How this member communicates: ${report.concierge_brief?.communication_style || "Not recorded."}`,
+      `- Response style recommended: ${report.concierge_brief?.response_style_recommended || "Not recorded."}`,
+      `- Any red flags noted from the conversation: ${report.concierge_brief?.red_flags || "Not recorded."}`,
+      `- Any green flags: ${report.concierge_brief?.green_flags || "Not recorded."}`,
       "",
-      "Preferences:",
-      ...(report.preferences || []).map(item => `- ${item}`),
-      "",
-      "Objections & Blockers:",
-      ...(report.objections_blockers || []).map(item => `- ${item}`),
-      "",
-      "Buying Signals:",
-      `- Intent: ${report.buying_signals?.intent_score ?? "—"}/10`,
-      `- Urgency: ${report.buying_signals?.urgency_score ?? "—"}/10`,
-      `- Trust: ${report.buying_signals?.trust_score ?? "—"}/10`,
-      `- Close Probability: ${report.buying_signals?.close_probability ?? "—"}%`,
-      ...(report.buying_signals?.signals || []).map(item => `- Signal: ${item}`),
-      "",
-      "Behavior Pattern:",
-      ...(report.behavior_pattern || []).map(item => `- ${item}`),
-      "",
-      "Recommended Sales Approach:",
-      ...(report.recommended_sales_approach || []).map(item => `- ${item}`),
-      "",
-      "Risk Flags:",
-      ...(report.risk_flags || []).map(item => `- ${item}`),
-      "",
-      "Evidence Lines:",
-      ...(report.evidence_lines || []).map(item => `- ${item}`),
+      "NEXT ACTION",
+      `- ${report.next_action || "Not recorded."}`,
     ].join("\n");
 
     const existing = notes.find((note) => getGeneratedIntelligenceKey(note) === getGeneratedIntelligenceKey({ client_name: title, tags }));

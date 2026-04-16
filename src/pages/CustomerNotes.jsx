@@ -107,7 +107,7 @@ export default function CustomerNotes() {
       <div style={{ display: "flex", gap: "12px", marginBottom: "28px", flexWrap: "wrap" }}>
         <div style={{ position: "relative", flex: "1", maxWidth: "300px" }}>
           <Search size={12} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "rgba(245,240,232,0.3)" }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by client name..."
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by member name."
             style={{ ...inputBase, width: "100%", padding: "10px 12px 10px 32px" }}
             onFocus={e => { e.target.style.borderColor = "#C9A84C"; e.target.style.boxShadow = "0 0 0 1px rgba(201,168,76,0.2)"; }}
             onBlur={e => { e.target.style.borderColor = "rgba(201,168,76,0.2)"; e.target.style.boxShadow = "none"; }} />
@@ -127,7 +127,7 @@ export default function CustomerNotes() {
             {notes.length === 0 ? "No Notes Recorded" : "No Matching Notes"}
           </p>
           <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.25)", marginTop: "8px" }}>
-            {notes.length === 0 ? "Add your first client note." : "Try adjusting your filters."}
+            {notes.length === 0 ? "No intelligence recorded." : "Try adjusting your filters."}
           </p>
         </div>
       ) : (
