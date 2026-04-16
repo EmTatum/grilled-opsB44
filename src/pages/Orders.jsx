@@ -55,11 +55,11 @@ const paymentBadgeMap = {
 };
 
 const statusBlockConfig = {
-  upcoming: { label: "UPCOMING", accent: "#15434a" },
-  pending: { label: "PENDING", accent: "#d29c6c" },
-  urgent: { label: "URGENT", accent: "#8d201c", strong: true },
-  fulfilled: { label: "FULFILLED", accent: "#322d2d" },
-  overdue: { label: "OVERDUE", accent: "#8d201c", italic: true },
+  upcoming: { label: "UPCOMING", background: "#15434a", labelColor: "#F5F0E8", valueColor: "#eee3b4" },
+  pending: { label: "PENDING", background: "#d29c6c", labelColor: "#030101", valueColor: "#030101" },
+  urgent: { label: "URGENT", background: "#8d201c", labelColor: "#F5F0E8", valueColor: "#F5F0E8", strong: true },
+  fulfilled: { label: "FULFILLED", background: "#322d2d", labelColor: "rgba(238,227,180,0.78)", valueColor: "#eee3b4" },
+  overdue: { label: "OVERDUE", background: "#8d201c", labelColor: "#F5F0E8", valueColor: "#F5F0E8", italic: true },
 };
 
 const getOrderMoment = (order) => moment(order.order_date);
@@ -272,6 +272,7 @@ export default function Orders() {
   }, [filteredOrders]);
 
   const selectedDayOrders = useMemo(() => sortByDateAsc(ordersByDay[selectedDayKey] || []), [ordersByDay, selectedDayKey]);
+  const todaysOrders = useMemo(() => sortByDateAsc(orders.filter((order) => getOrderMoment(order).isSame(moment(), "day"))), [orders]);
 
   const handleSave = async (data) => {
     const payload = {
@@ -322,15 +323,15 @@ export default function Orders() {
             onClick={() => setStatusFilter((prev) => prev === key ? "all" : key)}
             style={{
               textAlign: "left",
-              background: statusFilter === key ? "rgba(201,168,76,0.08)" : "#1a1a1a",
-              border: "1px solid rgba(201,168,76,0.18)",
-              borderLeft: `4px solid ${config.accent}`,
+              background: config.background,
+              border: statusFilter === key ? "1px solid rgba(238,227,180,0.9)" : "1px solid rgba(255,255,255,0.08)",
               padding: "18px",
               cursor: "pointer",
+              boxShadow: statusFilter === key ? "0 0 0 1px rgba(238,227,180,0.35)" : "none",
             }}
           >
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(238,227,180,0.72)", fontWeight: config.strong ? 700 : 500, fontStyle: config.italic ? "italic" : "normal" }}>{config.label}</p>
-            <p style={{ margin: "10px 0 0", fontFamily: "var(--font-heading)", fontSize: "34px", color: "#d29c6c", fontWeight: 700 }}>{statusCounts[key]}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: config.labelColor, fontWeight: config.strong ? 700 : 500, fontStyle: config.italic ? "italic" : "normal" }}>{config.label}</p>
+            <p style={{ margin: "10px 0 0", fontFamily: "var(--font-heading)", fontSize: "34px", color: config.valueColor, fontWeight: 700 }}>{statusCounts[key]}</p>
           </button>
         ))}
       </div>
@@ -392,10 +393,15 @@ export default function Orders() {
           const key = day.format("YYYY-MM-DD");
           const dayOrders = ordersByDay[key] || [];
           const isCurrentMonth = day.isSame(monthCursor, "month");
+          const isPastDay = day.isBefore(moment(), "day");
+          const isToday = day.isSame(moment(), "day");
           return (
-            <button key={key} onClick={() => setSelectedDayKey(key)} style={{ minHeight: "110px", background: selectedDayKey === key ? "rgba(201,168,76,0.08)" : "#111111", border: "1px solid rgba(201,168,76,0.16)", padding: "10px", cursor: "pointer", textAlign: "left", opacity: isCurrentMonth ? 1 : 0.45 }}>
-              <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "22px", color: "#F5F0E8" }}>{day.format("D")}</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" }}>
+            <button key={key} onClick={() => setSelectedDayKey(key)} style={{ minHeight: "110px", background: isToday ? "rgba(210,156,108,0.08)" : selectedDayKey === key ? "rgba(201,168,76,0.08)" : "#111111", border: isToday ? "1px solid rgba(210,156,108,0.55)" : "1px solid rgba(201,168,76,0.16)", padding: "10px", cursor: "pointer", textAlign: "left", opacity: isCurrentMonth ? 1 : 0.45, position: "relative", overflow: "hidden" }}>
+              {isPastDay && (
+                <span style={{ position: "absolute", left: "-10%", top: "50%", width: "120%", height: "1px", background: "rgba(238,227,180,0.35)", transform: "rotate(-18deg)", transformOrigin: "center" }} />
+              )}
+              <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "22px", color: "#F5F0E8", position: "relative", zIndex: 1 }}>{day.format("D")}</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px", position: "relative", zIndex: 1 }}>
                 {dayOrders.slice(0, 4).map((order) => (
                   <span key={order.id} style={{ width: "8px", height: "8px", borderRadius: "9999px", background: order.payment_status === "PENDING" ? "#C2185B" : order.payment_status === "CASH" ? "#C9A84C" : "#eee3b4", display: "inline-block" }} />
                 ))}
@@ -403,6 +409,29 @@ export default function Orders() {
             </button>
           );
         })}
+      </div>
+
+      <div style={{ marginBottom: "24px" }}>
+        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#d29c6c" }}>Today&apos;s Orders</p>
+        <div style={{ width: "72px", height: "2px", background: "rgba(201,168,76,0.55)", marginTop: "10px", marginBottom: "18px" }} />
+        {todaysOrders.length === 0 ? (
+          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(238,227,180,0.62)" }}>No deliveries scheduled.</p>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "12px", marginBottom: "30px" }}>
+            {todaysOrders.map((order) => {
+              const badgeStyle = paymentBadgeMap[order.payment_status || "PENDING"] || paymentBadgeMap.PENDING;
+              return (
+                <button key={order.id} onClick={() => { setEditOrder(order); setFormOpen(true); }} style={{ textAlign: "left", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", padding: "14px", cursor: "pointer" }}>
+                  <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600, color: "#F5F0E8" }}>{order.client_name}</p>
+                  <p style={{ margin: "8px 0 0", fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.58)", lineHeight: 1.5 }}>{order.delivery_address}</p>
+                  <p style={{ margin: "10px 0 0", fontFamily: "var(--font-heading)", fontSize: "20px", color: "#d29c6c" }}>{order.order_value ? `R${Number(order.order_value).toLocaleString()}` : "R0"}</p>
+                  <span style={{ display: "inline-flex", marginTop: "10px", padding: "4px 8px", ...badgeStyle, fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" }}>{order.payment_status || "PENDING"}</span>
+                  <p style={{ margin: "10px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "#eee3b4", lineHeight: 1.5 }}>{order.special_instructions || "No action item recorded."}</p>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.2)", marginBottom: "32px" }}>
