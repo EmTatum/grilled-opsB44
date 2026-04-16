@@ -3,10 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 
 const emptyOrder = { client_name: "", order_details: "", quantity: 1, delivery_address: "", special_instructions: "", priority_level: "Medium", order_value: "", time_slot: "", payment_method: "Cash", order_date: "", status: "Pending", planner_status: "Pending" };
 const F = { fontFamily: "'Raleway', sans-serif" };
-const inputStyle = { ...F, width: "100%", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.2)", borderRadius: "2px", padding: "10px 14px", color: "#F5F0E8", fontSize: "13px", outline: "none", marginTop: "8px", transition: "border-color 0.2s, box-shadow 0.2s" };
+const inputStyle = { ...F, width: "100%", background: "#1c191a", border: "1px solid rgba(210,156,108,0.2)", borderRadius: "2px", padding: "10px 14px", color: "#F5F0E8", fontSize: "14px", outline: "none", marginTop: "8px", transition: "border-color 0.2s, box-shadow 0.2s" };
 const labelStyle = { ...F, display: "block", fontSize: "10px", fontWeight: 500, color: "rgba(201,168,76,0.6)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "0" };
-const onFocus = e => { e.target.style.borderColor = "#C9A84C"; e.target.style.boxShadow = "0 0 0 1px rgba(201,168,76,0.2)"; };
-const onBlur = e => { e.target.style.borderColor = "rgba(201,168,76,0.2)"; e.target.style.boxShadow = "none"; };
+const onFocus = e => { e.target.style.borderColor = "#d29c6c"; e.target.style.boxShadow = "0 0 0 2px rgba(210,156,108,0.15)"; };
+const onBlur = e => { e.target.style.borderColor = "rgba(210,156,108,0.2)"; e.target.style.boxShadow = "none"; };
 
 export default function OrderFormDialog({ open, onOpenChange, order, onSave }) {
   const [form, setForm] = useState(emptyOrder);
@@ -37,7 +37,7 @@ export default function OrderFormDialog({ open, onOpenChange, order, onSave }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.3)", borderRadius: "2px", boxShadow: "0 25px 60px rgba(0,0,0,0.8)", maxWidth: "460px", padding: "28px" }}>
+      <DialogContent style={{ background: "#1c191a", border: "1px solid rgba(210,156,108,0.3)", borderRadius: "2px", boxShadow: "0 25px 60px rgba(0,0,0,0.8)", maxWidth: "460px", padding: "28px" }}>
         <DialogHeader style={{ borderBottom: "1px solid rgba(201,168,76,0.2)", paddingBottom: "16px", marginBottom: "4px" }}>
           <DialogTitle style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", color: "#C9A84C", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 600 }}>
             {order ? "Edit Order" : "New Order"}

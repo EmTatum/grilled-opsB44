@@ -5,40 +5,54 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0a0a0a;
-  --surface: #111111;
-  --card: #141414;
-  --gold: #C9A84C;
-  --gold-dim: rgba(201,168,76,0.35);
-  --gold-glow: rgba(201,168,76,0.12);
-  --rose: #C2185B;
-  --rose-dim: rgba(194,24,91,0.3);
-  --text: #F5F0E8;
-  --text-muted: rgba(245,240,232,0.45);
-  --teal: #1B5956;
+  --color-bg: #0b0e11;
+  --color-surface: #111111;
+  --color-card: #1c191a;
+  --color-border: #d29c6c;
+  --color-border-subtle: rgba(210, 156, 108, 0.25);
+  --color-gold: #d29c6c;
+  --color-gold-light: #eee3b4;
+  --color-rose: #8d201c;
+  --color-text: #F5F0E8;
+  --color-text-muted: rgba(245, 240, 232, 0.55);
+  --color-teal: #15434a;
+  --color-ink: #030101;
+  --font-heading: 'Cormorant Garamond', serif;
+  --font-body: 'Raleway', sans-serif;
+  --bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --card: var(--color-card);
+  --gold: var(--color-gold);
+  --gold-dim: rgba(210,156,108,0.35);
+  --gold-glow: rgba(210,156,108,0.12);
+  --rose: var(--color-rose);
+  --rose-dim: rgba(141,32,28,0.3);
+  --text: var(--color-text);
+  --text-muted: var(--color-text-muted);
+  --teal: var(--color-teal);
 }
 
 html, body, #root {
-  background: #0a0a0a;
-  color: #F5F0E8;
-  font-family: 'Raleway', sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 * { box-sizing: border-box; }
 
-a { color: var(--gold); text-decoration: none; }
-a:hover { color: #E8D08A; }
+a { color: var(--color-gold); text-decoration: none; }
+a:hover { color: var(--color-gold-light); }
 
 *:focus { outline: none; }
-*:focus-visible { outline: 1px solid rgba(201,168,76,0.4); outline-offset: 2px; }
+*:focus-visible { outline: 1px solid rgba(210,156,108,0.45); outline-offset: 2px; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: #0a0a0a; }
-::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.3); border-radius: 0; }
-::-webkit-scrollbar-thumb:hover { background: #C9A84C; }
+::-webkit-scrollbar-track { background: var(--color-surface); }
+::-webkit-scrollbar-thumb { background: rgba(210,156,108,0.35); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-gold); }
 
 /* Stat card corner brackets */
 .art-card {

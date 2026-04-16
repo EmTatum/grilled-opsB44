@@ -14,10 +14,10 @@ const noteTypes = ["Credit on Account", "Debt on Account", "Needs Attention", "C
 
 const GoldBtn = ({ onClick, children }) => (
   <button onClick={onClick} style={{
-    background: "transparent", border: "1px solid #C9A84C", color: "#C9A84C",
-    fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600,
-    letterSpacing: "0.2em", textTransform: "uppercase", padding: "10px 28px",
-    borderRadius: "0", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", transition: "all 0.2s ease",
+    background: "transparent", border: "1px solid var(--color-gold)", color: "var(--color-gold)",
+    fontFamily: "var(--font-body)", fontSize: "12px", fontWeight: 500,
+    letterSpacing: "0.12em", textTransform: "uppercase", padding: "10px 24px",
+    borderRadius: "2px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", transition: "all 0.2s ease",
   }}
     onMouseEnter={e => { e.currentTarget.style.background = "#C9A84C"; e.currentTarget.style.color = "#0a0a0a"; e.currentTarget.style.boxShadow = "0 0 20px rgba(201,168,76,0.3)"; }}
     onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#C9A84C"; e.currentTarget.style.boxShadow = "none"; }}
@@ -32,8 +32,8 @@ const Spinner = () => (
 );
 
 const inputBase = {
-  background: "#0f0f0f", border: "1px solid rgba(201,168,76,0.2)", borderRadius: "0",
-  color: "#F5F0E8", fontFamily: "'Raleway', sans-serif", fontSize: "13px", outline: "none",
+  background: "#1c191a", border: "1px solid rgba(210,156,108,0.2)", borderRadius: "2px",
+  color: "#F5F0E8", fontFamily: "var(--font-body)", fontSize: "14px", outline: "none",
 };
 
 export default function CustomerNotes() {

@@ -1,11 +1,11 @@
 const styles = {
-  Pending:   { border: "1px solid rgba(201,168,76,0.4)",   bg: "rgba(201,168,76,0.07)",   color: "#C9A84C" },
-  Confirmed: { border: "1px solid rgba(245,240,232,0.15)", bg: "rgba(245,240,232,0.04)",  color: "rgba(245,240,232,0.5)" },
-  Fulfilled: { border: "1px solid rgba(245,240,232,0.15)", bg: "rgba(245,240,232,0.04)",  color: "rgba(245,240,232,0.5)" },
-  Cancelled: { border: "1px solid rgba(194,24,91,0.5)",    bg: "rgba(194,24,91,0.1)",     color: "#C2185B" },
-  Low:       { border: "1px solid rgba(245,240,232,0.15)", bg: "rgba(245,240,232,0.04)",  color: "rgba(245,240,232,0.5)" },
-  Medium:    { border: "1px solid rgba(201,168,76,0.45)",  bg: "rgba(201,168,76,0.08)",   color: "#C9A84C" },
-  High:      { border: "1px solid rgba(194,24,91,0.5)",    bg: "rgba(194,24,91,0.1)",     color: "#C2185B" },
+  Pending:   { border: "1px solid rgba(210,156,108,0.5)",   bg: "rgba(210,156,108,0.1)",   color: "#d29c6c" },
+  Confirmed: { border: "1px solid rgba(255,255,255,0.2)",   bg: "rgba(255,255,255,0.05)",  color: "rgba(245,240,232,0.7)" },
+  Fulfilled: { border: "1px solid rgba(255,255,255,0.2)",   bg: "rgba(255,255,255,0.05)",  color: "rgba(245,240,232,0.7)" },
+  Cancelled: { border: "1px solid rgba(141,32,28,0.45)",    bg: "rgba(141,32,28,0.08)",     color: "#8d201c" },
+  Low:       { border: "1px solid rgba(255,255,255,0.2)",   bg: "rgba(255,255,255,0.05)",  color: "rgba(245,240,232,0.7)" },
+  Medium:    { border: "1px solid rgba(210,156,108,0.5)",   bg: "rgba(210,156,108,0.1)",   color: "#d29c6c" },
+  High:      { border: "1px solid rgba(141,32,28,0.45)",    bg: "rgba(141,32,28,0.08)",     color: "#8d201c" },
 };
 
 export default function StatusBadge({ status }) {
@@ -14,9 +14,9 @@ export default function StatusBadge({ status }) {
     <span style={{
       ...s, borderRadius: "2px",
       background: s.bg,
-      fontFamily: "'Raleway', sans-serif",
-      fontSize: "9px", fontWeight: 500,
-      letterSpacing: "0.18em", textTransform: "uppercase",
+      fontFamily: "var(--font-body)",
+      fontSize: "10px", fontWeight: 500,
+      letterSpacing: "0.1em", textTransform: "uppercase",
       padding: "4px 9px",
       display: "inline-flex", alignItems: "center",
     }}>

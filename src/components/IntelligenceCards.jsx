@@ -3,9 +3,9 @@ import { AlertTriangle, Box, ClipboardList, DollarSign, Users, TrendingUp, Walle
 
 const cardBase = {
   position: "relative",
-  background: "#141414",
-  border: "1px solid rgba(201,168,76,0.25)",
-  borderRadius: 0,
+  background: "#1c191a",
+  border: "1px solid rgba(210,156,108,0.3)",
+  borderRadius: "2px",
   padding: "22px",
   display: "flex",
   flexDirection: "column",

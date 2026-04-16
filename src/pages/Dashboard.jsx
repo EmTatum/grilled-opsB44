@@ -185,8 +185,8 @@ export default function Dashboard() {
         position: "relative",
         marginBottom: "40px",
         padding: "36px 40px",
-        background: "linear-gradient(135deg, #0f0a00 0%, #0a0a0a 50%, #100808 100%)",
-        border: "1px solid rgba(201,168,76,0.25)",
+        background: "linear-gradient(180deg, #0b0e11 0%, #111111 100%)",
+        border: "1px solid rgba(210,156,108,0.25)",
         overflow: "hidden",
       }}>
         <CornerBracket />
@@ -203,22 +203,20 @@ export default function Dashboard() {
           </div>
 
           <div style={{ flex: 1, minWidth: "200px" }}>
-            <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 400, color: "rgba(201,168,76,0.45)", letterSpacing: "0.35em", textTransform: "uppercase", marginBottom: "8px" }}>
-              ◆ &nbsp; Private Operations Terminal &nbsp; ◆
+            <p style={{ fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 400, color: "rgba(210,156,108,0.5)", letterSpacing: "0.24em", textTransform: "uppercase", marginBottom: "8px" }}>
+              Private access. Internal operations.
             </p>
-            <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: "clamp(26px, 4vw, 42px)", fontWeight: 700, color: "#C9A84C", letterSpacing: "0.18em", textTransform: "uppercase", margin: 0, lineHeight: 1.1, textShadow: "0 0 40px rgba(201,168,76,0.3)" }}>
+            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "36px", fontWeight: 600, color: "var(--color-gold)", letterSpacing: "0.12em", textTransform: "uppercase", margin: 0, lineHeight: 1.05 }}>
               Operations
             </h1>
-            <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: "clamp(26px, 4vw, 42px)", fontWeight: 700, color: "#F5F0E8", letterSpacing: "0.18em", textTransform: "uppercase", margin: 0, lineHeight: 1.1, opacity: 0.9 }}>
+            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "36px", fontWeight: 600, color: "#F5F0E8", letterSpacing: "0.12em", textTransform: "uppercase", margin: 0, lineHeight: 1.05, opacity: 0.95 }}>
               Terminal
             </h1>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "14px" }}>
-              <div style={{ height: "1px", width: "40px", background: "linear-gradient(90deg, transparent, #C9A84C)" }} />
-              <span style={{ color: "rgba(201,168,76,0.5)", fontSize: "8px" }}>◆</span>
-              <div style={{ height: "1px", width: "40px", background: "linear-gradient(90deg, #C9A84C, transparent)" }} />
+              <div style={{ height: "2px", width: "60px", background: "var(--color-gold)" }} />
             </div>
-            <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", fontWeight: 300, color: "rgba(245,240,232,0.35)", letterSpacing: "0.15em", marginTop: "10px" }}>
-              AFRICA BURN 2026
+            <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 300, color: "var(--color-text-muted)", letterSpacing: "0.04em", marginTop: "12px" }}>
+              Grace with an edge. Controlled execution.
             </p>
           </div>
 
