@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import ProductFormDialog from "../components/ProductFormDialog";
-import ConfirmDialog from "../components/ConfirmDialog";
 
 
 const GoldBtn = ({ onClick, children }) => (
@@ -47,7 +46,6 @@ export default function Inventory() {
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
-  const [deleteId, setDeleteId] = useState(null);
   const [draftCounts, setDraftCounts] = useState({});
 
   const load = async () => {
@@ -104,12 +102,6 @@ export default function Inventory() {
     };
 
     await base44.entities.Product.update(product.id, payload);
-    load();
-  };
-
-  const handleDelete = async () => {
-    await base44.entities.Product.delete(deleteId);
-    setDeleteId(null);
     load();
   };
 
@@ -173,7 +165,6 @@ export default function Inventory() {
       )}
 
       <ProductFormDialog open={formOpen} onOpenChange={setFormOpen} product={editProduct} onSave={handleSave} />
-      <ConfirmDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} title="Delete Product" description="This product will be removed from the catalogue." onConfirm={handleDelete} />
     </div>
   );
 }
