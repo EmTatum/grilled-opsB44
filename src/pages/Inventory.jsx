@@ -66,8 +66,8 @@ export default function Inventory() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#0d0d0d", borderBottom: "1px solid rgba(201,168,76,0.3)" }}>
-                  {["Product", "Category", "Last Stock Take", "New Stock Take", "Current Stock", "Status", ""].map((h, i) => (
-                    <th key={i} style={{ padding: "14px 16px", textAlign: i >= 2 && i < 5 ? "center" : i === 6 ? "right" : "left", fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 600, color: "rgba(201,168,76,0.55)", letterSpacing: "0.18em", textTransform: "uppercase" }}>{h}</th>
+                  {["Product", "Category", "Catalogue Details", "Last Stock Take", "New Stock Take", "Current Stock", "Status", ""].map((h, i) => (
+                    <th key={i} style={{ padding: "14px 16px", textAlign: i >= 3 && i < 6 ? "center" : i === 7 ? "right" : "left", fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 600, color: "rgba(201,168,76,0.55)", letterSpacing: "0.18em", textTransform: "uppercase" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -87,10 +87,25 @@ export default function Inventory() {
                         </div>
                       </td>
                       <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.5)" }}>{p.category}</td>
+                      <td style={{ padding: "14px 16px", minWidth: "280px" }}>
+                        <div style={{ display: "grid", gap: "6px" }}>
+                          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                            <span style={{ fontFamily: "'Cinzel', serif", fontSize: "14px", color: "#C9A84C" }}>Unit R{Number(p.unit_price || 0).toFixed(2)}</span>
+                            <span style={{ fontFamily: "'Cinzel', serif", fontSize: "14px", color: "rgba(245,240,232,0.72)" }}>Wholesale R{Number(p.wholesale_price || 0).toFixed(2)}</span>
+                          </div>
+                          {p.product_description && <p style={{ margin: 0, fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.68)", lineHeight: 1.6 }}>{p.product_description}</p>}
+                          {p.notes && <p style={{ margin: 0, fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(201,168,76,0.6)", lineHeight: 1.5 }}>Notes: {p.notes}</p>}
+                        </div>
+                      </td>
                       <td style={{ padding: "14px 16px", textAlign: "center", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.45)" }}>{p.last_stock_count}</td>
                       <td style={{ padding: "14px 16px", textAlign: "center", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.45)" }}>{p.new_stock_arrived}</td>
                       <td style={{ padding: "14px 16px", textAlign: "center" }}>
                         <span style={{ fontFamily: "'Cinzel', serif", fontSize: "24px", fontWeight: 600, color: isLow ? "#C2185B" : "#C9A84C", lineHeight: 1 }}>{p.current_stock}</span>
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", padding: "4px 10px", fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 500, letterSpacing: "0.18em", textTransform: "uppercase", border: isLow ? "1px solid rgba(194,24,91,0.5)" : "1px solid rgba(201,168,76,0.35)", background: isLow ? "rgba(194,24,91,0.08)" : "rgba(201,168,76,0.07)", color: isLow ? "#C2185B" : "#C9A84C" }}>
+                          {isLow ? "Low Stock" : "In Stock"}
+                        </span>
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", padding: "4px 10px", fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 500, letterSpacing: "0.18em", textTransform: "uppercase", border: isLow ? "1px solid rgba(194,24,91,0.5)" : "1px solid rgba(201,168,76,0.35)", background: isLow ? "rgba(194,24,91,0.08)" : "rgba(201,168,76,0.07)", color: isLow ? "#C2185B" : "#C9A84C" }}>
@@ -129,7 +144,15 @@ export default function Inventory() {
                     </div>
                     <span style={{ fontFamily: "'Cinzel', serif", fontSize: "26px", fontWeight: 600, color: isLow ? "#C2185B" : "#C9A84C", lineHeight: 1 }}>{p.current_stock}</span>
                   </div>
-                  <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.35)", marginBottom: "10px" }}>{p.category}</p>
+                  <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.35)", marginBottom: "8px" }}>{p.category}</p>
+                  <div style={{ display: "grid", gap: "6px", marginBottom: "12px" }}>
+                    <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                      <span style={{ fontFamily: "'Cinzel', serif", fontSize: "14px", color: "#C9A84C" }}>Unit R{Number(p.unit_price || 0).toFixed(2)}</span>
+                      <span style={{ fontFamily: "'Cinzel', serif", fontSize: "14px", color: "rgba(245,240,232,0.72)" }}>Wholesale R{Number(p.wholesale_price || 0).toFixed(2)}</span>
+                    </div>
+                    {p.product_description && <p style={{ margin: 0, fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.68)", lineHeight: 1.6 }}>{p.product_description}</p>}
+                    {p.notes && <p style={{ margin: 0, fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(201,168,76,0.6)", lineHeight: 1.5 }}>Notes: {p.notes}</p>}
+                  </div>
                   <div style={{ display: "flex", gap: "20px", marginBottom: "12px" }}>
                     <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.35)" }}>Last: {p.last_stock_count}</span>
                     <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.35)" }}>New: {p.new_stock_arrived}</span>

@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-const emptyOrder = { client_name: "", order_details: "", quantity: 1, delivery_address: "", special_instructions: "", priority_level: "Medium", order_value: "", time_slot: "", payment_method: "Cash", order_date: "", status: "Pending", planner_status: "Pending" };
+const emptyOrder = { client_name: "", selected_product_id: "", order_details: "", quantity: 1, delivery_address: "", special_instructions: "", priority_level: "Medium", order_value: "", time_slot: "", payment_method: "Cash", order_date: "", status: "Pending", planner_status: "Pending" };
 const F = { fontFamily: "'Raleway', sans-serif" };
 const inputStyle = { ...F, width: "100%", background: "#1c191a", border: "1px solid rgba(210,156,108,0.2)", borderRadius: "2px", padding: "10px 14px", color: "#F5F0E8", fontSize: "14px", outline: "none", marginTop: "8px", transition: "border-color 0.2s, box-shadow 0.2s" };
 const labelStyle = { ...F, display: "block", fontSize: "10px", fontWeight: 500, color: "rgba(201,168,76,0.6)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "0" };
@@ -11,10 +12,16 @@ const onBlur = e => { e.target.style.borderColor = "rgba(210,156,108,0.2)"; e.ta
 export default function OrderFormDialog({ open, onOpenChange, order, onSave }) {
   const [form, setForm] = useState(emptyOrder);
   const [saving, setSaving] = useState(false);
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    base44.entities.Product.list("product_name", 200).then((data) => setProducts(data || []));
+  }, []);
 
   useEffect(() => {
     setForm(order ? {
       client_name: order.client_name || "",
+      selected_product_id: order.selected_product_id || "",
       order_details: order.order_details || "",
       quantity: order.quantity || 1,
       delivery_address: order.delivery_address || "",
@@ -28,6 +35,40 @@ export default function OrderFormDialog({ open, onOpenChange, order, onSave }) {
       planner_status: order.planner_status || "Pending"
     } : emptyOrder);
   }, [order, open]);
+
+  const selectedProduct = useMemo(
+    () => products.find((product) => product.id === form.selected_product_id) || null,
+    [products, form.selected_product_id]
+  );
+
+  const handleProductChange = (productId) => {
+    const product = products.find((item) => item.id === productId);
+    if (!product) {
+      setForm({ ...form, selected_product_id: "" });
+      return;
+    }
+
+    const quantity = Number(form.quantity) || 1;
+    setForm({
+      ...form,
+      selected_product_id: product.id,
+      order_details: product.product_description
+        ? `${product.product_name} — ${product.product_description}`
+        : product.product_name,
+      order_value: (Number(product.unit_price || 0) * quantity).toFixed(2)
+    });
+  };
+
+  const handleQuantityChange = (value) => {
+    const quantity = Number(value) || 1;
+    setForm((current) => ({
+      ...current,
+      quantity: value,
+      order_value: current.selected_product_id
+        ? (Number(selectedProduct?.unit_price || 0) * quantity).toFixed(2)
+        : current.order_value
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setSaving(true);
@@ -45,9 +86,27 @@ export default function OrderFormDialog({ open, onOpenChange, order, onSave }) {
         </DialogHeader>
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "8px" }}>
           <div><label style={labelStyle}>Client Name</label><input required value={form.client_name} onChange={e => setForm({ ...form, client_name: e.target.value })} style={inputStyle} placeholder="Enter client name" onFocus={onFocus} onBlur={onBlur} /></div>
+          <div>
+            <label style={labelStyle}>Product Catalogue</label>
+            <select value={form.selected_product_id} onChange={e => handleProductChange(e.target.value)} style={{ ...inputStyle, cursor: "pointer" }} onFocus={onFocus} onBlur={onBlur}>
+              <option value="">Select a product</option>
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.product_name} · R{Number(product.unit_price || 0).toFixed(2)}
+                </option>
+              ))}
+            </select>
+            {selectedProduct && (
+              <div style={{ marginTop: "10px", padding: "10px 12px", background: "rgba(210,156,108,0.08)", border: "1px solid rgba(210,156,108,0.18)", borderRadius: "2px" }}>
+                <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "18px", color: "var(--color-gold)" }}>{selectedProduct.product_name}</p>
+                {selectedProduct.product_description && <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.72)", lineHeight: 1.6 }}>{selectedProduct.product_description}</p>}
+                <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(210,156,108,0.75)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Unit price R{Number(selectedProduct.unit_price || 0).toFixed(2)} · Wholesale R{Number(selectedProduct.wholesale_price || 0).toFixed(2)}</p>
+              </div>
+            )}
+          </div>
           <div><label style={labelStyle}>Items Ordered</label><textarea required value={form.order_details} onChange={e => setForm({ ...form, order_details: e.target.value })} style={{ ...inputStyle, minHeight: "80px", resize: "vertical" }} placeholder="List items ordered..." onFocus={onFocus} onBlur={onBlur} /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <div><label style={labelStyle}>Quantity</label><input type="number" min="1" step="1" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} style={inputStyle} placeholder="1" onFocus={onFocus} onBlur={onBlur} /></div>
+            <div><label style={labelStyle}>Quantity</label><input type="number" min="1" step="1" value={form.quantity} onChange={e => handleQuantityChange(e.target.value)} style={inputStyle} placeholder="1" onFocus={onFocus} onBlur={onBlur} /></div>
             <div><label style={labelStyle}>Priority Level</label>
               <select value={form.priority_level} onChange={e => setForm({ ...form, priority_level: e.target.value })} style={{ ...inputStyle, cursor: "pointer" }} onFocus={onFocus} onBlur={onBlur}>
                 {["Low", "Medium", "High"].map(s => <option key={s} value={s}>{s}</option>)}
