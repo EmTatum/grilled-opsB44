@@ -73,6 +73,7 @@ const parseReportDate = (value) => {
 const mapNoteToReport = (note) => {
   const rawData = getReportDataFromTags(note.tags || []) || {};
   const normalizedStatus = normalizePaymentStatus(rawData.payment_status, rawData.payment_method);
+  const parsedDeliveryMoment = parseReportDate(rawData.delivery_date || "Not recorded.");
 
   return {
     ...getIntelligenceReportViewModel(note),
@@ -84,12 +85,17 @@ const mapNoteToReport = (note) => {
     order_total: rawData.order_total || "Not confirmed.",
     delivery_address: rawData.delivery_address || "Not recorded.",
     next_action: rawData.next_action || "Not recorded.",
+    delivery_time: parsedDeliveryMoment ? parsedDeliveryMoment.format("HH:mm") : "",
   };
 };
 
 const getReportMoment = (report) => parseReportDate(report.delivery_date);
-const isFulfilled = (report) => String(report.payment_status || "").toUpperCase() === "PAID";
-const isPending = (report) => !getReportMoment(report) || report.delivery_date === "Not recorded." || String(report.payment_status || "").toUpperCase() === "PENDING";
+const isFulfilled = (report) => {
+  const reportMoment = getReportMoment(report);
+  if (!reportMoment) return false;
+  return reportMoment.isBefore(moment(), "day");
+};
+const isPending = (report) => report.delivery_date === "Not recorded.";
 const isUrgent = (report) => {
   const reportMoment = getReportMoment(report);
   if (!reportMoment) return false;
@@ -97,13 +103,13 @@ const isUrgent = (report) => {
 };
 const isUpcoming = (report) => {
   const reportMoment = getReportMoment(report);
-  if (!reportMoment || isFulfilled(report)) return false;
+  if (!reportMoment) return false;
   return reportMoment.isAfter(moment(), "day");
 };
 const isOverdue = (report) => {
   const reportMoment = getReportMoment(report);
-  if (!reportMoment || isFulfilled(report)) return false;
-  return reportMoment.isBefore(moment(), "day");
+  if (!reportMoment) return false;
+  return reportMoment.isBefore(moment(), "day") && String(report.payment_status || "").toUpperCase() !== "PAID";
 };
 
 const getFilterMatch = (order, filter) => {
@@ -297,6 +303,11 @@ export default function Orders() {
         {monthDays.map((day) => {
           const key = day.format("YYYY-MM-DD");
           const dayOrders = allOrdersByDay[key] || [];
+          const uniqueDayOrders = dayOrders.reduce((acc, order) => {
+            const existing = acc.find((item) => item.client_name === order.client_name);
+            if (!existing) acc.push(order);
+            return acc;
+          }, []);
           const isCurrentMonth = day.isSame(monthCursor, "month");
           const isPastDay = day.isBefore(moment(), "day");
           const isToday = day.isSame(moment(), "day");
@@ -306,15 +317,22 @@ export default function Orders() {
                 <span style={{ position: "absolute", left: "-10%", top: "50%", width: "120%", height: "1px", background: "rgba(238,227,180,0.35)", transform: "rotate(-18deg)", transformOrigin: "center" }} />
               )}
               <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "22px", color: "#F5F0E8", position: "relative", zIndex: 1 }}>{day.format("D")}</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px", position: "relative", zIndex: 1 }}>
-                {dayOrders.slice(0, 2).map((order) => (
-                  <span key={order.id} style={{ fontFamily: "var(--font-body)", fontSize: "10px", color: "rgba(245,240,232,0.68)", display: "block", lineHeight: 1.3 }}>
-                    {order.client_name}
-                  </span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px", position: "relative", zIndex: 1 }}>
+                {uniqueDayOrders.slice(0, 2).map((order) => (
+                  <div key={order.id} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <span style={{ fontFamily: "var(--font-body)", fontSize: "10px", color: "rgba(245,240,232,0.82)", display: "block", lineHeight: 1.2 }}>
+                      {order.client_name}
+                    </span>
+                    {order.delivery_time && (
+                      <span style={{ fontFamily: "var(--font-body)", fontSize: "9px", color: "rgba(201,168,76,0.72)", display: "block", lineHeight: 1.2, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                        {order.delivery_time}
+                      </span>
+                    )}
+                  </div>
                 ))}
-                {dayOrders.length > 2 && (
+                {uniqueDayOrders.length > 2 && (
                   <span style={{ fontFamily: "var(--font-body)", fontSize: "10px", color: "#C9A84C", display: "block", lineHeight: 1.3 }}>
-                    +{dayOrders.length - 2} more
+                    +{uniqueDayOrders.length - 2} more
                   </span>
                 )}
               </div>
