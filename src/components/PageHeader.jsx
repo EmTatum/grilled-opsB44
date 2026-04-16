@@ -10,7 +10,7 @@ export default function PageHeader({ title, subtitle, children }) {
             letterSpacing: "0.12em",
             textTransform: "uppercase",
             margin: 0, lineHeight: 1.05,
-          }}>{`${title}.`}
+          }}>
             {title}
           </h1>
           {/* Decorative diamond element */}
