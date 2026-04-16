@@ -165,10 +165,10 @@ function AlertsIssuesWidget({ stats }) {
   );
 }
 
-function ClientActivityWidget({ stats }) {
+function CircleActivityWidget({ stats }) {
   const navigate = useNavigate();
   return (
-    <WidgetCard icon={Users} title="Client Activity" onClick={() => navigate("/notes")} actionLabel="View Notes">
+    <WidgetCard icon={Users} title="Circle Activity" onClick={() => navigate("/notes")} actionLabel="View intelligence">
       <p style={valueStyle}>{stats.recentInteractions}</p>
       <div style={{ marginTop: "10px" }}>
         <MetricRow label="Recent Interactions" value={stats.recentInteractions} />
@@ -237,7 +237,7 @@ export default function IntelligenceCards({ ordersOverview, inventoryStatus, ale
       <OrdersOverviewWidget stats={ordersOverview} />
       <InventoryStatusWidget stats={inventoryStatus} />
       <AlertsIssuesWidget stats={alertsIssues} />
-      <ClientActivityWidget stats={clientActivity} />
+      <CircleActivityWidget stats={clientActivity} />
       <DailyPerformanceWidget stats={dailyPerformance} />
       <FinancialSummaryWidget stats={financialSummary} />
       <LiquidityTrackingWidget stats={liquidityTracking} />

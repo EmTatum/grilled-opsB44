@@ -34,7 +34,7 @@ export default function CustomerNoteCard({ note, onEdit, onDelete }) {
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
         <div>
-          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", fontWeight: 600, color: "#F5F0E8" }}>{note.client_name}</p>
+          <p style={{ fontFamily: "var(--font-heading)", fontSize: "18px", fontWeight: 600, color: "#F5F0E8" }}>{note.client_name}</p>
           <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", color: "rgba(245,240,232,0.3)", letterSpacing: "0.1em", marginTop: "2px" }}>{moment(note.created_date).format("MMM D, YYYY")}</p>
         </div>
         <div style={{ display: "flex", gap: "4px" }}>

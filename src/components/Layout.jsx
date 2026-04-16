@@ -5,16 +5,16 @@ import { useState } from "react";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/orders", label: "Upcoming Orders", icon: ShoppingCart },
+  { path: "/orders", label: "Orders", icon: ShoppingCart },
   { path: "/daily-dispatch-manifest", label: "Dispatch Manifest", icon: ShoppingCart },
-  { path: "/inventory", label: "Inventory", icon: Package },
-  { path: "/notes", label: "Client Notes", icon: StickyNote },
-  { path: "/client-analytics", label: "Client Analytics", icon: LineChart },
+  { path: "/inventory", label: "Catalogue", icon: Package },
+  { path: "/notes", label: "Member Intelligence", icon: StickyNote },
+  { path: "/client-analytics", label: "Member Circle", icon: LineChart },
 ];
 
 const sidebarStyle = {
   width: "220px",
-  background: "#111111",
+  background: "#030101",
   borderRight: "1px solid rgba(210,156,108,0.3)",
   display: "flex", flexDirection: "column",
   position: "fixed", top: 0, left: 0, height: "100vh", zIndex: 100,
@@ -70,8 +70,8 @@ export default function Layout() {
                     fontFamily: "var(--font-body)",
                     fontSize: "13px", fontWeight: 500,
                     letterSpacing: "0.1em", textTransform: "uppercase",
-                    color: isActive ? "var(--color-gold)" : "rgba(245,240,232,0.7)",
-                    background: isActive ? "rgba(210,156,108,0.08)" : "transparent",
+                    color: isActive ? "var(--color-gold)" : "#eee3b4",
+                    background: isActive ? "rgba(10,38,39,0.55)" : "transparent",
                     borderLeft: isActive ? "2px solid var(--color-gold)" : "2px solid transparent",
                     textDecoration: "none",
                     transition: "all 0.2s ease",
@@ -133,8 +133,8 @@ export default function Layout() {
                     fontFamily: "var(--font-body)",
                     fontSize: "13px", fontWeight: 500,
                     letterSpacing: "0.1em", textTransform: "uppercase",
-                    color: isActive ? "var(--color-gold)" : "rgba(245,240,232,0.7)",
-                    background: isActive ? "rgba(210,156,108,0.08)" : "transparent",
+                    color: isActive ? "var(--color-gold)" : "#eee3b4",
+                    background: isActive ? "rgba(10,38,39,0.55)" : "transparent",
                     borderLeft: isActive ? "2px solid var(--color-gold)" : "2px solid transparent",
                     textDecoration: "none",
                     transition: "all 0.2s ease",

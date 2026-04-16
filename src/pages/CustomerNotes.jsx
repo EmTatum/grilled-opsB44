@@ -95,7 +95,7 @@ export default function CustomerNotes() {
 
   return (
     <div>
-      <PageHeader title="Client Notes" subtitle="CRM — Notes, credits, debts, client intelligence, and conversation analysis">
+      <PageHeader title="Member Intelligence" subtitle="Circle notes, credits, debts, member intelligence, and conversation analysis">
         <GoldBtn onClick={() => { setEditNote(null); setFormOpen(true); }}><Plus size={12} /> New Note</GoldBtn>
       </PageHeader>
 

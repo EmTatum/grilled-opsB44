@@ -163,8 +163,8 @@ Conversation:\n${sanitizedConversation}`,
   return (
     <div style={{ ...cardStyle, marginBottom: "28px" }}>
       <div style={{ marginBottom: "16px" }}>
-        <p style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase", margin: 0 }}>Sales Intelligence</p>
-        <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.45)", margin: "6px 0 0" }}>Paste full WhatsApp logs to generate a concise, evidence-based client sheet before replying.</p>
+        <p style={{ fontFamily: "var(--font-heading)", fontSize: "20px", color: "#d29c6c", letterSpacing: "0.08em", textTransform: "uppercase", margin: 0 }}>Member Intelligence.</p>
+        <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.45)", margin: "6px 0 0" }}>Paste full WhatsApp logs to generate a concise, evidence-based member sheet before replying.</p>
       </div>
 
       <div style={{ marginBottom: "16px" }}>

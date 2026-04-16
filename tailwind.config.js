@@ -8,6 +8,8 @@ module.exports = {
         cinzel: ['Cinzel', 'serif'],
         cormorant: ['Cormorant Garamond', 'serif'],
         raleway: ['Raleway', 'sans-serif'],
+        heading: ['var(--font-heading)'],
+        body: ['var(--font-body)'],
       },
       borderRadius: {
         DEFAULT: '0px', sm: '0px', md: '0px', lg: '0px', xl: '0px', '2xl': '0px', full: '9999px',

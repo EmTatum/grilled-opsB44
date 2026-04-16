@@ -2,10 +2,10 @@ import moment from "moment";
 import { ORDER_STATUSES, getPlannerStatus, getPriorityTone } from "./orderPlannerConfig";
 
 const columnMeta = {
-  Pending: { accent: "#C9A84C" },
-  Processing: { accent: "rgba(245,240,232,0.75)" },
-  Dispatched: { accent: "#8F6B1C" },
-  Complete: { accent: "#C2185B" },
+  Pending: { accent: "#d29c6c" },
+  Processing: { accent: "#eee3b4" },
+  Dispatched: { accent: "#15434a" },
+  Complete: { accent: "#8d201c" },
 };
 
 function OrderBoardCard({ order, onEdit, onDragStart, onMoveStatus }) {

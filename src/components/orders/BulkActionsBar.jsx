@@ -46,10 +46,10 @@ export default function BulkActionsBar({ selectedCount, onMarkFulfilled, onMarkC
 
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
         <button onClick={onMarkFulfilled} style={buttonStyle}>
-          <CheckSquare size={12} /> Mark Fulfilled
+          <CheckSquare size={12} /> Mark fulfilled
         </button>
         <button onClick={onMarkCancelled} style={dangerButtonStyle}>
-          <XCircle size={12} /> Mark Cancelled
+          <XCircle size={12} /> Mark cancelled
         </button>
         <button onClick={onExport} style={buttonStyle}>
           <Download size={12} /> Export PDF

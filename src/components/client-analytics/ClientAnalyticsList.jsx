@@ -30,14 +30,14 @@ export default function ClientAnalyticsList({ clients, selectedClientName, onSel
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1100px" }}>
           <thead>
             <tr>
-              <th style={tableHeader}>Client</th>
+              <th style={tableHeader}>Member</th>
               <th style={tableHeader}>Total Spend</th>
               <th style={tableHeader}>Orders</th>
               <th style={tableHeader}>Avg Order</th>
               <th style={tableHeader}>Orders / Month</th>
               <th style={tableHeader}>Last Order</th>
               <th style={tableHeader}>Last Contact</th>
-              <th style={tableHeader}>Follow-Up</th>
+              <th style={tableHeader}>Attention</th>
             </tr>
           </thead>
           <tbody>
@@ -77,7 +77,7 @@ export default function ClientAnalyticsList({ clients, selectedClientName, onSel
                   <td style={cellBase}>{client.lastContactDate ? moment(client.lastContactDate).format("D MMM YYYY") : "—"}</td>
                   <td style={cellBase}>
                     <span style={{ ...followUpStyle, display: "inline-flex", padding: "5px 9px", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                      {client.needsFollowUp ? "Needs Follow-Up" : "Active"}
+                      {client.needsFollowUp ? "Requires attention" : "Active"}
                     </span>
                   </td>
                 </tr>

@@ -93,7 +93,7 @@ export default function ClientAnalytics() {
 
   return (
     <div>
-      <PageHeader title="Client Analytics" subtitle="Monitor client value, order cadence, contact recency, and follow-up risk in one place" />
+      <PageHeader title="Member Circle" subtitle="Monitor member value, order cadence, contact recency, and attention risk in one place" />
 
       {clients.length === 0 ? (
         <div style={{ textAlign: "center", padding: "80px 20px", border: "1px dashed rgba(201,168,76,0.15)" }}>

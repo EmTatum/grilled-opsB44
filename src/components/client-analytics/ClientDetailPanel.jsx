@@ -27,13 +27,13 @@ export default function ClientDetailPanel({ client }) {
       <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.2)", padding: "22px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", marginBottom: "18px" }}>
           <div>
-            <p style={{ margin: 0, fontFamily: "'Cormorant Garamond', serif", fontSize: "34px", color: "#F5F0E8", fontWeight: 600 }}>{client.client_name}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "34px", color: "#F5F0E8", fontWeight: 600 }}>{client.client_name}</p>
             <p style={{ margin: "6px 0 0", fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.45)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
               Last order {client.lastOrderDate ? moment(client.lastOrderDate).format("D MMM YYYY") : "—"} · Last contact {client.lastContactDate ? moment(client.lastContactDate).format("D MMM YYYY") : "—"}
             </p>
           </div>
-          <div style={{ alignSelf: "flex-start", padding: "6px 10px", border: client.needsFollowUp ? "1px solid rgba(194,24,91,0.45)" : "1px solid rgba(201,168,76,0.35)", color: client.needsFollowUp ? "#C2185B" : "#C9A84C", background: client.needsFollowUp ? "rgba(194,24,91,0.08)" : "rgba(201,168,76,0.08)", fontFamily: "'Raleway', sans-serif", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-            {client.needsFollowUp ? "Needs Follow-Up" : "Active Client"}
+          <div style={{ alignSelf: "flex-start", padding: "6px 10px", border: client.needsFollowUp ? "1px solid rgba(141,32,28,0.45)" : "1px solid rgba(210,156,108,0.35)", color: client.needsFollowUp ? "#8d201c" : "#d29c6c", background: client.needsFollowUp ? "rgba(141,32,28,0.08)" : "rgba(210,156,108,0.08)", fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+           {client.needsFollowUp ? "Requires attention" : "Active member"}
           </div>
         </div>
 

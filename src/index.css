@@ -5,20 +5,22 @@
 @tailwind utilities;
 
 :root {
-  --color-bg: #0b0e11;
-  --color-surface: #111111;
+  --color-bg: #030101;
+  --color-surface: #0b0e11;
   --color-card: #1c191a;
+  --color-card-alt: #322d2d;
   --color-border: #d29c6c;
   --color-border-subtle: rgba(210, 156, 108, 0.25);
   --color-gold: #d29c6c;
   --color-gold-light: #eee3b4;
   --color-rose: #8d201c;
-  --color-text: #F5F0E8;
-  --color-text-muted: rgba(245, 240, 232, 0.55);
-  --color-teal: #15434a;
+  --color-text: #f0ede8;
+  --color-text-muted: rgba(238, 227, 180, 0.72);
+  --color-teal: #0a2627;
+  --color-teal-bright: #15434a;
   --color-ink: #030101;
-  --font-heading: 'Cormorant Garamond', serif;
-  --font-body: 'Raleway', sans-serif;
+  --font-heading: 'Playfair Display', Georgia, serif;
+  --font-body: 'Inter', sans-serif;
   --bg: var(--color-bg);
   --surface: var(--color-surface);
   --card: var(--color-card);

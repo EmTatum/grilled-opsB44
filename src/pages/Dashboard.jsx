@@ -15,7 +15,7 @@ import { getRollingDays, isSameDay, toDayKey, getTodayKey } from "../lib/dashboa
 const quickLinks = [
   { path: "/orders", label: "Upcoming Orders", desc: "Log and manage all pending and confirmed orders.", icon: ShoppingCart },
   { path: "/inventory", label: "Inventory", desc: "Track product stock counts and low-stock alerts.", icon: Package },
-  { path: "/notes", label: "Client Notes", desc: "CRM notes, credits, debts, and client retention.", icon: StickyNote },
+  { path: "/notes", label: "Member Intelligence", desc: "Circle notes, credits, debts, and member retention.", icon: StickyNote }
 ];
 
 const Spinner = () => (
@@ -236,7 +236,7 @@ export default function Dashboard() {
                 onMouseEnter={(e) => { e.currentTarget.style.background = "#C2185B"; e.currentTarget.style.color = "#F5F0E8"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#C2185B"; }}
               >
-                <Plus size={12} /> New Client
+                <Plus size={12} /> New Member
               </Link>
             </div>
             <ThemeToneSwitch

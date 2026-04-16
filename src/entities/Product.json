@@ -8,25 +8,58 @@
     },
     "category": {
       "type": "string",
-      "title": "Category"
+      "title": "Category",
+      "enum": [
+        "Cannabis — Standard",
+        "Cannabis — Premium",
+        "In-Store Goods",
+        "Concierge Items"
+      ]
     },
-    "product_description": {
-      "type": "string",
-      "title": "Product Description"
-    },
-    "notes": {
-      "type": "string",
-      "title": "Notes"
-    },
-    "unit_price": {
+    "retail_price": {
       "type": "number",
-      "title": "Unit Price",
+      "title": "Retail Price (R)",
       "default": 0
     },
     "wholesale_price": {
       "type": "number",
-      "title": "Wholesale Price",
+      "title": "Wholesale Price (R)",
       "default": 0
+    },
+    "unit_of_measure": {
+      "type": "string",
+      "title": "Unit",
+      "enum": [
+        "Per Unit",
+        "Per Gram",
+        "Per Bag",
+        "Per Bottle",
+        "Per Pack"
+      ],
+      "default": "Per Unit"
+    },
+    "product_description": {
+      "type": "string",
+      "title": "Description"
+    },
+    "internal_notes": {
+      "type": "string",
+      "title": "Internal Notes"
+    },
+    "product_status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "Active",
+        "Inactive",
+        "Seasonal",
+        "Coming Soon"
+      ],
+      "default": "Active"
+    },
+    "supplier": {
+      "type": "string",
+      "title": "Source"
     },
     "last_stock_count": {
       "type": "number",
@@ -52,6 +85,9 @@
   "required": [
     "product_name",
     "category",
+    "retail_price",
+    "unit_of_measure",
+    "product_status",
     "last_stock_count",
     "new_stock_arrived",
     "current_stock"
