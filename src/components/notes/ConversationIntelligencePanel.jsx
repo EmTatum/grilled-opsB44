@@ -69,6 +69,15 @@ export default function ConversationIntelligencePanel({ notes = [], onSaved }) {
     return notes.filter((note) => getGeneratedIntelligenceKey(note) === getGeneratedIntelligenceKey({ client_name: report?.member_snapshot?.name || "", tags: ["sales-intelligence", "whatsapp-analysis"] }));
   }, [notes, report]);
 
+  const headerMeta = useMemo(() => {
+    const parts = [
+      report?.member_snapshot?.contact_number,
+      report?.member_snapshot?.location_area,
+    ].filter((value) => value && value !== "Not recorded.");
+
+    return parts.join(" · ");
+  }, [report]);
+
   const analyzeConversation = async () => {
     if (!conversation.trim()) return;
     setLoading(true);
@@ -267,6 +276,18 @@ Conversation:\n${sanitizedConversation}`,
 
       {report && (
         <div style={{ marginTop: "22px", display: "flex", flexDirection: "column", gap: "18px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <p style={{ fontFamily: "var(--font-heading)", fontSize: "32px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#d29c6c", margin: 0 }}>
+              {report.member_snapshot?.name || "Member Intelligence Report"}
+            </p>
+            {headerMeta && (
+              <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", letterSpacing: "0.04em", color: "#eee3b4", margin: 0 }}>
+                {headerMeta}
+              </p>
+            )}
+            <div style={{ height: "1px", width: "100%", background: "#d29c6c" }} />
+          </div>
+
           <div style={{ background: "#1c191a", borderLeft: "4px solid #d29c6c", padding: "24px 24px 24px 20px" }}>
             <p style={{ ...labelStyle, color: "#d29c6c", marginBottom: "10px" }}>Next Action</p>
             <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "16px", lineHeight: 1.8, color: "#eee3b4", margin: 0 }}>
