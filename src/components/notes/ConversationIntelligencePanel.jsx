@@ -98,12 +98,13 @@ SECTION 3 — CLIENT NOTES
 - Green Flags: positive signals from the conversation. If none, write exactly: None recorded.
 
 For Full Order Description:
-- Use specifically the LAST enquiry or LAST order mentioned in the conversation.
-- If earlier orders or products are mentioned but a later enquiry/order appears, ignore the earlier ones and use only the final one.
+- Use specifically the enquiry or order from the VERY LAST time the client spoke to us in the conversation.
+- Treat the conversation as chronological and prioritize the final exchange only.
+- If earlier orders or products are mentioned but the last exchange contains a newer enquiry or order, ignore the earlier ones and use only the final exchange.
 - Return a clean line-by-line list.
 - Each line should follow: Product name — quantity/detail.
 - No bullets, numbering, or extra labels.
-- If no clear order is present, write exactly: Not recorded.
+- If the final exchange contains no clear enquiry or order, write exactly: Not recorded.
 
 Conversation:\n${sanitizedConversation}`,
       response_json_schema: {
