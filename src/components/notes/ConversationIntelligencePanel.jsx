@@ -98,6 +98,8 @@ SECTION 3 — CLIENT NOTES
 - Green Flags: positive signals from the conversation. If none, write exactly: None recorded.
 
 For Full Order Description:
+- Use specifically the LAST enquiry or LAST order mentioned in the conversation.
+- If earlier orders or products are mentioned but a later enquiry/order appears, ignore the earlier ones and use only the final one.
 - Return a clean line-by-line list.
 - Each line should follow: Product name — quantity/detail.
 - No bullets, numbering, or extra labels.
