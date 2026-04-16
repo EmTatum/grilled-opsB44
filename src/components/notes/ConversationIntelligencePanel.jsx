@@ -21,10 +21,35 @@ const cardStyle = {
 
 const bodyText = {
   fontFamily: "'Raleway', sans-serif",
-  fontSize: "12px",
-  color: "rgba(245,240,232,0.72)",
+  fontSize: "13px",
+  color: "#F5F0E8",
   lineHeight: 1.7,
   margin: 0,
+};
+
+const fieldLabel = {
+  fontFamily: "'Raleway', sans-serif",
+  fontSize: "11px",
+  color: "#d29c6c",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  margin: 0,
+};
+
+const fieldValue = {
+  fontFamily: "'Raleway', sans-serif",
+  fontSize: "14px",
+  color: "#F5F0E8",
+  lineHeight: 1.7,
+  margin: "4px 0 0",
+};
+
+const reportSectionStyle = {
+  background: "#141414",
+  padding: "24px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "14px",
 };
 
 const maskSensitiveDetails = (text) =>
@@ -241,43 +266,114 @@ Conversation:\n${sanitizedConversation}`,
       </div>
 
       {report && (
-        <div style={{ marginTop: "22px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
-          <div style={cardStyle}>
-            <p style={labelStyle}>Member Snapshot</p>
-            <p style={bodyText}>Name: {report.member_snapshot?.name || "Not recorded."}</p>
-            <p style={bodyText}>Contact number: {report.member_snapshot?.contact_number || "Not recorded."}</p>
-            <p style={bodyText}>Location / Area: {report.member_snapshot?.location_area || "Not recorded."}</p>
-            <p style={bodyText}>Referred by: {report.member_snapshot?.referred_by || "Not recorded."}</p>
+        <div style={{ marginTop: "22px", display: "flex", flexDirection: "column", gap: "18px" }}>
+          <div style={{ background: "#1c191a", borderLeft: "4px solid #d29c6c", padding: "24px 24px 24px 20px" }}>
+            <p style={{ ...labelStyle, color: "#d29c6c", marginBottom: "10px" }}>Next Action</p>
+            <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "16px", lineHeight: 1.8, color: "#eee3b4", margin: 0 }}>
+              {report.next_action || "Not recorded."}
+            </p>
           </div>
 
-          <div style={cardStyle}>
-            <p style={labelStyle}>Order Profile</p>
-            <p style={bodyText}>Products ordered or discussed: {report.order_profile?.products_ordered_or_discussed || "Not recorded."}</p>
-            <p style={bodyText}>Quantities: {report.order_profile?.quantities || "Not recorded."}</p>
-            <p style={bodyText}>Preferred delivery method: {report.order_profile?.preferred_delivery_method || "Not recorded."}</p>
-            <p style={bodyText}>Preferred delivery area or meeting point: {report.order_profile?.preferred_delivery_area_or_meeting_point || "Not recorded."}</p>
-            <p style={bodyText}>Any standing preferences noted: {report.order_profile?.standing_preferences || "Not recorded."}</p>
-          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px", alignItems: "start" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              <div style={reportSectionStyle}>
+                <div>
+                  <p style={labelStyle}>Member Snapshot</p>
+                  <div style={{ height: "1px", width: "60px", background: "#d29c6c", marginTop: "10px" }} />
+                </div>
+                <div>
+                  <p style={fieldLabel}>Name</p>
+                  <p style={fieldValue}>{report.member_snapshot?.name || "Not recorded."}</p>
+                </div>
+                <div>
+                  <p style={fieldLabel}>Contact Number</p>
+                  <p style={fieldValue}>{report.member_snapshot?.contact_number || "Not recorded."}</p>
+                </div>
+                <div>
+                  <p style={fieldLabel}>Location / Area</p>
+                  <p style={fieldValue}>{report.member_snapshot?.location_area || "Not recorded."}</p>
+                </div>
+                <div>
+                  <p style={fieldLabel}>Referred By</p>
+                  <p style={fieldValue}>{report.member_snapshot?.referred_by || "Not recorded."}</p>
+                </div>
+              </div>
 
-          <div style={cardStyle}>
-            <p style={labelStyle}>Financial Status</p>
-            <p style={bodyText}>Amount owed: {report.financial_status?.amount_owed || "Not recorded."}</p>
-            <p style={bodyText}>Credit on account: {report.financial_status?.credit_on_account || "Not recorded."}</p>
-            <p style={bodyText}>Payment method used or preferred: {report.financial_status?.payment_method || "Not recorded."}</p>
-            <p style={bodyText}>Any outstanding payment flag: {report.financial_status?.outstanding_payment_flag || "Not recorded."}</p>
-          </div>
+              <div style={reportSectionStyle}>
+                <div>
+                  <p style={labelStyle}>Financial Status</p>
+                  <div style={{ height: "1px", width: "60px", background: "#d29c6c", marginTop: "10px" }} />
+                </div>
+                <div>
+                  <p style={fieldLabel}>Amount Owed</p>
+                  <p style={fieldValue}>{report.financial_status?.amount_owed || "Not recorded."}</p>
+                </div>
+                <div>
+                  <p style={fieldLabel}>Credit on Account</p>
+                  <p style={fieldValue}>{report.financial_status?.credit_on_account || "Not recorded."}</p>
+                </div>
+                <div>
+                  <p style={fieldLabel}>Payment Method Used or Preferred</p>
+                  <p style={fieldValue}>{report.financial_status?.payment_method || "Not recorded."}</p>
+                </div>
+                <div>
+                  <p style={fieldLabel}>Outstanding Payment Flag</p>
+                  <p style={fieldValue}>{report.financial_status?.outstanding_payment_flag || "Not recorded."}</p>
+                </div>
+              </div>
+            </div>
 
-          <div style={cardStyle}>
-            <p style={labelStyle}>Concierge Brief</p>
-            <p style={bodyText}>How this member communicates: {report.concierge_brief?.communication_style || "Not recorded."}</p>
-            <p style={bodyText}>Response style recommended: {report.concierge_brief?.response_style_recommended || "Not recorded."}</p>
-            <p style={bodyText}>Any red flags noted from the conversation: {report.concierge_brief?.red_flags || "Not recorded."}</p>
-            <p style={bodyText}>Any green flags: {report.concierge_brief?.green_flags || "Not recorded."}</p>
-          </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              <div style={reportSectionStyle}>
+                <div>
+                  <p style={labelStyle}>Order Profile</p>
+                  <div style={{ height: "1px", width: "60px", background: "#d29c6c", marginTop: "10px" }} />
+                </div>
+                <div>
+                  <p style={fieldLabel}>Products Ordered or Discussed</p>
+                  <p style={fieldValue}>{report.order_profile?.products_ordered_or_discussed || "Not recorded."}</p>
+                </div>
+                <div>
+                  <p style={fieldLabel}>Quantities</p>
+                  <p style={fieldValue}>{report.order_profile?.quantities || "Not recorded."}</p>
+                </div>
+                <div>
+                  <p style={fieldLabel}>Preferred Delivery Method</p>
+                  <p style={fieldValue}>{report.order_profile?.preferred_delivery_method || "Not recorded."}</p>
+                </div>
+                <div>
+                  <p style={fieldLabel}>Preferred Delivery Area or Meeting Point</p>
+                  <p style={fieldValue}>{report.order_profile?.preferred_delivery_area_or_meeting_point || "Not recorded."}</p>
+                </div>
+                <div>
+                  <p style={fieldLabel}>Standing Preferences Noted</p>
+                  <p style={fieldValue}>{report.order_profile?.standing_preferences || "Not recorded."}</p>
+                </div>
+              </div>
 
-          <div style={{ ...cardStyle, gridColumn: "1 / -1" }}>
-            <p style={labelStyle}>Next Action</p>
-            <p style={bodyText}>{report.next_action || "Not recorded."}</p>
+              <div style={reportSectionStyle}>
+                <div>
+                  <p style={labelStyle}>Concierge Brief</p>
+                  <div style={{ height: "1px", width: "60px", background: "#d29c6c", marginTop: "10px" }} />
+                </div>
+                <div>
+                  <p style={fieldLabel}>How This Member Communicates</p>
+                  <p style={fieldValue}>{report.concierge_brief?.communication_style || "Not recorded."}</p>
+                </div>
+                <div>
+                  <p style={fieldLabel}>Response Style Recommended</p>
+                  <p style={fieldValue}>{report.concierge_brief?.response_style_recommended || "Not recorded."}</p>
+                </div>
+                <div>
+                  <p style={fieldLabel}>Red Flags</p>
+                  <p style={fieldValue}>{report.concierge_brief?.red_flags || "Not recorded."}</p>
+                </div>
+                <div>
+                  <p style={fieldLabel}>Green Flags</p>
+                  <p style={fieldValue}>{report.concierge_brief?.green_flags || "Not recorded."}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
