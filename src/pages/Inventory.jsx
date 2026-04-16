@@ -37,21 +37,14 @@ const PRODUCT_RULES = {
 
 const PRODUCT_NAME_MAP = {
   "Changaland": "Changa",
-  "Changa": "Changa",
   "Cola": "Cola",
   "Dougies": "Dougies",
   "Love MD": "MD",
-  "MD": "MD",
   "Mary Jane": "Bud",
-  "Bud": "Bud",
   "Mushie Nuggets": "Mushrooms",
-  "Mushrooms": "Mushrooms",
   "Special k": "Ketamine",
-  "Ketamine": "Ketamine",
   "Sweets": "Ecstasy",
-  "Ecstasy": "Ecstasy",
   "Zol-Pies": "Zolpidiem",
-  "Zolpidiem": "Zolpidiem",
   "Acid": "Acid",
   "Xannie pots": "Xannie Pots",
   "Xannie Pots": "Xannie Pots"
