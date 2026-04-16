@@ -55,7 +55,7 @@ export default function ConversationIntelligencePanel({ onSaved }) {
   const [report, setReport] = useState(null);
 
   const headerMeta = useMemo(() => {
-    const parts = [report?.client_number, report?.client_address].filter((value) => value && value !== "Not recorded.");
+    const parts = [report?.client_number, report?.dropoff_date, report?.client_address].filter((value) => value && value !== "Not recorded.");
     return parts.join(" · ");
   }, [report]);
 
@@ -83,6 +83,7 @@ Return exactly these three sections in this order:
 SECTION 1 — CLIENT INFORMATION
 - Client Name
 - Client Number (phone/contact)
+- Drop-off Date
 - Client Address / Drop-off Location
 
 SECTION 2 — ORDER DETAILS
@@ -108,6 +109,7 @@ Conversation:\n${sanitizedConversation}`,
         properties: {
           client_name: { type: "string" },
           client_number: { type: "string" },
+          dropoff_date: { type: "string" },
           client_address: { type: "string" },
           full_order_description: { type: "string" },
           payment_method: { type: "string" },
@@ -120,6 +122,7 @@ Conversation:\n${sanitizedConversation}`,
         required: [
           "client_name",
           "client_number",
+          "dropoff_date",
           "client_address",
           "full_order_description",
           "payment_method",
@@ -144,6 +147,7 @@ Conversation:\n${sanitizedConversation}`,
         "CLIENT INFORMATION",
         `Client Name: ${result.client_name || "Not recorded."}`,
         `Client Number: ${result.client_number || "Not recorded."}`,
+        `Drop-off Date: ${result.dropoff_date || "Not recorded."}`,
         `Client Address / Drop-off Location: ${result.client_address || "Not recorded."}`,
         "",
         "ORDER DETAILS",
@@ -164,6 +168,7 @@ Conversation:\n${sanitizedConversation}`,
         `report-data:${JSON.stringify({
           client_name: result.client_name || "Not recorded.",
           client_number: result.client_number || "Not recorded.",
+          dropoff_date: result.dropoff_date || "Not recorded.",
           client_address: result.client_address || "Not recorded.",
           full_order_description: result.full_order_description || "Not recorded.",
           payment_method: result.payment_method || "Not recorded.",
@@ -232,6 +237,7 @@ Conversation:\n${sanitizedConversation}`,
               </div>
               <div><p style={fieldLabel}>Client Name</p><p style={fieldValue}>{report.client_name || "Not recorded."}</p></div>
               <div><p style={fieldLabel}>Client Number</p><p style={fieldValue}>{report.client_number || "Not recorded."}</p></div>
+              <div><p style={fieldLabel}>Drop-off Date</p><p style={fieldValue}>{report.dropoff_date || "Not recorded."}</p></div>
               <div><p style={fieldLabel}>Client Address / Drop-off Location</p><p style={fieldValue}>{report.client_address || "Not recorded."}</p></div>
             </div>
 

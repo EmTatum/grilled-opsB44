@@ -39,7 +39,7 @@ const sectionStyle = {
 export default function IntelligenceReportModal({ open, onOpenChange, report, onDelete }) {
   if (!report) return null;
 
-  const meta = [report.client_number, report.client_address].filter((value) => value && value !== "Not recorded.").join(" · ");
+  const meta = [report.client_number, report.dropoff_date, report.client_address].filter((value) => value && value !== "Not recorded.").join(" · ");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -78,6 +78,7 @@ export default function IntelligenceReportModal({ open, onOpenChange, report, on
                 </div>
                 <div><p style={fieldLabel}>Client Name</p><p style={fieldValue}>{report.client_name || "Not recorded."}</p></div>
                 <div><p style={fieldLabel}>Client Number</p><p style={fieldValue}>{report.client_number || "Not recorded."}</p></div>
+                <div><p style={fieldLabel}>Drop-off Date</p><p style={fieldValue}>{report.dropoff_date || "Not recorded."}</p></div>
                 <div><p style={fieldLabel}>Client Address / Drop-off Location</p><p style={fieldValue}>{report.client_address || "Not recorded."}</p></div>
               </div>
 

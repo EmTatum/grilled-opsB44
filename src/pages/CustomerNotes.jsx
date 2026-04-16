@@ -84,6 +84,7 @@ export default function CustomerNotes() {
           created_date: note.created_date,
           client_name: parsed.client_name || note.client_name,
           client_number: parsed.client_number || "Not recorded.",
+          dropoff_date: parsed.dropoff_date || "Not recorded.",
           client_address: parsed.client_address || "Not recorded.",
           full_order_description: parsed.full_order_description || "Not recorded.",
           payment_method: parsed.payment_method || "Not recorded.",
