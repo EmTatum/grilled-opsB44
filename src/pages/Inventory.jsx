@@ -158,9 +158,9 @@ export default function Inventory() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "24px" }}>
+      <PageHeader title="The Catalogue" subtitle="Product list + Inventory levels">
         <GoldBtn onClick={() => { setEditProduct(null); setFormOpen(true); }}><Plus size={12} /> Add Product</GoldBtn>
-      </div>
+      </PageHeader>
 
       {filteredProducts.length === 0 ? (
         <div style={{ textAlign: "center", padding: "80px 20px", border: "1px dashed rgba(210,156,108,0.15)" }}>
