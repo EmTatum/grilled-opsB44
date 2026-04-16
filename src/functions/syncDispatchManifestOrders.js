@@ -1,5 +1,5 @@
-import { createFunction } from "@/utils/function";
+import { base44 } from "@/api/base44Client";
 
-export const syncDispatchManifestOrders = createFunction({
-  url: "syncDispatchManifestOrders",
-});
+export const syncDispatchManifestOrders = (payload) => {
+  return base44.functions.invoke("syncDispatchManifestOrders", payload);
+};
