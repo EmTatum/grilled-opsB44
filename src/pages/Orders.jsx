@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import moment from "moment";
-import { getIntelligenceReportViewModel, isIntelligenceReportNote } from "../utils/customerNotes";
+import { getIntelligenceReportViewModel, getReportDataFromTags, isIntelligenceReportNote, normalizePaymentStatus } from "../utils/customerNotes";
 
 const GoldBtn = ({ onClick, children }) => (
   <button
@@ -52,16 +52,44 @@ const paymentBadgeMap = {
 };
 
 const statusBlockConfig = {
-  upcoming: { label: "UPCOMING", background: "#15434a", labelColor: "#F5F0E8", valueColor: "#eee3b4" },
-  pending: { label: "PENDING", background: "#d29c6c", labelColor: "#030101", valueColor: "#030101" },
-  urgent: { label: "URGENT", background: "#8d201c", labelColor: "#F5F0E8", valueColor: "#F5F0E8", strong: true },
-  fulfilled: { label: "FULFILLED", background: "#322d2d", labelColor: "rgba(238,227,180,0.78)", valueColor: "#eee3b4" },
-  overdue: { label: "OVERDUE", background: "#8d201c", labelColor: "#F5F0E8", valueColor: "#F5F0E8", italic: true },
+  upcoming: { label: "UPCOMING", background: "#1a1a1a", labelColor: "#C9A84C", valueColor: "#C9A84C" },
+  pending: { label: "PENDING", background: "#1a1a1a", labelColor: "#C9A84C", valueColor: "#C9A84C" },
+  urgent: { label: "URGENT", background: "#1a1a1a", labelColor: "#C9A84C", valueColor: "#C9A84C", strong: true },
+  fulfilled: { label: "FULFILLED", background: "#1a1a1a", labelColor: "rgba(245,240,232,0.7)", valueColor: "#C9A84C" },
+  overdue: { label: "OVERDUE", background: "#1a1a1a", labelColor: "#C2185B", valueColor: "#C9A84C", italic: true },
 };
 
-const getReportMoment = (report) => report.delivery_date && report.delivery_date !== "Not recorded." ? moment(report.delivery_date) : null;
-const isFulfilled = (report) => String(report.payment_status || "").toUpperCase() === "FULFILLED" || String(report.payment_status || "").toUpperCase() === "COMPLETED";
-const isPending = (report) => report.delivery_date === "Not recorded." || String(report.payment_status || "").toUpperCase() === "PENDING";
+const parseReportDate = (value) => {
+  if (!value || value === "Not recorded.") return null;
+  const parsed = moment(value, [moment.ISO_8601, "D MMMM YYYY", "D MMM YYYY", "Do MMMM", "Do MMM", "D MMMM", "D MMM", "MMMM D YYYY", "MMM D YYYY", "MMMM D", "MMM D"], true);
+  if (parsed.isValid()) {
+    if (!/\d{4}/.test(String(value))) parsed.year(moment().year());
+    return parsed;
+  }
+  const fallback = moment(new Date(value));
+  return fallback.isValid() ? fallback : null;
+};
+
+const mapNoteToReport = (note) => {
+  const rawData = getReportDataFromTags(note.tags || []) || {};
+  const normalizedStatus = normalizePaymentStatus(rawData.payment_status, rawData.payment_method);
+
+  return {
+    ...getIntelligenceReportViewModel(note),
+    id: note.id,
+    client_name: note.client_name || rawData.client_name || "Not recorded.",
+    delivery_date: rawData.delivery_date || "Not recorded.",
+    payment_status: normalizedStatus,
+    order_list: rawData.order_list || "Not recorded.",
+    order_total: rawData.order_total || "Not confirmed.",
+    delivery_address: rawData.delivery_address || "Not recorded.",
+    next_action: rawData.next_action || "Not recorded.",
+  };
+};
+
+const getReportMoment = (report) => parseReportDate(report.delivery_date);
+const isFulfilled = (report) => String(report.payment_status || "").toUpperCase() === "PAID";
+const isPending = (report) => !getReportMoment(report) || report.delivery_date === "Not recorded." || String(report.payment_status || "").toUpperCase() === "PENDING";
 const isUrgent = (report) => {
   const reportMoment = getReportMoment(report);
   if (!reportMoment) return false;
@@ -88,34 +116,6 @@ const getFilterMatch = (order, filter) => {
   return true;
 };
 
-const parseNaturalDate = (value) => {
-  if (!value || value === "Not recorded.") return null;
-  const formats = [
-    moment.ISO_8601,
-    "D MMMM YYYY",
-    "D MMM YYYY",
-    "Do MMMM",
-    "Do MMM",
-    "D MMMM",
-    "D MMM",
-    "MMMM D YYYY",
-    "MMM D YYYY",
-    "MMMM D",
-    "MMM D"
-  ];
-
-  for (const format of formats) {
-    const parsed = moment(value, format, true);
-    if (parsed.isValid()) {
-      if (!/\d{4}/.test(value)) parsed.year(moment().year());
-      return parsed.toISOString();
-    }
-  }
-
-  const parsed = moment(new Date(value));
-  return parsed.isValid() ? parsed.toISOString() : null;
-};
-
 const sortByDateAsc = (items) => [...items].sort((a, b) => {
   const aMoment = getReportMoment(a);
   const bMoment = getReportMoment(b);
@@ -131,8 +131,8 @@ export default function Orders() {
   const [selectedDayKey, setSelectedDayKey] = useState(moment().format("YYYY-MM-DD"));
 
   const load = async () => {
-    const noteRecords = await base44.entities.CustomerNote.list("-created_date", 300);
-    setReports((noteRecords || []).filter(isIntelligenceReportNote).map(getIntelligenceReportViewModel));
+    const noteRecords = await base44.entities.CustomerNote.list("-updated_date", 300);
+    setReports((noteRecords || []).filter(isIntelligenceReportNote).map(mapNoteToReport));
     setLoading(false);
   };
 
@@ -142,7 +142,7 @@ export default function Orders() {
     const unsubscribeNotes = base44.entities.CustomerNote.subscribe((event) => {
       if (event.type === "create") {
         if (!isIntelligenceReportNote(event.data)) return;
-        setReports((prev) => [getIntelligenceReportViewModel(event.data), ...prev.filter((report) => report.id !== event.data.id)]);
+        setReports((prev) => [mapNoteToReport(event.data), ...prev.filter((report) => report.id !== event.data.id)]);
         return;
       }
       if (event.type === "update") {
@@ -150,7 +150,12 @@ export default function Orders() {
           setReports((prev) => prev.filter((report) => report.id !== event.id));
           return;
         }
-        setReports((prev) => prev.map((report) => (report.id === event.id ? getIntelligenceReportViewModel(event.data) : report)));
+        const nextReport = mapNoteToReport(event.data);
+        setReports((prev) => {
+          const existing = prev.some((report) => report.id === event.id);
+          if (!existing) return [nextReport, ...prev];
+          return prev.map((report) => (report.id === event.id ? nextReport : report));
+        });
         return;
       }
       if (event.type === "delete") {
@@ -162,6 +167,13 @@ export default function Orders() {
   }, []);
 
   const filteredOrders = useMemo(() => sortByDateAsc(reports.filter((report) => getFilterMatch(report, statusFilter))), [reports, statusFilter]);
+  const allOrdersByDay = useMemo(() => reports.reduce((acc, report) => {
+    const key = getReportMoment(report)?.format("YYYY-MM-DD");
+    if (!key) return acc;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(report);
+    return acc;
+  }, {}), [reports]);
 
   const statusCounts = useMemo(() => ({
     upcoming: reports.filter(isUpcoming).length,
@@ -177,10 +189,10 @@ export default function Orders() {
     const map = {};
     weekDays.forEach((day) => {
       const key = day.format("YYYY-MM-DD");
-      map[key] = filteredOrders.filter((order) => getReportMoment(order)?.format("YYYY-MM-DD") === key);
+      map[key] = allOrdersByDay[key] || [];
     });
     return map;
-  }, [filteredOrders, weekDays]);
+  }, [allOrdersByDay, weekDays]);
 
   const monthDays = useMemo(() => {
     const start = monthCursor.clone().startOf("month").startOf("week");
@@ -189,17 +201,7 @@ export default function Orders() {
     return Array.from({ length: count }, (_, index) => start.clone().add(index, "days"));
   }, [monthCursor]);
 
-  const ordersByDay = useMemo(() => {
-    return filteredOrders.reduce((acc, order) => {
-      const key = getReportMoment(order)?.format("YYYY-MM-DD");
-      if (!key) return acc;
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(order);
-      return acc;
-    }, {});
-  }, [filteredOrders]);
-
-  const selectedDayOrders = useMemo(() => sortByDateAsc(ordersByDay[selectedDayKey] || []), [ordersByDay, selectedDayKey]);
+  const selectedDayOrders = useMemo(() => sortByDateAsc(allOrdersByDay[selectedDayKey] || []), [allOrdersByDay, selectedDayKey]);
   const todaysOrders = useMemo(() => sortByDateAsc(reports.filter((report) => {
     const reportMoment = getReportMoment(report);
     return reportMoment && reportMoment.isSame(moment(), "day");
@@ -227,10 +229,10 @@ export default function Orders() {
             style={{
               textAlign: "left",
               background: config.background,
-              border: statusFilter === key ? "1px solid rgba(238,227,180,0.9)" : "1px solid rgba(255,255,255,0.08)",
+              border: statusFilter === key ? "1px solid rgba(201,168,76,0.6)" : "1px solid rgba(201,168,76,0.25)",
               padding: "18px",
               cursor: "pointer",
-              boxShadow: statusFilter === key ? "0 0 0 1px rgba(238,227,180,0.35)" : "none",
+              boxShadow: statusFilter === key ? "0 0 20px rgba(201,168,76,0.1)" : "none",
             }}
           >
             <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: config.labelColor, fontWeight: config.strong ? 700 : 500, fontStyle: config.italic ? "italic" : "normal" }}>{config.label}</p>
@@ -240,7 +242,7 @@ export default function Orders() {
       </div>
 
       <div style={{ marginBottom: "26px" }}>
-        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#d29c6c" }}>Upcoming Orders</p>
+        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#d29c6c" }}>Weekly View</p>
         <div style={{ width: "72px", height: "2px", background: "rgba(201,168,76,0.55)", marginTop: "10px" }} />
       </div>
 
@@ -294,7 +296,7 @@ export default function Orders() {
         ))}
         {monthDays.map((day) => {
           const key = day.format("YYYY-MM-DD");
-          const dayOrders = ordersByDay[key] || [];
+          const dayOrders = allOrdersByDay[key] || [];
           const isCurrentMonth = day.isSame(monthCursor, "month");
           const isPastDay = day.isBefore(moment(), "day");
           const isToday = day.isSame(moment(), "day");
@@ -311,7 +313,9 @@ export default function Orders() {
                   </span>
                 ))}
                 {dayOrders.length > 2 && (
-                  <span style={{ width: "8px", height: "8px", borderRadius: "9999px", background: "#d29c6c", display: "inline-block" }} />
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: "10px", color: "#C9A84C", display: "block", lineHeight: 1.3 }}>
+                    +{dayOrders.length - 2} more
+                  </span>
                 )}
               </div>
             </button>
