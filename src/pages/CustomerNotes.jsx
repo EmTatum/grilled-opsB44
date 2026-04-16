@@ -11,6 +11,7 @@ import DuplicateNotesBanner from "../components/notes/DuplicateNotesBanner";
 import IntelligenceReportCard from "../components/notes/IntelligenceReportCard";
 import IntelligenceReportModal from "../components/notes/IntelligenceReportModal";
 import { getDeduplicatedNotes, getGeneratedDuplicateSets, getIntelligenceReportViewModel, isIntelligenceReportNote, normalizePaymentStatus } from "../utils/customerNotes";
+import { syncOrderFromReport } from "../utils/intelligenceOrderSync";
 
 const noteTypes = ["Credit on Account", "Debt on Account", "Needs Attention", "Client Retention", "General"];
 
@@ -161,6 +162,7 @@ export default function CustomerNotes() {
       tags: nextTags,
       total_spend: Number(String(reportData.order_total || "").replace(/[^\d.]/g, "")) || 0,
     });
+    await syncOrderFromReport(updatedReport, reportData.id);
   };
 
   const handleDelete = async () => { await base44.entities.CustomerNote.delete(deleteId); setDeleteId(null); load(); };

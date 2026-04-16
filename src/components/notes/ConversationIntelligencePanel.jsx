@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { syncOrderFromReport } from "../../utils/intelligenceOrderSync";
 
 const labelStyle = {
   fontFamily: "'Raleway', sans-serif",
@@ -227,6 +228,7 @@ Conversation:\n${sanitizedConversation}`,
     };
 
     const savedRecord = await base44.entities.CustomerNote.create(payload);
+    await syncOrderFromReport(result, savedRecord.id);
     setSaving(false);
     setSavedIndicator(true);
     setConversation("");

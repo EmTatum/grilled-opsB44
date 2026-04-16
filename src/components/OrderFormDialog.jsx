@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-const emptyOrder = { client_name: "", selected_product_id: "", order_details: "", quantity: 1, delivery_address: "", special_instructions: "", priority_level: "Medium", order_value: "", time_slot: "", payment_method: "Cash", order_date: "", status: "Pending", planner_status: "Pending" };
+const emptyOrder = { client_name: "", selected_product_id: "", order_details: "", quantity: 1, delivery_address: "", special_instructions: "", priority_level: "Medium", order_value: "", time_slot: "", payment_method: "Cash", payment_status: "PENDING", order_date: "", status: "Pending", planner_status: "Pending" };
 const F = { fontFamily: "'Raleway', sans-serif" };
 const inputStyle = { ...F, width: "100%", background: "#1c191a", border: "1px solid rgba(210,156,108,0.2)", borderRadius: "2px", padding: "10px 14px", color: "#F5F0E8", fontSize: "14px", outline: "none", marginTop: "8px", transition: "border-color 0.2s, box-shadow 0.2s" };
 const labelStyle = { ...F, display: "block", fontSize: "10px", fontWeight: 500, color: "rgba(201,168,76,0.6)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "0" };
@@ -30,9 +30,11 @@ export default function OrderFormDialog({ open, onOpenChange, order, onSave }) {
       order_value: order.order_value || "",
       time_slot: order.time_slot || "",
       payment_method: order.payment_method || "Cash",
+      payment_status: order.payment_status || "PENDING",
       order_date: order.order_date ? order.order_date.slice(0, 16) : "",
       status: order.status || "Pending",
-      planner_status: order.planner_status || "Pending"
+      planner_status: order.planner_status || "Pending",
+      source_report_id: order.source_report_id || ""
     } : emptyOrder);
   }, [order, open]);
 
@@ -119,11 +121,16 @@ export default function OrderFormDialog({ open, onOpenChange, order, onSave }) {
             <div><label style={labelStyle}>Time Slot</label><input value={form.time_slot} onChange={e => setForm({ ...form, time_slot: e.target.value })} style={inputStyle} placeholder="e.g. 3:00 PM – 5:00 PM" onFocus={onFocus} onBlur={onBlur} /></div>
           </div>
           <div><label style={labelStyle}>Special Instructions / Notes</label><textarea value={form.special_instructions} onChange={e => setForm({ ...form, special_instructions: e.target.value })} style={{ ...inputStyle, minHeight: "72px", resize: "vertical" }} placeholder="Add delivery notes, gate codes, or handling details" onFocus={onFocus} onBlur={onBlur} /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
             <div><label style={labelStyle}>Order Value (R)</label><input type="number" min="0" step="0.01" value={form.order_value} onChange={e => setForm({ ...form, order_value: e.target.value })} style={inputStyle} placeholder="0.00" onFocus={onFocus} onBlur={onBlur} /></div>
             <div><label style={labelStyle}>Payment Method</label>
               <select value={form.payment_method} onChange={e => setForm({ ...form, payment_method: e.target.value })} style={{ ...inputStyle, cursor: "pointer" }} onFocus={onFocus} onBlur={onBlur}>
                 {["Cash", "Card", "Bank Transfer", "Credit on Account", "Other"].map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div><label style={labelStyle}>Payment Status</label>
+              <select value={form.payment_status} onChange={e => setForm({ ...form, payment_status: e.target.value })} style={{ ...inputStyle, cursor: "pointer" }} onFocus={onFocus} onBlur={onBlur}>
+                {["PAID", "CASH", "PENDING"].map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
           </div>

@@ -1,31 +1,34 @@
-import { useState, useEffect, Fragment, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Pencil, Trash2, ChevronDown, CalendarDays } from "lucide-react";
-import OrderLifecycle from "../components/OrderLifecycle";
-import { Link } from "react-router-dom";
-import PageHeader from "../components/PageHeader";
-import StatusBadge from "../components/StatusBadge";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import moment from "moment";
 import OrderFormDialog from "../components/OrderFormDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
-import BulkActionsBar from "../components/orders/BulkActionsBar";
-import OrdersCalendarToolbar from "../components/orders/OrdersCalendarToolbar";
-import OrdersCalendarGrid from "../components/orders/OrdersCalendarGrid";
-import OrdersStatusBoard from "../components/orders/OrdersStatusBoard";
-import { PlannerSectionTitle } from "../components/orders/OrdersPlannerSections";
-import { ORDER_STATUSES, getPlannerStatus, statusToLegacyStatus } from "../components/orders/orderPlannerConfig";
-import { exportOrdersPdf } from "../utils/exportOrdersPdf";
-import moment from "moment";
+import StatusBadge from "../components/StatusBadge";
+import { syncReportFromOrder } from "../utils/intelligenceOrderSync";
 
 const GoldBtn = ({ onClick, children }) => (
-  <button onClick={onClick} style={{
-    background: "transparent", border: "1px solid var(--color-gold)", color: "var(--color-gold)",
-    fontFamily: "var(--font-body)", fontSize: "12px", fontWeight: 500,
-    letterSpacing: "0.12em", textTransform: "uppercase", padding: "10px 24px",
-    borderRadius: "2px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", transition: "all 0.2s ease",
-  }}
-    onMouseEnter={e => { e.currentTarget.style.background = "#C9A84C"; e.currentTarget.style.color = "#0a0a0a"; e.currentTarget.style.boxShadow = "0 0 20px rgba(201,168,76,0.3)"; }}
-    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#C9A84C"; e.currentTarget.style.boxShadow = "none"; }}
-  >{children}</button>
+  <button
+    onClick={onClick}
+    style={{
+      background: "transparent",
+      border: "1px solid var(--color-gold)",
+      color: "var(--color-gold)",
+      fontFamily: "var(--font-body)",
+      fontSize: "12px",
+      fontWeight: 500,
+      letterSpacing: "0.12em",
+      textTransform: "uppercase",
+      padding: "10px 18px",
+      borderRadius: "2px",
+      cursor: "pointer",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "8px"
+    }}
+  >
+    {children}
+  </button>
 );
 
 const Spinner = () => (
@@ -35,463 +38,400 @@ const Spinner = () => (
   </div>
 );
 
+const inputBase = {
+  background: "#1c191a",
+  border: "1px solid rgba(210,156,108,0.2)",
+  borderRadius: "2px",
+  color: "#F5F0E8",
+  fontFamily: "var(--font-body)",
+  fontSize: "14px",
+  outline: "none",
+};
+
+const paymentBadgeMap = {
+  PAID: { border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.05)", color: "rgba(245,240,232,0.7)" },
+  CASH: { border: "1px solid rgba(201,168,76,0.5)", background: "rgba(201,168,76,0.1)", color: "#C9A84C" },
+  PENDING: { border: "1px solid rgba(194,24,91,0.4)", background: "rgba(194,24,91,0.08)", color: "#C2185B" },
+};
+
+const statusBlockConfig = {
+  upcoming: { label: "UPCOMING", accent: "#15434a" },
+  pending: { label: "PENDING", accent: "#d29c6c" },
+  urgent: { label: "URGENT", accent: "#8d201c", strong: true },
+  fulfilled: { label: "FULFILLED", accent: "#322d2d" },
+  overdue: { label: "OVERDUE", accent: "#8d201c", italic: true },
+};
+
+const getOrderMoment = (order) => moment(order.order_date);
+const isFulfilled = (order) => order.status === "Fulfilled" || order.status === "Complete" || order.planner_status === "Complete";
+const isPending = (order) => order.status === "Pending" || !order.order_date;
+const isUrgent = (order) => {
+  if (isFulfilled(order)) return false;
+  if (order.priority_level === "High") return true;
+  const orderMoment = getOrderMoment(order);
+  return orderMoment.isValid() && orderMoment.isSameOrAfter(moment()) && orderMoment.diff(moment(), "hours", true) <= 24;
+};
+const isUpcoming = (order) => {
+  if (isFulfilled(order) || isPending(order)) return false;
+  const orderMoment = getOrderMoment(order);
+  return orderMoment.isValid() && orderMoment.isAfter(moment(), "minute");
+};
+const isOverdue = (order) => {
+  if (isFulfilled(order)) return false;
+  const orderMoment = getOrderMoment(order);
+  return orderMoment.isValid() && orderMoment.isBefore(moment(), "minute");
+};
+
+const getFilterMatch = (order, filter) => {
+  if (filter === "all") return true;
+  if (filter === "upcoming") return isUpcoming(order);
+  if (filter === "pending") return isPending(order);
+  if (filter === "urgent") return isUrgent(order);
+  if (filter === "fulfilled") return isFulfilled(order);
+  if (filter === "overdue") return isOverdue(order);
+  return true;
+};
+
+const parseNaturalDate = (value) => {
+  if (!value || value === "Not recorded.") return null;
+  const formats = [
+    moment.ISO_8601,
+    "D MMMM YYYY",
+    "D MMM YYYY",
+    "Do MMMM",
+    "Do MMM",
+    "D MMMM",
+    "D MMM",
+    "MMMM D YYYY",
+    "MMM D YYYY",
+    "MMMM D",
+    "MMM D"
+  ];
+
+  for (const format of formats) {
+    const parsed = moment(value, format, true);
+    if (parsed.isValid()) {
+      if (!/\d{4}/.test(value)) parsed.year(moment().year());
+      return parsed.toISOString();
+    }
+  }
+
+  const parsed = moment(new Date(value));
+  return parsed.isValid() ? parsed.toISOString() : null;
+};
+
+const sortByDateAsc = (items) => [...items].sort((a, b) => getOrderMoment(a).valueOf() - getOrderMoment(b).valueOf());
+
 export default function Orders() {
   const [orders, setOrders] = useState([]);
+  const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
-  const [expandedIds, setExpandedIds] = useState(new Set());
-  const [archivedFulfilled, setArchivedFulfilled] = useState([]);
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [pendingBulkStatus, setPendingBulkStatus] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [cursorDate, setCursorDate] = useState(moment().startOf("month"));
-  const [draggedOrder, setDraggedOrder] = useState(null);
-  const urlParams = new URLSearchParams(window.location.search);
-  const highlightedOrderId = urlParams.get("orderId");
-  const toggleExpanded = (id) => setExpandedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [weekCursor, setWeekCursor] = useState(moment().startOf("week"));
+  const [monthCursor, setMonthCursor] = useState(moment().startOf("month"));
+  const [selectedDayKey, setSelectedDayKey] = useState(moment().format("YYYY-MM-DD"));
 
   const load = async () => {
-    const me = await base44.auth.me();
-    setCurrentUser(me);
-    const all = await base44.entities.Order.list("-order_date", 200);
-
-    const pastUnconfirmed = all.filter((o) =>
-      (o.status === "Pending" || o.status === "Confirmed") && moment(o.order_date).isBefore(moment(), "day")
-    );
-    await Promise.all(pastUnconfirmed.map((o) => base44.entities.Order.update(o.id, { status: "Cancelled" })));
-
-    const refreshed = pastUnconfirmed.length > 0
-      ? await base44.entities.Order.list("-order_date", 200)
-      : all;
-
-    const cancelled = refreshed.filter((o) => o.status === "Cancelled");
-    await Promise.all(cancelled.map((o) => base44.entities.Order.delete(o.id)));
-
-    const pastFulfilled = refreshed.filter((o) => o.status === "Fulfilled" && moment(o.order_date).isBefore(moment(), "day"));
-    await Promise.all(pastFulfilled.map((o) => base44.entities.Order.delete(o.id)));
-
-    const active = refreshed.filter((o) => o.status !== "Cancelled" && !(o.status === "Fulfilled" && moment(o.order_date).isBefore(moment(), "day")));
-    setOrders(active);
-    setSelectedIds((prev) => new Set([...prev].filter((id) => active.some((order) => order.id === id))));
-    setArchivedFulfilled(pastFulfilled);
+    const [orderRecords, noteRecords] = await Promise.all([
+      base44.entities.Order.list("-order_date", 300),
+      base44.entities.CustomerNote.list("-created_date", 200),
+    ]);
+    setOrders(orderRecords || []);
+    setNotes(noteRecords || []);
     setLoading(false);
   };
 
-  const isUrgent = (order) => {
-    if (order.status !== "Pending") return false;
-    const slot = order.time_slot;
-    // Try to parse time_slot as a datetime-aware moment using order_date as base date
-    const base = moment(order.order_date);
-    let slotMoment = null;
-    if (slot) {
-      // e.g. "3:00 PM" — attach to the order date
-      const parsed = moment(`${base.format("YYYY-MM-DD")} ${slot}`, "YYYY-MM-DD h:mm A", true);
-      if (parsed.isValid()) slotMoment = parsed;
-    }
-    const reference = slotMoment || base;
-    return reference.diff(moment(), "hours") <= 24 && reference.isAfter(moment());
-  };
+  useEffect(() => { load(); }, []);
 
-  const pendingCount = useMemo(() => orders.filter(o => getPlannerStatus(o) === "Pending" || getPlannerStatus(o) === "Processing").length, [orders]);
-  const urgentCount = useMemo(() => orders.filter(o => isUrgent(o)).length, [orders]);
-
-  const upcomingStart = useMemo(() => moment().startOf("day"), []);
-  const upcomingEnd = useMemo(() => moment().startOf("day").add(2, "days").endOf("day"), []);
-
-  const upcomingOrders = useMemo(() => {
-    return orders.filter((order) => {
-      const orderMoment = moment(order.order_date);
-      return orderMoment.isSameOrAfter(upcomingStart) && orderMoment.isSameOrBefore(upcomingEnd);
+  useEffect(() => {
+    const unsubscribeOrders = base44.entities.Order.subscribe((event) => {
+      if (event.type === "create") {
+        setOrders((prev) => [event.data, ...prev.filter((order) => order.id !== event.data.id)]);
+        return;
+      }
+      if (event.type === "update") {
+        setOrders((prev) => prev.map((order) => (order.id === event.id ? event.data : order)));
+        setEditOrder((prev) => (prev?.id === event.id ? event.data : prev));
+        return;
+      }
+      if (event.type === "delete") {
+        setOrders((prev) => prev.filter((order) => order.id !== event.id));
+        setEditOrder((prev) => (prev?.id === event.id ? null : prev));
+      }
     });
-  }, [orders, upcomingStart, upcomingEnd]);
 
-  const pastOrders = useMemo(() => {
-    return orders.filter((order) => moment(order.order_date).isBefore(upcomingStart));
-  }, [orders, upcomingStart]);
-
-  const upcomingGroups = useMemo(() => {
-    const sorted = [...upcomingOrders].sort((a, b) => moment(a.order_date).diff(moment(b.order_date)));
-    const groups = {};
-    sorted.forEach((order) => {
-      const day = moment(order.order_date).format("YYYY-MM-DD");
-      if (!groups[day]) groups[day] = [];
-      groups[day].push(order);
+    const unsubscribeNotes = base44.entities.CustomerNote.subscribe((event) => {
+      if (event.type === "create") {
+        setNotes((prev) => [event.data, ...prev.filter((note) => note.id !== event.data.id)]);
+        return;
+      }
+      if (event.type === "update") {
+        setNotes((prev) => prev.map((note) => (note.id === event.id ? event.data : note)));
+        return;
+      }
+      if (event.type === "delete") {
+        setNotes((prev) => prev.filter((note) => note.id !== event.id));
+      }
     });
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [upcomingOrders]);
 
-  const plannerDays = useMemo(() => {
-    const start = cursorDate.clone().startOf("month").startOf("week");
-    const end = cursorDate.clone().endOf("month").endOf("week");
+    return () => {
+      unsubscribeOrders();
+      unsubscribeNotes();
+    };
+  }, []);
+
+  useEffect(() => {
+    const intelligenceNotes = notes.filter((note) => (note.tags || []).some((tag) => String(tag).startsWith("report-data:")));
+
+    intelligenceNotes.forEach(async (note) => {
+      const reportTag = (note.tags || []).find((tag) => String(tag).startsWith("report-data:"));
+      if (!reportTag) return;
+
+      const reportData = JSON.parse(reportTag.replace("report-data:", ""));
+      const existingOrder = orders.find((order) => order.source_report_id === note.id);
+      const resolvedDate = parseNaturalDate(reportData.delivery_date);
+      if (!resolvedDate) return;
+
+      const payload = {
+        client_name: reportData.client_name || note.client_name || "Not recorded.",
+        order_details: reportData.order_list || "Not recorded.",
+        delivery_address: reportData.delivery_address || "Not recorded.",
+        payment_method: reportData.payment_method || "Other",
+        payment_status: reportData.payment_status || "PENDING",
+        order_value: Number(String(reportData.order_total || "").replace(/[^\d.]/g, "")) || 0,
+        order_date: resolvedDate,
+        status: reportData.payment_status === "PAID" || reportData.payment_status === "CASH" ? "Confirmed" : "Pending",
+        planner_status: reportData.payment_status === "PAID" || reportData.payment_status === "CASH" ? "Processing" : "Pending",
+        source_report_id: note.id,
+        time_slot: reportData.delivery_date || "",
+        special_instructions: reportData.next_action || "",
+        priority_level: "Medium",
+      };
+
+      if (!existingOrder) {
+        await base44.entities.Order.create(payload);
+        return;
+      }
+
+      const shouldUpdate = [
+        existingOrder.client_name !== payload.client_name,
+        existingOrder.order_details !== payload.order_details,
+        existingOrder.delivery_address !== payload.delivery_address,
+        existingOrder.payment_method !== payload.payment_method,
+        existingOrder.payment_status !== payload.payment_status,
+        Number(existingOrder.order_value || 0) !== Number(payload.order_value || 0),
+        existingOrder.order_date !== payload.order_date,
+        existingOrder.time_slot !== payload.time_slot,
+        existingOrder.special_instructions !== payload.special_instructions,
+      ].some(Boolean);
+
+      if (shouldUpdate) {
+        await base44.entities.Order.update(existingOrder.id, payload);
+      }
+    });
+  }, [notes]);
+
+  const filteredOrders = useMemo(() => sortByDateAsc(orders.filter((order) => getFilterMatch(order, statusFilter))), [orders, statusFilter]);
+
+  const statusCounts = useMemo(() => ({
+    upcoming: orders.filter(isUpcoming).length,
+    pending: orders.filter(isPending).length,
+    urgent: orders.filter(isUrgent).length,
+    fulfilled: orders.filter(isFulfilled).length,
+    overdue: orders.filter(isOverdue).length,
+  }), [orders]);
+
+  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, index) => weekCursor.clone().add(index, "days")), [weekCursor]);
+
+  const weeklyOrdersByDay = useMemo(() => {
+    const map = {};
+    weekDays.forEach((day) => {
+      const key = day.format("YYYY-MM-DD");
+      map[key] = filteredOrders.filter((order) => getOrderMoment(order).format("YYYY-MM-DD") === key);
+    });
+    return map;
+  }, [filteredOrders, weekDays]);
+
+  const monthDays = useMemo(() => {
+    const start = monthCursor.clone().startOf("month").startOf("week");
+    const end = monthCursor.clone().endOf("month").endOf("week");
     const count = end.diff(start, "days") + 1;
     return Array.from({ length: count }, (_, index) => start.clone().add(index, "days"));
-  }, [cursorDate]);
+  }, [monthCursor]);
 
-  const plannerOrdersByDay = useMemo(() => {
-    return orders.reduce((acc, order) => {
-      const key = moment(order.order_date).format("YYYY-MM-DD");
+  const ordersByDay = useMemo(() => {
+    return filteredOrders.reduce((acc, order) => {
+      const key = getOrderMoment(order).format("YYYY-MM-DD");
       if (!acc[key]) acc[key] = [];
       acc[key].push(order);
-      acc[key].sort((a, b) => moment(a.order_date).valueOf() - moment(b.order_date).valueOf());
       return acc;
     }, {});
-  }, [orders]);
+  }, [filteredOrders]);
 
-  const plannerLabel = cursorDate.format("MMMM YYYY");
-
-  useEffect(() => { load(); }, []);
+  const selectedDayOrders = useMemo(() => sortByDateAsc(ordersByDay[selectedDayKey] || []), [ordersByDay, selectedDayKey]);
 
   const handleSave = async (data) => {
     const payload = {
       ...data,
-      status: data.status || statusToLegacyStatus[data.planner_status] || "Pending",
-      planner_status: data.planner_status || getPlannerStatus(data),
+      payment_status: data.payment_status || "PENDING",
     };
-    if (editOrder) await base44.entities.Order.update(editOrder.id, payload);
-    else await base44.entities.Order.create(payload);
-    setEditOrder(null); load();
-  };
-  const handleDelete = async () => { await base44.entities.Order.delete(deleteId); setDeleteId(null); load(); };
-  const toggleSelected = (id) => setSelectedIds((prev) => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  });
-  const toggleSelectAll = () => {
-    if (selectedIds.size === orders.length) {
-      setSelectedIds(new Set());
-      return;
+
+    if (editOrder) {
+      const updated = await base44.entities.Order.update(editOrder.id, payload);
+      await syncReportFromOrder(updated);
+    } else {
+      await base44.entities.Order.create(payload);
     }
-    setSelectedIds(new Set(orders.map((order) => order.id)));
-  };
-  const selectedOrders = orders.filter((order) => selectedIds.has(order.id));
-  const handleBulkUpdate = async () => {
-    await Promise.all(selectedOrders.map((order) => base44.entities.Order.update(order.id, { status: pendingBulkStatus })));
-    setPendingBulkStatus(null);
-    setSelectedIds(new Set());
-    load();
-  };
-  const handleExportSelected = () => exportOrdersPdf(selectedOrders);
 
-  const handleDropOrder = async (day) => {
-    if (!draggedOrder) return;
-    const original = moment(draggedOrder.order_date);
-    const nextDate = day.clone().hour(original.hour()).minute(original.minute()).second(0).millisecond(0).toISOString();
-    await base44.entities.Order.update(draggedOrder.id, { order_date: nextDate });
-    setDraggedOrder(null);
-    load();
+    setEditOrder(null);
   };
 
-  const handleMoveStatus = async (order, plannerStatus) => {
-    await base44.entities.Order.update(order.id, {
-      planner_status: plannerStatus,
-      status: statusToLegacyStatus[plannerStatus] || order.status,
-    });
-    load();
+  const handleDelete = async () => {
+    const order = orders.find((item) => item.id === deleteId);
+    if (order?.source_report_id) {
+      await base44.entities.CustomerNote.update(order.source_report_id, {
+        tags: (notes.find((note) => note.id === order.source_report_id)?.tags || []).filter((tag) => !String(tag).startsWith("report-data:") && !String(tag).startsWith("payment-status:")),
+      });
+    }
+    await base44.entities.Order.delete(deleteId);
+    setDeleteId(null);
   };
-
-  const handleDropStatus = async (plannerStatus) => {
-    if (!draggedOrder) return;
-    await handleMoveStatus(draggedOrder, plannerStatus);
-    setDraggedOrder(null);
-  };
-
-  useEffect(() => {
-    if (!highlightedOrderId || orders.length === 0) return;
-    setExpandedIds(new Set([highlightedOrderId]));
-    requestAnimationFrame(() => {
-      const target = document.getElementById(`order-row-${highlightedOrderId}`);
-      target?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-  }, [highlightedOrderId, orders]);
 
   if (loading) return <Spinner />;
 
   return (
     <div>
-      <PageHeader title="Orders" subtitle="Today and the next two days, with past orders logged below">
-        <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <div style={{ padding: "6px 14px", border: "1px solid rgba(201,168,76,0.35)", background: "rgba(201,168,76,0.07)" }}>
-              <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Upcoming</span>
-              <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "#C9A84C", lineHeight: 1 }}>{upcomingOrders.length}</span>
-            </div>
-            <div style={{ padding: "6px 14px", border: "1px solid rgba(201,168,76,0.35)", background: "rgba(201,168,76,0.07)" }}>
-              <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Pending</span>
-              <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "#C9A84C", lineHeight: 1 }}>{pendingCount}</span>
-            </div>
-            <div style={{ padding: "6px 14px", border: "1px solid rgba(245,240,232,0.18)", background: "rgba(255,255,255,0.04)" }}>
-              <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(245,240,232,0.55)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Past Log</span>
-              <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "rgba(245,240,232,0.7)", lineHeight: 1 }}>{pastOrders.length}</span>
-            </div>
-            <div style={{ padding: "6px 14px", border: "1px solid rgba(201,168,76,0.35)", background: "rgba(201,168,76,0.07)" }}>
-              <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(201,168,76,0.6)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Board Stages</span>
-              <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "#C9A84C", lineHeight: 1 }}>{ORDER_STATUSES.length}</span>
-            </div>
-            {urgentCount > 0 && (
-              <div style={{ padding: "6px 14px", border: "1px solid rgba(194,24,91,0.5)", background: "rgba(194,24,91,0.08)" }}>
-                <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 600, color: "rgba(194,24,91,0.7)", letterSpacing: "0.18em", textTransform: "uppercase", display: "block", marginBottom: "2px" }}>Urgent</span>
-                <span style={{ fontFamily: "'Cinzel', serif", fontSize: "20px", fontWeight: 600, color: "#C2185B", lineHeight: 1 }}>{urgentCount}</span>
-              </div>
-            )}
+      <div style={{ paddingBottom: "24px", borderBottom: "1px solid rgba(210,156,108,0.25)", marginBottom: "28px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+          <div>
+            <h1 style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "42px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#d29c6c" }}>Orders</h1>
+            <p style={{ margin: "10px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "#eee3b4", fontWeight: 300 }}>All orders logged onto their date for clear and easy review of timelines.</p>
+            <div style={{ width: "60px", height: "2px", background: "#d29c6c", marginTop: "16px" }} />
           </div>
-          <Link to="/daily-dispatch-manifest" style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.3)", color: "#C9A84C", fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", padding: "10px 18px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px" }}>
-            <CalendarDays size={12} /> Dispatch Sheet
-          </Link>
           <GoldBtn onClick={() => { setEditOrder(null); setFormOpen(true); }}><Plus size={12} /> New Order</GoldBtn>
         </div>
-      </PageHeader>
+      </div>
 
-      {/* ── Upcoming Orders ── */}
-      <div style={{ marginBottom: "40px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-          <div style={{ height: "1px", flex: 1, background: "rgba(201,168,76,0.15)" }} />
-          <span style={{ fontFamily: "'Cinzel', serif", fontSize: "11px", letterSpacing: "0.3em", color: "rgba(201,168,76,0.45)", textTransform: "uppercase" }}>Upcoming Orders</span>
-          <div style={{ height: "1px", flex: 1, background: "rgba(201,168,76,0.15)" }} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px", marginBottom: "30px" }}>
+        {Object.entries(statusBlockConfig).map(([key, config]) => (
+          <button
+            key={key}
+            onClick={() => setStatusFilter((prev) => prev === key ? "all" : key)}
+            style={{
+              textAlign: "left",
+              background: statusFilter === key ? "rgba(201,168,76,0.08)" : "#1a1a1a",
+              border: "1px solid rgba(201,168,76,0.18)",
+              borderLeft: `4px solid ${config.accent}`,
+              padding: "18px",
+              cursor: "pointer",
+            }}
+          >
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(238,227,180,0.72)", fontWeight: config.strong ? 700 : 500, fontStyle: config.italic ? "italic" : "normal" }}>{config.label}</p>
+            <p style={{ margin: "10px 0 0", fontFamily: "var(--font-heading)", fontSize: "34px", color: "#d29c6c", fontWeight: 700 }}>{statusCounts[key]}</p>
+          </button>
+        ))}
+      </div>
+
+      <div style={{ marginBottom: "26px" }}>
+        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#d29c6c" }}>Upcoming Orders</p>
+        <div style={{ width: "72px", height: "2px", background: "rgba(201,168,76,0.55)", marginTop: "10px" }} />
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap", marginBottom: "14px" }}>
+        <GoldBtn onClick={() => setWeekCursor((prev) => prev.clone().subtract(1, "week"))}><ChevronLeft size={14} /> Previous Week</GoldBtn>
+        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(238,227,180,0.72)" }}>{weekCursor.format("D MMM YYYY")} — {weekCursor.clone().endOf("week").format("D MMM YYYY")}</p>
+        <GoldBtn onClick={() => setWeekCursor((prev) => prev.clone().add(1, "week"))}>Next Week <ChevronRight size={14} /></GoldBtn>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "12px", marginBottom: "40px" }}>
+        {weekDays.map((day) => {
+          const dayOrders = weeklyOrdersByDay[day.format("YYYY-MM-DD")] || [];
+          return (
+            <div key={day.format()} style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.18)", minHeight: "260px" }}>
+              <div style={{ padding: "14px", borderBottom: "1px solid rgba(201,168,76,0.18)", background: "#0a0a0a" }}>
+                <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#d29c6c" }}>{day.format("ddd")}</p>
+                <p style={{ margin: "10px 0 0", fontFamily: "var(--font-heading)", fontSize: "30px", color: "#F5F0E8", lineHeight: 1 }}>{day.format("D")}</p>
+                <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "#eee3b4" }}>{day.format("MMM")}</p>
+                <p style={{ margin: "4px 0 0", fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(238,227,180,0.62)" }}>{day.format("YYYY")}</p>
+              </div>
+              <div style={{ padding: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                {dayOrders.map((order) => {
+                  const badgeStyle = paymentBadgeMap[order.payment_status || "PENDING"] || paymentBadgeMap.PENDING;
+                  return (
+                    <button key={order.id} onClick={() => { setEditOrder(order); setFormOpen(true); }} style={{ textAlign: "left", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.16)", padding: "12px", cursor: "pointer" }}>
+                      <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", fontWeight: 600, color: "#F5F0E8" }}>{order.client_name}</p>
+                      <p style={{ margin: "6px 0 0", fontFamily: "var(--font-heading)", fontSize: "18px", color: "#d29c6c" }}>{order.order_value ? `R${Number(order.order_value).toLocaleString()}` : "R0"}</p>
+                      <span style={{ display: "inline-flex", marginTop: "8px", padding: "4px 8px", ...badgeStyle, fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" }}>{order.payment_status || "PENDING"}</span>
+                      <p style={{ margin: "8px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(245,240,232,0.58)", lineHeight: 1.5 }}>{order.delivery_address}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ marginBottom: "18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <GoldBtn onClick={() => setMonthCursor((prev) => prev.clone().subtract(1, "month"))}><ChevronLeft size={14} /> Prev Month</GoldBtn>
+          <GoldBtn onClick={() => setMonthCursor(moment().startOf("month"))}>Current Month</GoldBtn>
+          <GoldBtn onClick={() => setMonthCursor((prev) => prev.clone().add(1, "month"))}>Next Month <ChevronRight size={14} /></GoldBtn>
         </div>
+        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "26px", color: "#d29c6c", textTransform: "uppercase", letterSpacing: "0.1em" }}>{monthCursor.format("MMMM YYYY")}</p>
+      </div>
 
-        {upcomingGroups.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 20px", border: "1px dashed rgba(201,168,76,0.15)" }}>
-            <p style={{ fontFamily: "'Cinzel', serif", fontSize: "18px", color: "rgba(201,168,76,0.4)", letterSpacing: "0.15em" }}>No Upcoming Orders</p>
-            <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.25)", marginTop: "8px" }}>There are no orders scheduled for today or the next two days.</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "10px", marginBottom: "18px" }}>
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+          <div key={day} style={{ padding: "10px 12px", background: "#0a0a0a", border: "1px solid rgba(201,168,76,0.18)", fontFamily: "var(--font-body)", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.14em", color: "rgba(201,168,76,0.7)" }}>{day}</div>
+        ))}
+        {monthDays.map((day) => {
+          const key = day.format("YYYY-MM-DD");
+          const dayOrders = ordersByDay[key] || [];
+          const isCurrentMonth = day.isSame(monthCursor, "month");
+          return (
+            <button key={key} onClick={() => setSelectedDayKey(key)} style={{ minHeight: "110px", background: selectedDayKey === key ? "rgba(201,168,76,0.08)" : "#111111", border: "1px solid rgba(201,168,76,0.16)", padding: "10px", cursor: "pointer", textAlign: "left", opacity: isCurrentMonth ? 1 : 0.45 }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "22px", color: "#F5F0E8" }}>{day.format("D")}</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" }}>
+                {dayOrders.slice(0, 4).map((order) => (
+                  <span key={order.id} style={{ width: "8px", height: "8px", borderRadius: "9999px", background: order.payment_status === "PENDING" ? "#C2185B" : order.payment_status === "CASH" ? "#C9A84C" : "#eee3b4", display: "inline-block" }} />
+                ))}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.2)", marginBottom: "32px" }}>
+        <div style={{ padding: "16px 18px", borderBottom: "1px solid rgba(201,168,76,0.18)", background: "#0a0a0a", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "22px", color: "#d29c6c", textTransform: "uppercase", letterSpacing: "0.08em" }}>Orders for {moment(selectedDayKey).format("D MMMM YYYY")}</p>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <input value={statusFilter === "all" ? "All statuses" : statusBlockConfig[statusFilter].label} readOnly style={{ ...inputBase, padding: "10px 12px", minWidth: "150px", color: "rgba(245,240,232,0.72)" }} />
           </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            {upcomingGroups.map(([day, entries]) => (
-              <div key={day}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px" }}>
-                  <div style={{ minWidth: "80px" }}>
-                    <p style={{ fontFamily: "'Cinzel', serif", fontSize: "22px", fontWeight: 600, color: "#C9A84C", lineHeight: 1, margin: 0 }}>{moment(day).format("D")}</p>
-                    <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 600, color: "#C9A84C", letterSpacing: "0.15em", textTransform: "uppercase", margin: "1px 0 0" }}>{moment(day).format("ddd")}</p>
-                    <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", fontWeight: 400, color: "rgba(201,168,76,0.45)", letterSpacing: "0.15em", textTransform: "uppercase", margin: 0 }}>{moment(day).format("MMM YYYY")}</p>
-                  </div>
-                  <div style={{ flex: 1, height: "1px", background: "rgba(201,168,76,0.12)" }} />
-                  <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", color: "rgba(245,240,232,0.2)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
-                    {moment(day).isSame(moment(), "day") ? "Today" : moment(day).isSame(moment().add(1, "day"), "day") ? "Tomorrow" : "In 2 days"}
-                  </span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {selectedDayOrders.map((order) => (
+            <button key={order.id} onClick={() => { setEditOrder(order); setFormOpen(true); }} style={{ textAlign: "left", padding: "16px 18px", borderBottom: "1px solid rgba(255,255,255,0.04)", background: "transparent", borderLeft: "none", borderRight: "none", borderTop: "none", cursor: "pointer" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", flexWrap: "wrap" }}>
+                <div>
+                  <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: 600, color: "#F5F0E8" }}>{order.client_name}</p>
+                  <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.58)" }}>{order.delivery_address}</p>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px", paddingLeft: "92px" }}>
-                  {entries.map((order) => (
-                    <div key={order.id}
-                      onClick={() => { setEditOrder(order); setFormOpen(true); }}
-                      style={{
-                        background: "#141414",
-                        border: "1px solid rgba(201,168,76,0.22)",
-                        borderLeft: `4px solid ${order.status === "Pending" ? "#C9A84C" : order.status === "Confirmed" ? "rgba(245,240,232,0.7)" : "#C2185B"}`,
-                        boxShadow: "0 0 18px rgba(0,0,0,0.35)",
-                        padding: "12px 14px",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        position: "relative",
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = "#1a1a1a"; e.currentTarget.style.borderColor = "rgba(201,168,76,0.4)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = "#141414"; e.currentTarget.style.borderColor = "rgba(201,168,76,0.22)"; }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
-                        <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", fontWeight: 600, color: "#F5F0E8", margin: 0 }}>{order.client_name}</p>
-                        <StatusBadge status={order.status} />
-                      </div>
-                      <p style={{ fontFamily: "'Cinzel', serif", fontSize: "12px", color: "#C9A84C", margin: "0 0 4px", letterSpacing: "0.05em" }}>{order.time_slot || moment(order.order_date).format("h:mm A")}</p>
-                      {order.order_value > 0 && (
-                        <p style={{ fontFamily: "'Cinzel', serif", fontSize: "13px", color: "rgba(201,168,76,0.7)", margin: "0 0 4px" }}>R{Number(order.order_value).toLocaleString()}</p>
-                      )}
-                      {order.order_details && (
-                        <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", color: "rgba(245,240,232,0.35)", margin: 0, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>{order.order_details}</p>
-                      )}
-                    </div>
-                  ))}
+                <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                  <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "20px", color: "#d29c6c" }}>{order.order_value ? `R${Number(order.order_value).toLocaleString()}` : "R0"}</p>
+                  <StatusBadge status={order.status} />
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div style={{ marginBottom: "40px" }}>
-        <PlannerSectionTitle title="Orders Planner" />
-        <OrdersCalendarToolbar
-          label={plannerLabel}
-          onPrev={() => setCursorDate((prev) => prev.clone().subtract(1, "month"))}
-          onNext={() => setCursorDate((prev) => prev.clone().add(1, "month"))}
-          onToday={() => setCursorDate(moment().startOf("month"))}
-        />
-        <OrdersCalendarGrid
-          days={plannerDays}
-          ordersByDay={plannerOrdersByDay}
-          onDropOrder={handleDropOrder}
-          onDragStart={setDraggedOrder}
-        />
-      </div>
-
-      <div style={{ marginBottom: "40px" }}>
-        <PlannerSectionTitle title="Status Board" />
-        <OrdersStatusBoard
-          orders={orders.filter((order) => order.status !== "Cancelled")}
-          onEdit={(order) => { setEditOrder(order); setFormOpen(true); }}
-          onDragStart={setDraggedOrder}
-          onDropStatus={handleDropStatus}
-          onMoveStatus={handleMoveStatus}
-        />
-      </div>
-
-      {/* ── Past Order Log ── */}
-      <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 0, overflow: "hidden" }}>
-        <div style={{ background: "#0a0a0a", borderBottom: "1px solid rgba(201,168,76,0.25)", padding: "14px 20px" }}>
-          <span style={{ fontFamily: "'Cinzel', serif", fontSize: "13px", letterSpacing: "0.25em", color: "rgba(201,168,76,0.7)", textTransform: "uppercase" }}>Past Order Log</span>
+            </button>
+          ))}
         </div>
-        {currentUser?.role === "admin" && (
-          <BulkActionsBar
-            selectedCount={selectedIds.size}
-            onMarkFulfilled={() => setPendingBulkStatus("Fulfilled")}
-            onMarkCancelled={() => setPendingBulkStatus("Cancelled")}
-            onExport={handleExportSelected}
-          />
-        )}
-
-        {pastOrders.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "48px 20px" }}>
-            <p style={{ fontFamily: "'Cinzel', serif", fontSize: "18px", color: "rgba(201,168,76,0.4)", letterSpacing: "0.15em" }}>No Past Orders</p>
-          </div>
-        ) : (
-          <>
-            <div className="hidden md:block overflow-x-auto">
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ background: "#0d0d0d", borderBottom: "1px solid rgba(201,168,76,0.3)" }}>
-                    {currentUser?.role === "admin" && (
-                      <th style={{ padding: "14px 16px", width: "44px", textAlign: "center" }}>
-                        <input
-                          type="checkbox"
-                          checked={pastOrders.length > 0 && selectedIds.size === pastOrders.length}
-                          onChange={() => {
-                            if (selectedIds.size === pastOrders.length) {
-                              setSelectedIds(new Set());
-                              return;
-                            }
-                            setSelectedIds(new Set(pastOrders.map((order) => order.id)));
-                          }}
-                          style={{ accentColor: "#C9A84C", cursor: "pointer" }}
-                        />
-                      </th>
-                    )}
-                    {["Client Name", "Order Value", "Items Summary", "Time Slot", "Payment Method", "Status", ""].map((h, i) => (
-                      <th key={i} style={{ padding: "14px 16px", textAlign: i === 6 ? "right" : "left", fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 600, color: "rgba(201,168,76,0.55)", letterSpacing: "0.18em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {pastOrders.map(order => {
-                    const urgent = isUrgent(order);
-                    return (
-                      <Fragment key={order.id}>
-                        <tr
-                          id={`order-row-${order.id}`}
-                          style={{ borderBottom: expandedIds.has(order.id) ? "none" : "1px solid rgba(255,255,255,0.04)", transition: "background 0.15s", cursor: "pointer", background: highlightedOrderId === order.id ? "rgba(201,168,76,0.08)" : urgent ? "rgba(194,24,91,0.06)" : "transparent", borderLeft: highlightedOrderId === order.id ? "2px solid #C9A84C" : urgent ? "2px solid rgba(194,24,91,0.6)" : "2px solid transparent" }}
-                          onMouseEnter={e => e.currentTarget.style.background = highlightedOrderId === order.id ? "rgba(201,168,76,0.12)" : urgent ? "rgba(194,24,91,0.1)" : "rgba(201,168,76,0.04)"}
-                          onMouseLeave={e => e.currentTarget.style.background = highlightedOrderId === order.id ? "rgba(201,168,76,0.08)" : urgent ? "rgba(194,24,91,0.06)" : (expandedIds.has(order.id) ? "rgba(201,168,76,0.04)" : "transparent")}
-                          onClick={() => toggleExpanded(order.id)}
-                        >
-                          {currentUser?.role === "admin" && (
-                            <td style={{ padding: "14px 16px", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
-                              <input
-                                type="checkbox"
-                                checked={selectedIds.has(order.id)}
-                                onChange={() => toggleSelected(order.id)}
-                                style={{ accentColor: "#C9A84C", cursor: "pointer" }}
-                              />
-                            </td>
-                          )}
-                          <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "#F5F0E8", fontWeight: 500, whiteSpace: "nowrap" }}>{order.client_name}</td>
-                          <td style={{ padding: "14px 16px", fontFamily: "'Cinzel', serif", fontSize: "14px", color: "#C9A84C", whiteSpace: "nowrap" }}>{order.order_value ? `R${Number(order.order_value).toLocaleString()}` : "—"}</td>
-                          <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.55)", maxWidth: "220px" }}>
-                            <span style={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>{order.order_details}</span>
-                          </td>
-                          <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.45)", whiteSpace: "nowrap" }}>{order.time_slot || moment(order.order_date).format("h:mm A")}</td>
-                          <td style={{ padding: "14px 16px", fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.4)", whiteSpace: "nowrap", letterSpacing: "0.05em" }}>{order.payment_method || "—"}</td>
-                          <td style={{ padding: "14px 16px" }}><StatusBadge status={order.status} /></td>
-                          <td style={{ padding: "14px 16px", textAlign: "right" }}>
-                            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "4px" }}>
-                              <button onClick={(e) => { e.stopPropagation(); setEditOrder(order); setFormOpen(true); }} style={{ padding: "6px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.28)", transition: "color 0.15s" }}
-                                onMouseEnter={e => e.currentTarget.style.color = "#C9A84C"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.28)"} >
-                                <Pencil size={13} strokeWidth={1.5} />
-                              </button>
-                              <button onClick={(e) => { e.stopPropagation(); setDeleteId(order.id); }} style={{ padding: "6px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.28)", transition: "color 0.15s" }}
-                                onMouseEnter={e => e.currentTarget.style.color = "#C2185B"} onMouseLeave={e => e.currentTarget.style.color = "rgba(245,240,232,0.28)"} >
-                                <Trash2 size={13} strokeWidth={1.5} />
-                              </button>
-                              <ChevronDown size={13} strokeWidth={1.5} style={{ color: "rgba(245,240,232,0.2)", transition: "transform 0.2s", transform: expandedIds.has(order.id) ? "rotate(180deg)" : "rotate(0deg)", marginLeft: "4px" }} />
-                            </div>
-                          </td>
-                        </tr>
-                        {expandedIds.has(order.id) && (
-                          <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                            <td colSpan={currentUser?.role === "admin" ? 8 : 7} style={{ padding: 0 }}>
-                              <OrderLifecycle order={order} />
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="md:hidden">
-              {pastOrders.map((order, idx) => {
-                const urgent = isUrgent(order);
-                return (
-                  <div key={order.id} style={{ padding: "18px 20px", borderBottom: idx < pastOrders.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", background: urgent ? "rgba(194,24,91,0.06)" : "transparent", borderLeft: urgent ? "3px solid rgba(194,24,91,0.6)" : "3px solid transparent" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
-                      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "14px", color: "#F5F0E8", fontWeight: 500 }}>{order.client_name}</p>
-                      <StatusBadge status={order.status} />
-                    </div>
-                    <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.4)", marginBottom: "4px" }}>{moment(order.order_date).format("MMM D, YYYY · h:mm A")}</p>
-                    <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.5)", marginBottom: "12px" }}>{order.order_details}</p>
-                    <div style={{ display: "flex", gap: "16px" }}>
-                      <button onClick={() => { setEditOrder(order); setFormOpen(true); }} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "#C9A84C", letterSpacing: "0.15em", textTransform: "uppercase", padding: 0 }}>Edit</button>
-                      <button onClick={() => setDeleteId(order.id)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "#C2185B", letterSpacing: "0.15em", textTransform: "uppercase", padding: 0 }}>Delete</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
       </div>
-
-      {/* ── Archived Fulfilled Orders ── */}
-      {archivedFulfilled.length > 0 && (
-        <div style={{ marginTop: "48px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-            <div style={{ height: "1px", flex: 1, background: "rgba(245,240,232,0.06)" }} />
-            <span style={{ fontFamily: "'Cinzel', serif", fontSize: "10px", letterSpacing: "0.3em", color: "rgba(245,240,232,0.2)", textTransform: "uppercase" }}>Fulfilled · Archived</span>
-            <div style={{ height: "1px", flex: 1, background: "rgba(245,240,232,0.06)" }} />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "8px" }}>
-            {archivedFulfilled.map(order => (
-              <div key={order.id} style={{ padding: "10px 14px", border: "1px solid rgba(245,240,232,0.06)", borderLeft: "3px solid rgba(245,240,232,0.1)", background: "rgba(255,255,255,0.02)", opacity: 0.55 }}>
-                <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", fontWeight: 600, color: "rgba(245,240,232,0.5)", margin: "0 0 3px" }}>{order.client_name}</p>
-                <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", color: "rgba(245,240,232,0.25)", margin: "0 0 3px", letterSpacing: "0.1em", textTransform: "uppercase" }}>{moment(order.order_date).format("ddd D MMM YYYY")}</p>
-                {order.order_value > 0 && <p style={{ fontFamily: "'Cinzel', serif", fontSize: "12px", color: "rgba(201,168,76,0.35)", margin: 0 }}>R{Number(order.order_value).toLocaleString()}</p>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <OrderFormDialog open={formOpen} onOpenChange={setFormOpen} order={editOrder} onSave={handleSave} />
       <ConfirmDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} title="Delete Order" description="This order will be permanently removed from the log." onConfirm={handleDelete} />
-      <ConfirmDialog
-        open={!!pendingBulkStatus}
-        onOpenChange={() => setPendingBulkStatus(null)}
-        title="Update Selected Orders"
-        description={`This will mark ${selectedIds.size} selected order${selectedIds.size === 1 ? "" : "s"} as ${pendingBulkStatus}.`}
-        onConfirm={handleBulkUpdate}
-        confirmLabel="Confirm"
-      />
     </div>
   );
 }

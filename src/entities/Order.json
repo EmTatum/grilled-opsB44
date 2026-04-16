@@ -25,22 +25,13 @@
     },
     "priority_level": {
       "type": "string",
-      "enum": [
-        "Low",
-        "Medium",
-        "High"
-      ],
+      "enum": ["Low", "Medium", "High"],
       "title": "Priority Level",
       "default": "Medium"
     },
     "planner_status": {
       "type": "string",
-      "enum": [
-        "Pending",
-        "Processing",
-        "Dispatched",
-        "Complete"
-      ],
+      "enum": ["Pending", "Processing", "Dispatched", "Complete"],
       "title": "Planner Status",
       "default": "Pending"
     },
@@ -56,13 +47,13 @@
     "payment_method": {
       "type": "string",
       "title": "Payment Method",
-      "enum": [
-        "Cash",
-        "Card",
-        "Bank Transfer",
-        "Credit on Account",
-        "Other"
-      ]
+      "enum": ["Cash", "Card", "Bank Transfer", "Credit on Account", "Other"]
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": ["PAID", "CASH", "PENDING"],
+      "title": "Payment Status",
+      "default": "PENDING"
     },
     "order_date": {
       "type": "string",
@@ -71,22 +62,15 @@
     },
     "status": {
       "type": "string",
-      "enum": [
-        "Pending",
-        "Confirmed",
-        "Fulfilled",
-        "Cancelled",
-        "Complete"
-      ],
+      "enum": ["Pending", "Confirmed", "Fulfilled", "Cancelled", "Complete"],
       "title": "Status"
+    },
+    "source_report_id": {
+      "type": "string",
+      "title": "Source Report ID"
     }
   },
-  "required": [
-    "client_name",
-    "order_details",
-    "order_date",
-    "status"
-  ],
+  "required": ["client_name", "order_details", "order_date", "status"],
   "rls": {
     "create": null,
     "read": null,
