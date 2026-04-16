@@ -12,8 +12,7 @@ const Spinner = () => (
 );
 
 export default function DailyDispatchManifest() {
-  const [todaysOrders, setTodaysOrders] = useState([]);
-  const [upcomingOrders, setUpcomingOrders] = useState([]);
+  const [manifestOrders, setManifestOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,8 +21,7 @@ export default function DailyDispatchManifest() {
         .filter((order) => order.status !== "Cancelled")
         .sort((a, b) => moment(a.order_date).valueOf() - moment(b.order_date).valueOf());
 
-      setTodaysOrders(activeOrders.filter((order) => moment(order.order_date).isSame(moment(), "day")));
-      setUpcomingOrders(activeOrders.filter((order) => moment(order.order_date).isAfter(moment(), "day")));
+      setManifestOrders(activeOrders.filter((order) => moment(order.order_date).isSame(moment(), "day") || moment(order.order_date).isAfter(moment(), "day")));
       setLoading(false);
     });
   }, []);
@@ -32,34 +30,19 @@ export default function DailyDispatchManifest() {
 
   return (
     <div>
-      <PageHeader title="Daily Dispatch Manifest" subtitle="Printable final-packaging sheet for all orders scheduled today and upcoming dispatches" />
+      <PageHeader title="Dispatch Manifest" subtitle="Live automated manifest generated from current active orders" />
 
-      {todaysOrders.length === 0 ? (
+      {manifestOrders.length === 0 ? (
         <div style={{ textAlign: "center", padding: "80px 20px", border: "1px dashed rgba(201,168,76,0.15)", marginBottom: "28px" }}>
-          <p style={{ fontFamily: "'Cinzel', serif", fontSize: "18px", color: "rgba(201,168,76,0.4)", letterSpacing: "0.15em" }}>No Dispatches Today</p>
-          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.25)", marginTop: "8px" }}>Today has no active scheduled orders.</p>
-        </div>
-      ) : (
-        <div style={{ marginBottom: "28px" }}>
-          <DispatchManifestTable
-            orders={todaysOrders}
-            title="Daily Dispatch Manifest"
-            subtitle={moment().format("dddd, D MMMM YYYY")}
-            showPrintButton={true}
-          />
-        </div>
-      )}
-
-      {upcomingOrders.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "80px 20px", border: "1px dashed rgba(201,168,76,0.15)" }}>
-          <p style={{ fontFamily: "'Cinzel', serif", fontSize: "18px", color: "rgba(201,168,76,0.4)", letterSpacing: "0.15em" }}>No Upcoming Dispatches</p>
-          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.25)", marginTop: "8px" }}>There are no remaining active scheduled orders after today.</p>
+          <p style={{ fontFamily: "'Cinzel', serif", fontSize: "18px", color: "rgba(201,168,76,0.4)", letterSpacing: "0.15em" }}>No Active Dispatches</p>
+          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.25)", marginTop: "8px" }}>The live manifest has no current active scheduled orders.</p>
         </div>
       ) : (
         <DispatchManifestTable
-          orders={upcomingOrders}
-          title="Upcoming Dispatch Manifest"
-          subtitle="All remaining active scheduled orders"
+          orders={manifestOrders}
+          title="Dispatch Manifest"
+          subtitle="Current automated order feed"
+          showPrintButton={true}
           showDateAboveTime={true}
         />
       )}

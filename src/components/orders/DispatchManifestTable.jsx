@@ -56,9 +56,11 @@ export default function DispatchManifestTable({ orders, title = "Daily Dispatch 
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "920px" }}>
           <thead>
             <tr>
-              <th style={{ ...headerCell, width: "120px" }}>Time Slot</th>
+              <th style={{ ...headerCell, width: "140px" }}>Schedule</th>
               <th style={{ ...headerCell, width: "180px" }}>Client Name</th>
               <th style={headerCell}>Items To Pack</th>
+              <th style={{ ...headerCell, width: "220px" }}>Address</th>
+              <th style={{ ...headerCell, width: "150px" }}>Payment</th>
               <th style={{ ...headerCell, width: "320px" }}>Verification Checklist</th>
             </tr>
           </thead>
@@ -84,6 +86,21 @@ export default function DispatchManifestTable({ orders, title = "Daily Dispatch 
                         <p key={index} style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.78)", margin: 0 }}>{item}</p>
                       )) : (
                         <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.35)", margin: 0 }}>No item breakdown provided</p>
+                      )}
+                    </div>
+                  </td>
+                  <td style={bodyCell}>
+                    <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.78)", margin: 0, lineHeight: 1.5 }}>
+                      {order.delivery_address || "Not recorded."}
+                    </p>
+                  </td>
+                  <td style={bodyCell}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "#F5F0E8", margin: 0 }}>{order.payment_method || "Other"}</p>
+                      {order.payment_status && (
+                        <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", color: "rgba(201,168,76,0.72)", margin: 0, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                          {order.payment_status}
+                        </p>
                       )}
                     </div>
                   </td>
