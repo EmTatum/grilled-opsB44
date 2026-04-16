@@ -1,5 +1,6 @@
-import { X, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { normalizePaymentStatus } from "../../utils/customerNotes";
 
 const labelStyle = {
   fontFamily: "var(--font-body)",
@@ -28,6 +29,17 @@ const fieldValue = {
   margin: "4px 0 0",
 };
 
+const inputStyle = {
+  width: "100%",
+  background: "#1c191a",
+  border: "1px solid rgba(201,168,76,0.2)",
+  color: "#F5F0E8",
+  padding: "10px 12px",
+  fontFamily: "var(--font-body)",
+  fontSize: "14px",
+  outline: "none",
+};
+
 const sectionStyle = {
   background: "#141414",
   padding: "24px",
@@ -36,32 +48,94 @@ const sectionStyle = {
   gap: "14px",
 };
 
-export default function IntelligenceReportModal({ open, onOpenChange, report, onDelete }) {
-  if (!report) return null;
+const actionButtonStyle = {
+  background: "transparent",
+  border: "1px solid #C9A84C",
+  color: "#C9A84C",
+  padding: "10px 16px",
+  fontFamily: "var(--font-body)",
+  fontSize: "11px",
+  letterSpacing: "0.16em",
+  textTransform: "uppercase",
+  cursor: "pointer",
+};
 
-  const meta = [report.client_number, report.dropoff_date, report.client_address].filter((value) => value && value !== "Not recorded.").join(" · ");
+export default function IntelligenceReportModal({ open, onOpenChange, report, onSave }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(report);
+
+  useEffect(() => {
+    setDraft(report);
+    setIsEditing(false);
+  }, [report, open]);
+
+  if (!report || !draft) return null;
+
+  const meta = [draft.client_number, draft.dropoff_date, draft.client_address].filter((value) => value && value !== "Not recorded.").join(" · ");
+
+  const renderField = (label, key, multiline = false) => {
+    if (!isEditing) {
+      return (
+        <div>
+          <p style={fieldLabel}>{label}</p>
+          <p style={{ ...fieldValue, whiteSpace: multiline ? "pre-line" : "normal" }}>{draft[key] || "Not recorded."}</p>
+        </div>
+      );
+    }
+
+    if (key === "payment_status") {
+      const currentValue = normalizePaymentStatus(draft.payment_status, draft.payment_method);
+      return (
+        <div>
+          <p style={fieldLabel}>{label}</p>
+          <select value={currentValue} onChange={(e) => setDraft({ ...draft, payment_status: e.target.value })} style={{ ...inputStyle, marginTop: "6px", cursor: "pointer" }}>
+            <option value="PAID">PAID</option>
+            <option value="CASH">CASH</option>
+            <option value="PENDING">PENDING</option>
+          </select>
+        </div>
+      );
+    }
+
+    if (multiline) {
+      return (
+        <div>
+          <p style={fieldLabel}>{label}</p>
+          <textarea value={draft[key] || ""} onChange={(e) => setDraft({ ...draft, [key]: e.target.value })} style={{ ...inputStyle, minHeight: "110px", resize: "vertical", marginTop: "6px" }} />
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <p style={fieldLabel}>{label}</p>
+        <input value={draft[key] || ""} onChange={(e) => setDraft({ ...draft, [key]: e.target.value })} style={{ ...inputStyle, marginTop: "6px" }} />
+      </div>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent style={{ background: "#0f0f0f", border: "1px solid rgba(201,168,76,0.28)", maxWidth: "min(1100px, calc(100vw - 32px))", width: "100%", height: "calc(100vh - 32px)", padding: 0 }}>
         <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", padding: "20px 24px", borderBottom: "1px solid rgba(201,168,76,0.18)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", padding: "20px 24px", borderBottom: "1px solid rgba(201,168,76,0.18)", flexWrap: "wrap" }}>
             <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", color: "#d29c6c", letterSpacing: "0.08em", textTransform: "uppercase" }}>Member Intelligence File</p>
-            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-              <button onClick={() => onDelete(report.id)} style={{ background: "transparent", border: "1px solid rgba(194,24,91,0.6)", color: "#C2185B", padding: "10px 16px", fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px" }}>
-                <Trash2 size={14} /> Delete Record
-              </button>
-              <button onClick={() => onOpenChange(false)} style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.25)", color: "#C9A84C", width: "40px", height: "40px", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                <X size={18} />
-              </button>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+              {!isEditing && <button onClick={() => setIsEditing(true)} style={actionButtonStyle}>Edit</button>}
+              {isEditing && <button onClick={() => onSave(draft)} style={actionButtonStyle}>Save Changes</button>}
+              <button onClick={() => onOpenChange(false)} style={{ ...actionButtonStyle, border: "1px solid rgba(201,168,76,0.25)" }}>Close</button>
             </div>
           </div>
 
           <div style={{ flex: 1, overflow: "auto", padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <p style={{ fontFamily: "var(--font-heading)", fontSize: "32px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#d29c6c", margin: 0 }}>
-                {report.client_name || "Client File"}
-              </p>
+              {isEditing ? (
+                <input value={draft.client_name || ""} onChange={(e) => setDraft({ ...draft, client_name: e.target.value })} style={{ ...inputStyle, fontFamily: "var(--font-heading)", fontSize: "32px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#d29c6c", padding: 0, background: "transparent", border: "none" }} />
+              ) : (
+                <p style={{ fontFamily: "var(--font-heading)", fontSize: "32px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#d29c6c", margin: 0 }}>
+                  {draft.client_name || "Client File"}
+                </p>
+              )}
               {meta && (
                 <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", letterSpacing: "0.04em", color: "#eee3b4", margin: 0 }}>
                   {meta}
@@ -76,10 +150,10 @@ export default function IntelligenceReportModal({ open, onOpenChange, report, on
                   <p style={labelStyle}>Client Information</p>
                   <div style={{ height: "1px", width: "60px", background: "#d29c6c", marginTop: "10px" }} />
                 </div>
-                <div><p style={fieldLabel}>Client Name</p><p style={fieldValue}>{report.client_name || "Not recorded."}</p></div>
-                <div><p style={fieldLabel}>Client Number</p><p style={fieldValue}>{report.client_number || "Not recorded."}</p></div>
-                <div><p style={fieldLabel}>Drop-off Date</p><p style={fieldValue}>{report.dropoff_date || "Not recorded."}</p></div>
-                <div><p style={fieldLabel}>Client Address / Drop-off Location</p><p style={fieldValue}>{report.client_address || "Not recorded."}</p></div>
+                {renderField("Client Name", "client_name")}
+                {renderField("Client Number", "client_number")}
+                {renderField("Drop-off Date", "dropoff_date")}
+                {renderField("Client Address / Drop-off Location", "client_address", true)}
               </div>
 
               <div style={sectionStyle}>
@@ -87,10 +161,10 @@ export default function IntelligenceReportModal({ open, onOpenChange, report, on
                   <p style={labelStyle}>Order Details</p>
                   <div style={{ height: "1px", width: "60px", background: "#d29c6c", marginTop: "10px" }} />
                 </div>
-                <div><p style={fieldLabel}>Full Order Description</p><p style={{ ...fieldValue, whiteSpace: "pre-line" }}>{report.full_order_description || "Not recorded."}</p></div>
-                <div><p style={fieldLabel}>Payment Method</p><p style={fieldValue}>{report.payment_method || "Not recorded."}</p></div>
-                <div><p style={fieldLabel}>Total Amount in ZAR</p><p style={fieldValue}>{report.total_amount_zar || "Not confirmed."}</p></div>
-                <div><p style={fieldLabel}>Payment Status</p><p style={fieldValue}>{report.payment_status || "To Be Paid"}</p></div>
+                {renderField("Full Order Description", "full_order_description", true)}
+                {renderField("Payment Method", "payment_method")}
+                {renderField("Total Amount in ZAR", "total_amount_zar")}
+                {renderField("Payment Status", "payment_status")}
               </div>
             </div>
 
@@ -99,9 +173,10 @@ export default function IntelligenceReportModal({ open, onOpenChange, report, on
                 <p style={labelStyle}>Client Notes</p>
                 <div style={{ height: "1px", width: "60px", background: "#d29c6c", marginTop: "10px" }} />
               </div>
-              <div><p style={fieldLabel}>Behavioral Insights</p><p style={fieldValue}>{report.behavioral_insights || "Not recorded."}</p></div>
-              <div><p style={fieldLabel}>Red Flags</p><p style={fieldValue}>{report.red_flags || "None recorded."}</p></div>
-              <div><p style={fieldLabel}>Green Flags</p><p style={fieldValue}>{report.green_flags || "None recorded."}</p></div>
+              {renderField("Behavioral Insights", "behavioral_insights", true)}
+              {renderField("Red Flags", "red_flags", true)}
+              {renderField("Green Flags", "green_flags", true)}
+              {renderField("Action Item", "action_item", true)}
             </div>
           </div>
         </div>

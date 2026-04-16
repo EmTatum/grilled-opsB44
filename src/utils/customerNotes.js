@@ -97,3 +97,46 @@ export const getNotePreview = (content = "") => {
 
   return clean.replace(/\n+/g, " ").slice(0, 220);
 };
+
+export const getReportDataFromTags = (tags = []) => {
+  const reportTag = (tags || []).find((tag) => String(tag).startsWith("report-data:"));
+  if (!reportTag) return null;
+
+  try {
+    return JSON.parse(reportTag.replace("report-data:", ""));
+  } catch {
+    return null;
+  }
+};
+
+export const isIntelligenceReportNote = (note) => Boolean(getReportDataFromTags(note.tags || []));
+
+export const getIntelligenceReportViewModel = (note) => {
+  const data = getReportDataFromTags(note.tags || []) || {};
+
+  return {
+    id: note.id,
+    created_date: note.created_date,
+    client_name: data.client_name || note.client_name || "Not recorded.",
+    client_number: data.client_number || "Not recorded.",
+    dropoff_date: data.dropoff_date || "Not recorded.",
+    client_address: data.client_address || "Not recorded.",
+    full_order_description: data.full_order_description || "Not recorded.",
+    payment_method: data.payment_method || "Not recorded.",
+    total_amount_zar: data.total_amount_zar || "Not confirmed.",
+    payment_status: data.payment_status || "PENDING",
+    behavioral_insights: data.behavioral_insights || "Not recorded.",
+    red_flags: data.red_flags || "None recorded.",
+    green_flags: data.green_flags || "None recorded.",
+    action_item: data.action_item || "Not recorded.",
+  };
+};
+
+export const normalizePaymentStatus = (paymentStatus = "", paymentMethod = "") => {
+  const status = String(paymentStatus || "").toLowerCase();
+  const method = String(paymentMethod || "").toLowerCase();
+
+  if (status.includes("paid")) return "PAID";
+  if (method.includes("cash")) return "CASH";
+  return "PENDING";
+};
