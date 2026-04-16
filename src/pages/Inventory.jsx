@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Pencil, Trash2, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import ProductFormDialog from "../components/ProductFormDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -48,16 +48,25 @@ function StatusBadge({ status }) {
   return <span style={{ ...style, display: "inline-flex", alignItems: "center", padding: "4px 10px", fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", borderRadius: "2px" }}>{status}</span>;
 }
 
-function StockIndicator({ currentStock, threshold }) {
-  const current = Number(currentStock || 0);
+function ProcurementStatus({ latestStockCount, threshold }) {
+  const latest = Number(latestStockCount || 0);
   const limit = Number(threshold || 0);
-  let color = "#d29c6c";
 
-  if (current <= limit) color = "#8d201c";
-  else if (current <= limit * 1.2) color = "#b68a3d";
-  else color = "#15434a";
+  let label = "Sufficient.";
+  let color = "#eee3b4";
 
-  return <span style={{ display: "inline-block", width: "10px", height: "10px", borderRadius: "999px", background: color, boxShadow: `0 0 0 1px ${color}55` }} />;
+  if (latest <= 0 || (limit > 0 && latest <= limit * 0.5)) {
+    label = "Critical. Order immediately.";
+    color = "#8d201c";
+  } else if (latest <= limit) {
+    label = "Order required.";
+    color = "#8d201c";
+  } else if (latest <= limit * 1.3) {
+    label = "Running low. Monitor.";
+    color = "#d29c6c";
+  }
+
+  return <span style={{ fontFamily: "var(--font-body)", fontSize: "12px", color, whiteSpace: "nowrap" }}>{label}</span>;
 }
 
 export default function Inventory() {
@@ -69,6 +78,7 @@ export default function Inventory() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("category");
+  const [draftCounts, setDraftCounts] = useState({});
 
   const load = async () => {
     setProducts(await base44.entities.Product.list("-updated_date", 200));
@@ -77,16 +87,60 @@ export default function Inventory() {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    const nextDrafts = {};
+    products.forEach((product) => {
+      nextDrafts[product.id] = String(product.current_stock ?? product.last_stock_count ?? 0);
+    });
+    setDraftCounts(nextDrafts);
+  }, [products]);
+
   const handleSave = async (data) => {
-    const isStockCheck = editProduct && Number(data.last_stock_count) !== Number(editProduct.last_stock_count);
-    const payload = isStockCheck
-      ? { ...data, new_stock_arrived: 0, current_stock: Number(data.last_stock_count) }
-      : { ...data, current_stock: Number(data.last_stock_count || 0) + Number(data.new_stock_arrived || 0) };
+    const latestCount = Number(data.latest_stock_count ?? data.current_stock ?? data.last_stock_count ?? 0);
+    const previousLatest = Number(editProduct?.latest_stock_count ?? editProduct?.current_stock ?? editProduct?.last_stock_count ?? 0);
+    const hasLatestChanged = editProduct && latestCount !== previousLatest;
+
+    const payload = {
+      ...data,
+      last_stock_count: hasLatestChanged ? previousLatest : Number(data.last_stock_count ?? editProduct?.last_stock_count ?? 0),
+      latest_stock_count: latestCount,
+      current_stock: latestCount,
+      new_stock_arrived: 0,
+      low_stock_threshold: Number(data.low_stock_threshold ?? 0)
+    };
 
     if (editProduct) await base44.entities.Product.update(editProduct.id, payload);
     else await base44.entities.Product.create(payload);
 
     setEditProduct(null);
+    load();
+  };
+
+  const handleInlineLatestCountChange = (productId, value) => {
+    setDraftCounts((current) => ({ ...current, [productId]: value }));
+  };
+
+  const handleInlineLatestCountSave = async (product) => {
+    const rawValue = draftCounts[product.id];
+    const latestCount = Number(rawValue);
+    if (Number.isNaN(latestCount)) return;
+
+    const previousLatest = Number(product.latest_stock_count ?? product.current_stock ?? product.last_stock_count ?? 0);
+    const payload = {
+      last_stock_count: previousLatest,
+      latest_stock_count: latestCount,
+      current_stock: latestCount,
+      new_stock_arrived: 0
+    };
+
+    await base44.entities.Product.update(product.id, payload);
+    load();
+  };
+
+  const handleInlineThresholdSave = async (product, value) => {
+    const threshold = Number(value);
+    if (Number.isNaN(threshold)) return;
+    await base44.entities.Product.update(product.id, { low_stock_threshold: threshold });
     load();
   };
 
@@ -107,13 +161,16 @@ export default function Inventory() {
       if (sortBy === "category") return (a.category || "").localeCompare(b.category || "") || (a.product_name || "").localeCompare(b.product_name || "");
       if (sortBy === "status") return (a.product_status || "").localeCompare(b.product_status || "") || (a.product_name || "").localeCompare(b.product_name || "");
 
-      const aThreshold = Number(a.low_stock_threshold || 0);
-      const bThreshold = Number(b.low_stock_threshold || 0);
-      const aCurrent = Number(a.current_stock || 0);
-      const bCurrent = Number(b.current_stock || 0);
-      const aLevel = aCurrent <= aThreshold ? 0 : aCurrent <= aThreshold * 1.2 ? 1 : 2;
-      const bLevel = bCurrent <= bThreshold ? 0 : bCurrent <= bThreshold * 1.2 ? 1 : 2;
-      return aLevel - bLevel || (a.product_name || "").localeCompare(b.product_name || "");
+      const getLevel = (product) => {
+        const latest = Number(product.latest_stock_count ?? product.current_stock ?? product.last_stock_count ?? 0);
+        const limit = Number(product.low_stock_threshold || 0);
+        if (latest <= 0 || (limit > 0 && latest <= limit * 0.5)) return 0;
+        if (latest <= limit) return 1;
+        if (latest <= limit * 1.3) return 2;
+        return 3;
+      };
+
+      return getLevel(a) - getLevel(b) || (a.product_name || "").localeCompare(b.product_name || "");
     });
   }, [products, categoryFilter, statusFilter, sortBy]);
 
@@ -139,34 +196,55 @@ export default function Inventory() {
       ) : (
         <div style={{ background: "#111111", border: "1px solid rgba(210,156,108,0.22)", overflow: "hidden" }}>
           <div className="overflow-x-auto">
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1280px" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1320px" }}>
               <thead>
                 <tr style={{ background: "#0b0e11", borderBottom: "1px solid rgba(210,156,108,0.28)" }}>
-                  {["Product Name", "Category", "Last Stock Count", "New Stock Arrived", "Current Stock", "Low Stock Threshold", "Status", "Stock Level Indicator", "Last Updated", ""].map((header, index) => (
-                    <th key={header} style={{ padding: "14px 16px", textAlign: index === 7 ? "center" : index === 9 ? "right" : "left", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, color: "#eee3b4", letterSpacing: "0.14em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{header}</th>
+                  {["Product Name", "Last Stock Count", "Latest Stock Count", "Procurement Status", "Low Stock Threshold", "Category", "Status", "Last Updated", ""].map((header, index) => (
+                    <th key={header} style={{ padding: "14px 16px", textAlign: index === 8 ? "right" : "left", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, color: "#eee3b4", letterSpacing: "0.14em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{header}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {filteredProducts.map((product, index) => (
-                  <tr key={product.id} style={{ background: index % 2 === 0 ? "#0b0e11" : "#1c191a", borderBottom: "1px solid rgba(255,255,255,0.04)" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(10,38,39,0.55)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = index % 2 === 0 ? "#0b0e11" : "#1c191a"; }}>
-                    <td style={{ padding: "14px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "#f0ede8", fontWeight: 500 }}>{product.product_name}</td>
-                    <td style={{ padding: "14px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(240,237,232,0.78)" }}>{product.category}</td>
-                    <td style={{ padding: "14px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "#f0ede8" }}>{Number(product.last_stock_count || 0)}</td>
-                    <td style={{ padding: "14px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "#f0ede8" }}>{Number(product.new_stock_arrived || 0)}</td>
-                    <td style={{ padding: "14px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "#f0ede8", fontWeight: 600 }}>{Number(product.current_stock || 0)}</td>
-                    <td style={{ padding: "14px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(240,237,232,0.78)" }}>{Number(product.low_stock_threshold || 0)}</td>
-                    <td style={{ padding: "14px 16px" }}><StatusBadge status={product.product_status} /></td>
-                    <td style={{ padding: "14px 16px", textAlign: "center" }}><StockIndicator currentStock={product.current_stock} threshold={product.low_stock_threshold} /></td>
-                    <td style={{ padding: "14px 16px", fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(240,237,232,0.65)", whiteSpace: "nowrap" }}>{product.updated_date ? new Date(product.updated_date).toLocaleString() : "—"}</td>
-                    <td style={{ padding: "14px 16px", textAlign: "right" }}>
-                      <div style={{ display: "inline-flex", gap: "6px" }}>
-                        <button onClick={() => { setEditProduct(product); setFormOpen(true); }} style={{ background: "transparent", border: "1px solid rgba(210,156,108,0.2)", color: "#d29c6c", width: "34px", height: "34px", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Pencil size={13} /></button>
-                        <button onClick={() => setDeleteId(product.id)} style={{ background: "transparent", border: "1px solid rgba(141,32,28,0.35)", color: "#8d201c", width: "34px", height: "34px", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Trash2 size={13} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {filteredProducts.map((product) => {
+                  const latestCount = Number(product.latest_stock_count ?? product.current_stock ?? product.last_stock_count ?? 0);
+                  return (
+                    <tr key={product.id} style={{ background: "#111111", borderBottom: "1px solid rgba(255,255,255,0.04)" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(201,168,76,0.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "#111111"; }}>
+                      <td style={{ padding: "12px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "#f0ede8", fontWeight: 700, whiteSpace: "nowrap" }}>{product.product_name}</td>
+                      <td style={{ padding: "12px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(240,237,232,0.72)" }}>{Number(product.last_stock_count || 0)}</td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <input
+                          type="number"
+                          min="0"
+                          value={draftCounts[product.id] ?? latestCount}
+                          onChange={(e) => handleInlineLatestCountChange(product.id, e.target.value)}
+                          onBlur={() => handleInlineLatestCountSave(product)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+                          style={{ width: "88px", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.2)", color: "#F5F0E8", padding: "8px 10px", fontFamily: "var(--font-body)", fontSize: "13px", borderRadius: "2px", outline: "none" }}
+                        />
+                      </td>
+                      <td style={{ padding: "12px 16px" }}><ProcurementStatus latestStockCount={latestCount} threshold={product.low_stock_threshold} /></td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <input
+                          type="number"
+                          min="0"
+                          defaultValue={Number(product.low_stock_threshold || 0)}
+                          onBlur={(e) => handleInlineThresholdSave(product, e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+                          style={{ width: "88px", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.2)", color: "#F5F0E8", padding: "8px 10px", fontFamily: "var(--font-body)", fontSize: "13px", borderRadius: "2px", outline: "none" }}
+                        />
+                      </td>
+                      <td style={{ padding: "12px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(240,237,232,0.78)", whiteSpace: "nowrap" }}>{product.category}</td>
+                      <td style={{ padding: "12px 16px" }}><StatusBadge status={product.product_status} /></td>
+                      <td style={{ padding: "12px 16px", fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(240,237,232,0.65)", whiteSpace: "nowrap" }}>{product.updated_date ? new Date(product.updated_date).toLocaleString() : "—"}</td>
+                      <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                        <div style={{ display: "inline-flex", gap: "6px" }}>
+                          <button onClick={() => { setEditProduct(product); setFormOpen(true); }} style={{ background: "transparent", border: "1px solid rgba(210,156,108,0.2)", color: "#d29c6c", width: "34px", height: "34px", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Pencil size={13} /></button>
+                          <button onClick={() => setDeleteId(product.id)} style={{ background: "transparent", border: "1px solid rgba(141,32,28,0.35)", color: "#8d201c", width: "34px", height: "34px", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Trash2 size={13} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
