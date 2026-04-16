@@ -33,7 +33,7 @@ const checkboxRow = {
 
 const splitItems = (text) =>
   String(text || "")
-    .split(/\n|,|•|\-/)
+    .split(/\n|,/)
     .map((item) => item.trim())
     .filter(Boolean);
 
@@ -95,13 +95,16 @@ export default function DispatchManifestTable({ orders, title = "Daily Dispatch 
                     </p>
                   </td>
                   <td style={bodyCell}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                       <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "#F5F0E8", margin: 0 }}>{order.payment_method || "Other"}</p>
                       {order.payment_status && (
                         <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", color: "rgba(201,168,76,0.72)", margin: 0, letterSpacing: "0.12em", textTransform: "uppercase" }}>
                           {order.payment_status}
                         </p>
                       )}
+                      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", color: "rgba(245,240,232,0.5)", margin: 0, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                        {order.status || "Pending"}
+                      </p>
                     </div>
                   </td>
                   <td style={bodyCell}>

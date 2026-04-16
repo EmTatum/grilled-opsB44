@@ -10,31 +10,6 @@
       "type": "string",
       "title": "Items Summary"
     },
-    "quantity": {
-      "type": "number",
-      "title": "Quantity",
-      "default": 1
-    },
-    "delivery_address": {
-      "type": "string",
-      "title": "Delivery Address"
-    },
-    "special_instructions": {
-      "type": "string",
-      "title": "Special Instructions"
-    },
-    "priority_level": {
-      "type": "string",
-      "enum": ["Low", "Medium", "High"],
-      "title": "Priority Level",
-      "default": "Medium"
-    },
-    "planner_status": {
-      "type": "string",
-      "enum": ["Pending", "Processing", "Dispatched", "Complete"],
-      "title": "Planner Status",
-      "default": "Pending"
-    },
     "order_value": {
       "type": "number",
       "title": "Order Value",
@@ -47,13 +22,56 @@
     "payment_method": {
       "type": "string",
       "title": "Payment Method",
-      "enum": ["Cash", "Card", "Bank Transfer", "Credit on Account", "Other"]
+      "enum": [
+        "Cash",
+        "Card",
+        "Bank Transfer",
+        "Credit on Account",
+        "Other"
+      ]
     },
     "payment_status": {
       "type": "string",
-      "enum": ["PAID", "CASH", "PENDING"],
       "title": "Payment Status",
+      "enum": [
+        "PAID",
+        "CASH",
+        "PENDING"
+      ],
       "default": "PENDING"
+    },
+    "delivery_address": {
+      "type": "string",
+      "title": "Delivery Address"
+    },
+    "special_instructions": {
+      "type": "string",
+      "title": "Special Instructions"
+    },
+    "priority_level": {
+      "type": "string",
+      "title": "Priority Level",
+      "enum": [
+        "Low",
+        "Medium",
+        "High"
+      ],
+      "default": "Medium"
+    },
+    "planner_status": {
+      "type": "string",
+      "title": "Planner Status",
+      "enum": [
+        "Pending",
+        "Processing",
+        "Ready",
+        "Dispatched"
+      ],
+      "default": "Pending"
+    },
+    "source_report_id": {
+      "type": "string",
+      "title": "Source Report ID"
     },
     "order_date": {
       "type": "string",
@@ -62,15 +80,21 @@
     },
     "status": {
       "type": "string",
-      "enum": ["Pending", "Confirmed", "Fulfilled", "Cancelled", "Complete"],
+      "enum": [
+        "Pending",
+        "Confirmed",
+        "Fulfilled",
+        "Cancelled"
+      ],
       "title": "Status"
-    },
-    "source_report_id": {
-      "type": "string",
-      "title": "Source Report ID"
     }
   },
-  "required": ["client_name", "order_details", "order_date", "status"],
+  "required": [
+    "client_name",
+    "order_details",
+    "order_date",
+    "status"
+  ],
   "rls": {
     "create": null,
     "read": null,
