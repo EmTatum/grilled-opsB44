@@ -41,7 +41,7 @@ export default function ConversationIntelligencePanel({ notes = [], onSaved }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const existingGeneratedNotes = useMemo(() => {
-    return notes.filter((note) => getGeneratedIntelligenceKey(note) === getGeneratedIntelligenceKey({ client_name: report?.client_snapshot?.[0] || "", tags: ["sales-intelligence", "whatsapp-analysis"] }));
+    return notes.filter((note) => getGeneratedIntelligenceKey(note) === getGeneratedIntelligenceKey({ client_name: report?.member_snapshot?.name || "", tags: ["sales-intelligence", "whatsapp-analysis"] }));
   }, [notes, report]);
 
   const analyzeConversation = async () => {
@@ -242,7 +242,43 @@ Conversation:\n${sanitizedConversation}`,
 
       {report && (
         <div style={{ marginTop: "22px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
-...
+          <div style={cardStyle}>
+            <p style={labelStyle}>Member Snapshot</p>
+            <p style={bodyText}>Name: {report.member_snapshot?.name || "Not recorded."}</p>
+            <p style={bodyText}>Contact number: {report.member_snapshot?.contact_number || "Not recorded."}</p>
+            <p style={bodyText}>Location / Area: {report.member_snapshot?.location_area || "Not recorded."}</p>
+            <p style={bodyText}>Referred by: {report.member_snapshot?.referred_by || "Not recorded."}</p>
+          </div>
+
+          <div style={cardStyle}>
+            <p style={labelStyle}>Order Profile</p>
+            <p style={bodyText}>Products ordered or discussed: {report.order_profile?.products_ordered_or_discussed || "Not recorded."}</p>
+            <p style={bodyText}>Quantities: {report.order_profile?.quantities || "Not recorded."}</p>
+            <p style={bodyText}>Preferred delivery method: {report.order_profile?.preferred_delivery_method || "Not recorded."}</p>
+            <p style={bodyText}>Preferred delivery area or meeting point: {report.order_profile?.preferred_delivery_area_or_meeting_point || "Not recorded."}</p>
+            <p style={bodyText}>Any standing preferences noted: {report.order_profile?.standing_preferences || "Not recorded."}</p>
+          </div>
+
+          <div style={cardStyle}>
+            <p style={labelStyle}>Financial Status</p>
+            <p style={bodyText}>Amount owed: {report.financial_status?.amount_owed || "Not recorded."}</p>
+            <p style={bodyText}>Credit on account: {report.financial_status?.credit_on_account || "Not recorded."}</p>
+            <p style={bodyText}>Payment method used or preferred: {report.financial_status?.payment_method || "Not recorded."}</p>
+            <p style={bodyText}>Any outstanding payment flag: {report.financial_status?.outstanding_payment_flag || "Not recorded."}</p>
+          </div>
+
+          <div style={cardStyle}>
+            <p style={labelStyle}>Concierge Brief</p>
+            <p style={bodyText}>How this member communicates: {report.concierge_brief?.communication_style || "Not recorded."}</p>
+            <p style={bodyText}>Response style recommended: {report.concierge_brief?.response_style_recommended || "Not recorded."}</p>
+            <p style={bodyText}>Any red flags noted from the conversation: {report.concierge_brief?.red_flags || "Not recorded."}</p>
+            <p style={bodyText}>Any green flags: {report.concierge_brief?.green_flags || "Not recorded."}</p>
+          </div>
+
+          <div style={{ ...cardStyle, gridColumn: "1 / -1" }}>
+            <p style={labelStyle}>Next Action</p>
+            <p style={bodyText}>{report.next_action || "Not recorded."}</p>
+          </div>
         </div>
       )}
 
