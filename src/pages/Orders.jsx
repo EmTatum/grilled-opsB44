@@ -177,7 +177,7 @@ export default function Orders() {
     const map = {};
     weekDays.forEach((day) => {
       const key = day.format("YYYY-MM-DD");
-      map[key] = filteredOrders.filter((order) => getOrderMoment(order).format("YYYY-MM-DD") === key);
+      map[key] = filteredOrders.filter((order) => getReportMoment(order)?.format("YYYY-MM-DD") === key);
     });
     return map;
   }, [filteredOrders, weekDays]);
@@ -191,7 +191,8 @@ export default function Orders() {
 
   const ordersByDay = useMemo(() => {
     return filteredOrders.reduce((acc, order) => {
-      const key = getOrderMoment(order).format("YYYY-MM-DD");
+      const key = getReportMoment(order)?.format("YYYY-MM-DD");
+      if (!key) return acc;
       if (!acc[key]) acc[key] = [];
       acc[key].push(order);
       return acc;
