@@ -71,7 +71,7 @@ export default function IntelligenceReportModal({ open, onOpenChange, report, on
 
   if (!report || !draft) return null;
 
-  const meta = [draft.client_number, draft.dropoff_date, draft.client_address].filter((value) => value && value !== "Not recorded.").join(" · ");
+  const meta = [draft.cell_number, draft.delivery_date, draft.delivery_address].filter((value) => value && value !== "Not recorded.").join(" · ");
 
   const renderField = (label, key, multiline = false) => {
     if (!isEditing) {
@@ -151,9 +151,9 @@ export default function IntelligenceReportModal({ open, onOpenChange, report, on
                   <div style={{ height: "1px", width: "60px", background: "#d29c6c", marginTop: "10px" }} />
                 </div>
                 {renderField("Client Name", "client_name")}
-                {renderField("Client Number", "client_number")}
-                {renderField("Drop-off Date", "dropoff_date")}
-                {renderField("Client Address / Drop-off Location", "client_address", true)}
+                {renderField("Cell Number", "cell_number")}
+                {renderField("Payment Method", "payment_method")}
+                {renderField("Payment Status", "payment_status")}
               </div>
 
               <div style={sectionStyle}>
@@ -161,10 +161,10 @@ export default function IntelligenceReportModal({ open, onOpenChange, report, on
                   <p style={labelStyle}>Order Details</p>
                   <div style={{ height: "1px", width: "60px", background: "#d29c6c", marginTop: "10px" }} />
                 </div>
-                {renderField("Full Order Description", "full_order_description", true)}
-                {renderField("Payment Method", "payment_method")}
-                {renderField("Total Amount in ZAR", "total_amount_zar")}
-                {renderField("Payment Status", "payment_status")}
+                {renderField("Delivery Date", "delivery_date")}
+                {renderField("Delivery Address", "delivery_address", true)}
+                {renderField("Order List", "order_list", true)}
+                {renderField("Order Total", "order_total")}
               </div>
             </div>
 
@@ -173,10 +173,10 @@ export default function IntelligenceReportModal({ open, onOpenChange, report, on
                 <p style={labelStyle}>Client Notes</p>
                 <div style={{ height: "1px", width: "60px", background: "#d29c6c", marginTop: "10px" }} />
               </div>
-              {renderField("Behavioral Insights", "behavioral_insights", true)}
+              {renderField("Sentiment Analysis", "sentiment_analysis", true)}
               {renderField("Red Flags", "red_flags", true)}
               {renderField("Green Flags", "green_flags", true)}
-              {renderField("Action Item", "action_item", true)}
+              {renderField("Next Action", "next_action", true)}
             </div>
           </div>
         </div>

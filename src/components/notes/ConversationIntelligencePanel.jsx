@@ -55,7 +55,7 @@ export default function ConversationIntelligencePanel({ onSaved }) {
   const [report, setReport] = useState(null);
 
   const headerMeta = useMemo(() => {
-    const parts = [report?.client_number, report?.dropoff_date, report?.client_address].filter((value) => value && value !== "Not recorded.");
+    const parts = [report?.cell_number, report?.delivery_date, report?.delivery_address].filter((value) => value && value !== "Not recorded.");
     return parts.join(" · ");
   }, [report]);
 
@@ -66,74 +66,75 @@ export default function ConversationIntelligencePanel({ onSaved }) {
     const sanitizedConversation = maskSensitiveDetails(conversation);
 
     const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are generating a fixed internal Grilled.inc member intelligence dossier from a pasted WhatsApp conversation.
+      prompt: `You are generating an internal Grilled.inc intelligence dossier from a pasted WhatsApp conversation.
 
-Follow these rules exactly:
-- Extract intelligence only. Do not summarize the conversation generally.
-- Use a controlled, concise, operational tone.
-- Declarative sentences only.
-- No hype. No exclamation marks.
-- Output only the requested structure. Nothing more.
-- If a field is missing, use exactly the fallback required for that field.
-- Payment Method may only be: Cash, EFT, or Not recorded.
-- Payment Status may only be: Paid or To Be Paid.
+Your job is to extract aggressively, thoroughly, and operationally.
+Treat this as intelligence work.
+Pull every possible usable detail from the conversation, including implied signals when they are reasonably supported by the wording.
+If a client says "same place as last time", that is a delivery address signal.
+If a client says "I'll sort you out when I see you", that is a payment status signal and should usually be treated as PENDING.
+Do not leave any field blank.
+If a field is genuinely not present, return exactly "Not recorded." except where a different fallback is explicitly required.
 
-Return exactly these three sections in this order:
+Return only the requested JSON structure.
+No commentary.
+No markdown.
+No extra keys.
 
-SECTION 1 — CLIENT INFORMATION
-- Client Name
-- Client Number (phone/contact)
-- Drop-off Date
-- Client Address / Drop-off Location
-
-SECTION 2 — ORDER DETAILS
-- Full Order Description: every product and quantity listed line by line
-- Payment Method: Cash or EFT only
-- Total Amount in ZAR: calculated or mentioned total (if not stated, write exactly: Not confirmed.)
-- Payment Status: Paid or To Be Paid
-
-SECTION 3 — CLIENT NOTES
-- Behavioral Insights: concise, observational, no judgment language
-- Red Flags: any concerning signals from the conversation. If none, write exactly: None recorded.
-- Green Flags: positive signals from the conversation. If none, write exactly: None recorded.
-
-For Full Order Description:
-- Use specifically the enquiry or order from the VERY LAST time the client spoke to us in the conversation.
-- Treat the conversation as chronological and prioritize the final exchange only.
-- If earlier orders or products are mentioned but the last exchange contains a newer enquiry or order, ignore the earlier ones and use only the final exchange.
-- Return a clean line-by-line list.
-- Each line should follow: Product name — quantity/detail.
-- No bullets, numbering, or extra labels.
-- If the final exchange contains no clear enquiry or order, write exactly: Not recorded.
+EXTRACTION RULES:
+- client_name: full name as referenced in the chat.
+- cell_number: any phone number mentioned or visible in the conversation/header metadata.
+- payment_method: must be exactly one of Cash, EFT, Bank Transfer, Crypto, or Not recorded.
+- payment_status: must be exactly one of PAID, CASH, or PENDING.
+  - PAID = payment clearly confirmed as received or already sent.
+  - CASH = cash on delivery / cash on pickup clearly agreed.
+  - PENDING = payment not confirmed, deferred, vague, or still outstanding.
+- delivery_date: the delivery or pickup date/timeframe discussed, such as 23 April, tonight, tomorrow, this weekend.
+- delivery_address: any physical address, suburb, landmark, meeting point, or implied repeat-location reference.
+- order_list: every product and quantity mentioned from the VERY LAST time the client spoke to us about the order.
+- Treat the conversation as chronological and prioritize the final exchange only for the active order.
+- If earlier orders are mentioned but the last exchange contains a newer enquiry/order, ignore earlier order contents.
+- order_list must be a clean line-by-line list.
+- Each line must follow exactly: Product Name — Quantity.
+- Do not group items.
+- Do not summarise.
+- If the final exchange contains no clear order, return exactly Not recorded.
+- order_total: use the exact total in ZAR if mentioned or reasonably calculable from the conversation. If not, return exactly Not confirmed.
+- sentiment_analysis: 2-3 concise sentences describing the client's tone, communication style, and attitude. Observational only.
+- red_flags: concerning signals only. If none, return exactly None recorded.
+- green_flags: positive signals only. If none, return exactly None recorded.
+- next_action: one declarative sentence only. The single most important next team action.
 
 Conversation:\n${sanitizedConversation}`,
       response_json_schema: {
         type: "object",
         properties: {
           client_name: { type: "string" },
-          client_number: { type: "string" },
-          dropoff_date: { type: "string" },
-          client_address: { type: "string" },
-          full_order_description: { type: "string" },
+          cell_number: { type: "string" },
           payment_method: { type: "string" },
-          total_amount_zar: { type: "string" },
           payment_status: { type: "string" },
-          behavioral_insights: { type: "string" },
+          delivery_date: { type: "string" },
+          delivery_address: { type: "string" },
+          order_list: { type: "string" },
+          order_total: { type: "string" },
+          sentiment_analysis: { type: "string" },
           red_flags: { type: "string" },
-          green_flags: { type: "string" }
+          green_flags: { type: "string" },
+          next_action: { type: "string" }
         },
         required: [
           "client_name",
-          "client_number",
-          "dropoff_date",
-          "client_address",
-          "full_order_description",
+          "cell_number",
           "payment_method",
-          "total_amount_zar",
           "payment_status",
-          "behavioral_insights",
+          "delivery_date",
+          "delivery_address",
+          "order_list",
+          "order_total",
+          "sentiment_analysis",
           "red_flags",
-          "green_flags"
+          "green_flags",
+          "next_action"
         ]
       }
     });
@@ -149,37 +150,45 @@ Conversation:\n${sanitizedConversation}`,
       content: [
         "CLIENT INFORMATION",
         `Client Name: ${result.client_name || "Not recorded."}`,
-        `Client Number: ${result.client_number || "Not recorded."}`,
-        `Drop-off Date: ${result.dropoff_date || "Not recorded."}`,
-        `Client Address / Drop-off Location: ${result.client_address || "Not recorded."}`,
+        `Cell Number: ${result.cell_number || "Not recorded."}`,
+        `Payment Method: ${result.payment_method || "Not recorded."}`,
+        `Payment Status: ${result.payment_status || "PENDING"}`,
+        "",
+        "DELIVERY INFORMATION",
+        `Delivery Date: ${result.delivery_date || "Not recorded."}`,
+        `Delivery Address: ${result.delivery_address || "Not recorded."}`,
         "",
         "ORDER DETAILS",
-        `${result.full_order_description || "Not recorded."}`,
-        `Payment Method: ${result.payment_method || "Not recorded."}`,
-        `Total Amount in ZAR: ${result.total_amount_zar || "Not confirmed."}`,
-        `Payment Status: ${result.payment_status || "To Be Paid"}`,
+        `${result.order_list || "Not recorded."}`,
+        `Order Total: ${result.order_total || "Not confirmed."}`,
         "",
-        "CLIENT NOTES",
-        `Behavioral Insights: ${result.behavioral_insights || "Not recorded."}`,
+        "CLIENT SENTIMENT",
+        `Sentiment Analysis: ${result.sentiment_analysis || "Not recorded."}`,
+        "",
+        "FLAGS",
         `Red Flags: ${result.red_flags || "None recorded."}`,
         `Green Flags: ${result.green_flags || "None recorded."}`,
+        "",
+        "NEXT STEPS",
+        `Next Action: ${result.next_action || "Not recorded."}`,
       ].join("\n"),
-      total_spend: Number(String(result.total_amount_zar || "").replace(/[^\d.]/g, "")) || 0,
+      total_spend: Number(String(result.order_total || "").replace(/[^\d.]/g, "")) || 0,
       tags: [
-        "intelligence-report-v2",
-        `payment-status:${result.payment_status || "To Be Paid"}`,
+        "intelligence-report-v3",
+        `payment-status:${result.payment_status || "PENDING"}`,
         `report-data:${JSON.stringify({
           client_name: result.client_name || "Not recorded.",
-          client_number: result.client_number || "Not recorded.",
-          dropoff_date: result.dropoff_date || "Not recorded.",
-          client_address: result.client_address || "Not recorded.",
-          full_order_description: result.full_order_description || "Not recorded.",
+          cell_number: result.cell_number || "Not recorded.",
           payment_method: result.payment_method || "Not recorded.",
-          total_amount_zar: result.total_amount_zar || "Not confirmed.",
-          payment_status: result.payment_status || "To Be Paid",
-          behavioral_insights: result.behavioral_insights || "Not recorded.",
+          payment_status: result.payment_status || "PENDING",
+          delivery_date: result.delivery_date || "Not recorded.",
+          delivery_address: result.delivery_address || "Not recorded.",
+          order_list: result.order_list || "Not recorded.",
+          order_total: result.order_total || "Not confirmed.",
+          sentiment_analysis: result.sentiment_analysis || "Not recorded.",
           red_flags: result.red_flags || "None recorded.",
           green_flags: result.green_flags || "None recorded.",
+          next_action: result.next_action || "Not recorded.",
         })}`,
       ],
     };
@@ -239,9 +248,9 @@ Conversation:\n${sanitizedConversation}`,
                 <div style={{ height: "1px", width: "60px", background: "#d29c6c", marginTop: "10px" }} />
               </div>
               <div><p style={fieldLabel}>Client Name</p><p style={fieldValue}>{report.client_name || "Not recorded."}</p></div>
-              <div><p style={fieldLabel}>Client Number</p><p style={fieldValue}>{report.client_number || "Not recorded."}</p></div>
-              <div><p style={fieldLabel}>Drop-off Date</p><p style={fieldValue}>{report.dropoff_date || "Not recorded."}</p></div>
-              <div><p style={fieldLabel}>Client Address / Drop-off Location</p><p style={fieldValue}>{report.client_address || "Not recorded."}</p></div>
+              <div><p style={fieldLabel}>Cell Number</p><p style={fieldValue}>{report.cell_number || "Not recorded."}</p></div>
+              <div><p style={fieldLabel}>Payment Method</p><p style={fieldValue}>{report.payment_method || "Not recorded."}</p></div>
+              <div><p style={fieldLabel}>Payment Status</p><p style={fieldValue}>{report.payment_status || "PENDING"}</p></div>
             </div>
 
             <div style={reportSectionStyle}>
@@ -249,10 +258,10 @@ Conversation:\n${sanitizedConversation}`,
                 <p style={labelStyle}>Order Details</p>
                 <div style={{ height: "1px", width: "60px", background: "#d29c6c", marginTop: "10px" }} />
               </div>
-              <div><p style={fieldLabel}>Full Order Description</p><p style={{ ...fieldValue, whiteSpace: "pre-line" }}>{report.full_order_description || "Not recorded."}</p></div>
-              <div><p style={fieldLabel}>Payment Method</p><p style={fieldValue}>{report.payment_method || "Not recorded."}</p></div>
-              <div><p style={fieldLabel}>Total Amount in ZAR</p><p style={fieldValue}>{report.total_amount_zar || "Not confirmed."}</p></div>
-              <div><p style={fieldLabel}>Payment Status</p><p style={fieldValue}>{report.payment_status || "To Be Paid"}</p></div>
+              <div><p style={fieldLabel}>Delivery Date</p><p style={fieldValue}>{report.delivery_date || "Not recorded."}</p></div>
+              <div><p style={fieldLabel}>Delivery Address</p><p style={{ ...fieldValue, whiteSpace: "pre-line" }}>{report.delivery_address || "Not recorded."}</p></div>
+              <div><p style={fieldLabel}>Order List</p><p style={{ ...fieldValue, whiteSpace: "pre-line" }}>{report.order_list || "Not recorded."}</p></div>
+              <div><p style={fieldLabel}>Order Total</p><p style={fieldValue}>{report.order_total || "Not confirmed."}</p></div>
             </div>
           </div>
 
@@ -261,9 +270,10 @@ Conversation:\n${sanitizedConversation}`,
               <p style={labelStyle}>Client Notes</p>
               <div style={{ height: "1px", width: "60px", background: "#d29c6c", marginTop: "10px" }} />
             </div>
-            <div><p style={fieldLabel}>Behavioral Insights</p><p style={fieldValue}>{report.behavioral_insights || "Not recorded."}</p></div>
+            <div><p style={fieldLabel}>Sentiment Analysis</p><p style={fieldValue}>{report.sentiment_analysis || "Not recorded."}</p></div>
             <div><p style={fieldLabel}>Red Flags</p><p style={fieldValue}>{report.red_flags || "None recorded."}</p></div>
             <div><p style={fieldLabel}>Green Flags</p><p style={fieldValue}>{report.green_flags || "None recorded."}</p></div>
+            <div><p style={fieldLabel}>Next Action</p><p style={fieldValue}>{report.next_action || "Not recorded."}</p></div>
           </div>
         </div>
       )}

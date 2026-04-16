@@ -67,11 +67,11 @@ export default function IntelligenceReportCard({ report, onOpen }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "14px 18px" }}>
         <div>
           <p style={labelStyle}>Date of Delivery</p>
-          <p style={valueStyle}>{report.dropoff_date || "Not recorded."}</p>
+          <p style={valueStyle}>{report.delivery_date || "Not recorded."}</p>
         </div>
         <div>
           <p style={labelStyle}>Cell Number</p>
-          <p style={valueStyle}>{report.client_number || "Not recorded."}</p>
+          <p style={valueStyle}>{report.cell_number || "Not recorded."}</p>
         </div>
         <div>
           <p style={labelStyle}>Payment Status</p>
@@ -83,7 +83,7 @@ export default function IntelligenceReportCard({ report, onOpen }) {
 
       <div>
         <p style={labelStyle}>Action Item</p>
-        <p style={{ ...valueStyle, color: "rgba(238,227,180,0.72)" }}>{report.action_item || "Not recorded."}</p>
+        <p style={{ ...valueStyle, color: "rgba(238,227,180,0.72)" }}>{report.next_action || "Not recorded."}</p>
       </div>
     </button>
   );
