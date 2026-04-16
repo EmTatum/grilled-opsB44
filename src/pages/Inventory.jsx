@@ -66,9 +66,9 @@ function ProcurementStatus({ productName, latestStockCount }) {
   const latest = Number(latestStockCount || 0);
   const rule = PRODUCT_RULES[normalizedName];
 
-  let label = "Sufficient";
-  let color = "#2E8B57";
-  let background = "rgba(46,139,87,0.18)";
+  let label = "Good";
+  let color = "#F5F0E8";
+  let background = "#2E8B57";
 
   if (rule && latest < rule.critical) {
     label = "NB ORDER";
