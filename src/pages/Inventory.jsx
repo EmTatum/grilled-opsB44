@@ -42,11 +42,17 @@ const PRODUCT_NAME_MAP = {
   "Love MD": "MD",
   "Mary Jane": "Bud",
   "Mushie Nuggets": "Mushrooms",
+  "Special K": "Ketamine",
   "Special k": "Ketamine",
+  "Ketamine": "Ketamine",
   "Sweets": "Ecstasy",
+  "Sweets (CBD Edibles)": "Ecstasy",
+  "Ecstasy": "Ecstasy",
   "Zol-Pies": "Zolpidiem",
+  "Zolpidiem": "Zolpidiem",
   "Acid": "Acid",
   "Xannie pots": "Xannie Pots",
+  "Xannnie pots": "Xannie Pots",
   "Xannie Pots": "Xannie Pots"
 };
 
