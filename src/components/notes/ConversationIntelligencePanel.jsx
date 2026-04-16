@@ -105,11 +105,21 @@ MEMBER SNAPSHOT
 - Referred by
 
 ORDER PROFILE
-- Products ordered or discussed
-- Quantities
-- Preferred delivery method
-- Preferred delivery area or meeting point
-- Any standing preferences noted
+- Actual order
+- Preferences
+
+For Actual order:
+- Return only the actual items discussed or confirmed in the conversation.
+- Format as a clean line-by-line list.
+- Each line should follow this pattern: Product name — quantity/detail.
+- Do not add labels, numbering, categories, commentary, or extra explanation.
+- If nothing is clearly ordered, write exactly: Not recorded.
+
+For Preferences:
+- Return exactly one condensed line containing the order date and the drop-off/meeting location.
+- Format like: 23 April · Near waterfront.
+- If one part is missing, include only the part that exists.
+- If neither is present, write exactly: Not recorded.
 
 FINANCIAL STATUS
 - Amount owed
@@ -143,13 +153,10 @@ Conversation:\n${sanitizedConversation}`,
           order_profile: {
             type: "object",
             properties: {
-              products_ordered_or_discussed: { type: "string" },
-              quantities: { type: "string" },
-              preferred_delivery_method: { type: "string" },
-              preferred_delivery_area_or_meeting_point: { type: "string" },
-              standing_preferences: { type: "string" }
+              actual_order: { type: "string" },
+              preferences: { type: "string" }
             },
-            required: ["products_ordered_or_discussed", "quantities", "preferred_delivery_method", "preferred_delivery_area_or_meeting_point", "standing_preferences"]
+            required: ["actual_order", "preferences"]
           },
           financial_status: {
             type: "object",
@@ -194,11 +201,8 @@ Conversation:\n${sanitizedConversation}`,
       `- Referred by: ${report.member_snapshot?.referred_by || "Not recorded."}`,
       "",
       "ORDER PROFILE",
-      `- Products ordered or discussed: ${report.order_profile?.products_ordered_or_discussed || "Not recorded."}`,
-      `- Quantities: ${report.order_profile?.quantities || "Not recorded."}`,
-      `- Preferred delivery method: ${report.order_profile?.preferred_delivery_method || "Not recorded."}`,
-      `- Preferred delivery area or meeting point: ${report.order_profile?.preferred_delivery_area_or_meeting_point || "Not recorded."}`,
-      `- Any standing preferences noted: ${report.order_profile?.standing_preferences || "Not recorded."}`,
+      `${report.order_profile?.actual_order || "Not recorded."}`,
+      `PREFERENCES: ${report.order_profile?.preferences || "Not recorded."}`,
       "",
       "FINANCIAL STATUS",
       `- Amount owed: ${report.financial_status?.amount_owed || "Not recorded."}`,
@@ -351,24 +355,11 @@ Conversation:\n${sanitizedConversation}`,
                   <div style={{ height: "1px", width: "60px", background: "#d29c6c", marginTop: "10px" }} />
                 </div>
                 <div>
-                  <p style={fieldLabel}>Products Ordered or Discussed</p>
-                  <p style={fieldValue}>{report.order_profile?.products_ordered_or_discussed || "Not recorded."}</p>
+                  <p style={{ ...fieldValue, whiteSpace: "pre-line", marginTop: 0 }}>{report.order_profile?.actual_order || "Not recorded."}</p>
                 </div>
                 <div>
-                  <p style={fieldLabel}>Quantities</p>
-                  <p style={fieldValue}>{report.order_profile?.quantities || "Not recorded."}</p>
-                </div>
-                <div>
-                  <p style={fieldLabel}>Preferred Delivery Method</p>
-                  <p style={fieldValue}>{report.order_profile?.preferred_delivery_method || "Not recorded."}</p>
-                </div>
-                <div>
-                  <p style={fieldLabel}>Preferred Delivery Area or Meeting Point</p>
-                  <p style={fieldValue}>{report.order_profile?.preferred_delivery_area_or_meeting_point || "Not recorded."}</p>
-                </div>
-                <div>
-                  <p style={fieldLabel}>Standing Preferences Noted</p>
-                  <p style={fieldValue}>{report.order_profile?.standing_preferences || "Not recorded."}</p>
+                  <p style={fieldLabel}>Preferences</p>
+                  <p style={fieldValue}>{report.order_profile?.preferences || "Not recorded."}</p>
                 </div>
               </div>
 
