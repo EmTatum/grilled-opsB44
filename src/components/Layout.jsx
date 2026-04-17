@@ -166,6 +166,30 @@ export default function Layout() {
           <p style={{ fontFamily: "var(--font-body)", fontSize: "11px", fontWeight: 300, color: "rgba(210,156,108,0.5)", letterSpacing: "0.12em", textAlign: "center", marginTop: "6px", textTransform: "uppercase" }}>INTERNAL OPERATIONS</p>
           <div style={{ height: "1px", width: "100%", background: "rgba(210,156,108,0.2)", marginTop: "16px" }} />
         </div>
+        <div style={{ padding: "0 16px 12px", position: "relative" }}>
+          <div style={{ position: "relative" }}>
+            <Search size={12} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "rgba(245,240,232,0.3)" }} />
+            <input
+              value={memberSearch}
+              onChange={(e) => setMemberSearch(e.target.value)}
+              placeholder="Search member..."
+              style={{ width: "100%", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.2)", color: "#F5F0E8", fontFamily: "var(--font-body)", fontSize: "13px", padding: "10px 12px 10px 32px", outline: "none", borderRadius: "2px" }}
+            />
+          </div>
+          {filteredResults.length > 0 && (
+            <div style={{ position: "absolute", left: "16px", right: "16px", top: "44px", background: "#111111", border: "1px solid rgba(201,168,76,0.2)", zIndex: 120 }}>
+              {filteredResults.map((item) => (
+                <button
+                  key={item.client_name}
+                  onClick={() => handleMemberSelect(item.client_name)}
+                  style={{ width: "100%", textAlign: "left", background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.04)", color: "#F5F0E8", fontFamily: "var(--font-body)", fontSize: "12px", padding: "10px 12px", cursor: "pointer" }}
+                >
+                  {item.client_name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <nav style={{ flex: 1, paddingTop: "8px" }}>
           {navItems.map((item, i) => {
             const isActive = location.pathname === item.path;
