@@ -1,0 +1,131 @@
+{
+  "name": "CustomerNote",
+  "type": "object",
+  "properties": {
+    "client_name": {
+      "type": "string",
+      "title": "Client Name"
+    },
+    "note_type": {
+      "type": "string",
+      "enum": [
+        "Credit on Account",
+        "Debt on Account",
+        "Needs Attention",
+        "Client Retention",
+        "General"
+      ],
+      "title": "Note Type"
+    },
+    "content": {
+      "type": "string",
+      "title": "Note Content"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "Low",
+        "Medium",
+        "High"
+      ],
+      "title": "Priority"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags"
+    },
+    "last_order_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Order Date"
+    },
+    "total_spend": {
+      "type": "number",
+      "title": "Total Spend",
+      "default": 0
+    },
+    "delivery_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Delivery Date"
+    },
+    "cell_number": {
+      "type": "string",
+      "title": "Cell Number"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "PAID",
+        "CASH",
+        "PENDING"
+      ],
+      "title": "Payment Status",
+      "default": "PENDING"
+    },
+    "order_total": {
+      "type": "number",
+      "title": "Order Total (R)",
+      "default": 0
+    },
+    "delivery_address": {
+      "type": "string",
+      "title": "Delivery Address"
+    },
+    "order_list": {
+      "type": "string",
+      "title": "Order List"
+    },
+    "next_action": {
+      "type": "string",
+      "title": "Next Action"
+    },
+    "fulfilment_status": {
+      "type": "string",
+      "enum": [
+        "Active",
+        "Fulfilled",
+        "Cancelled"
+      ],
+      "title": "Fulfilment Status",
+      "default": "Active"
+    }
+  },
+  "required": [
+    "client_name",
+    "note_type",
+    "content",
+    "priority"
+  ],
+  "rls": {
+    "create": null,
+    "read": null,
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
