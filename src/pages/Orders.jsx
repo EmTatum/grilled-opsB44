@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import moment from "moment";
-import { getIntelligenceReportViewModel, getReportDataFromTags, isIntelligenceReportNote, normalizePaymentStatus } from "../utils/customerNotes";
+import { getIntelligenceReportViewModel, isIntelligenceReportNote, normalizePaymentStatus } from "../utils/customerNotes";
 
 const GoldBtn = ({ onClick, children }) => (
   <button
@@ -52,64 +52,51 @@ const paymentBadgeMap = {
 };
 
 const statusBlockConfig = {
-  upcoming: { label: "UPCOMING", background: "#1a1a1a", labelColor: "#C9A84C", valueColor: "#C9A84C" },
+  upcoming: { label: "UPCOMING", background: "#0f2426", labelColor: "#7fc3cb", valueColor: "#7fc3cb" },
   pending: { label: "PENDING", background: "#1a1a1a", labelColor: "#C9A84C", valueColor: "#C9A84C" },
-  urgent: { label: "URGENT", background: "#1a1a1a", labelColor: "#C9A84C", valueColor: "#C9A84C", strong: true },
-  fulfilled: { label: "FULFILLED", background: "#1a1a1a", labelColor: "rgba(245,240,232,0.7)", valueColor: "#C9A84C" },
-  overdue: { label: "OVERDUE", background: "#1a1a1a", labelColor: "#C2185B", valueColor: "#C9A84C", italic: true },
+  urgent: { label: "URGENT", background: "#2b1116", labelColor: "#C2185B", valueColor: "#F5F0E8", strong: true },
+  fulfilled: { label: "FULFILLED", background: "#161616", labelColor: "rgba(245,240,232,0.7)", valueColor: "#F5F0E8" },
+  overdue: { label: "OVERDUE", background: "#2b1116", labelColor: "#C2185B", valueColor: "#C9A84C", italic: true },
 };
 
 const parseReportDate = (value) => {
-  if (!value || value === "Not recorded.") return null;
-  const parsed = moment(value, [moment.ISO_8601, "D MMMM YYYY", "D MMM YYYY", "Do MMMM", "Do MMM", "D MMMM", "D MMM", "MMMM D YYYY", "MMM D YYYY", "MMMM D", "MMM D"], true);
-  if (parsed.isValid()) {
-    if (!/\d{4}/.test(String(value))) parsed.year(moment().year());
-    return parsed;
-  }
-  const fallback = moment(new Date(value));
-  return fallback.isValid() ? fallback : null;
+  if (!value) return null;
+  const parsed = moment(value, "YYYY-MM-DD", true);
+  if (parsed.isValid()) return parsed;
+  return null;
 };
 
-const mapNoteToReport = (note) => {
-  const rawData = getReportDataFromTags(note.tags || []) || {};
-  const normalizedStatus = normalizePaymentStatus(rawData.payment_status, rawData.payment_method);
-  const parsedDeliveryMoment = parseReportDate(rawData.delivery_date || "Not recorded.");
-
-  return {
-    ...getIntelligenceReportViewModel(note),
-    id: note.id,
-    client_name: note.client_name || rawData.client_name || "Not recorded.",
-    delivery_date: rawData.delivery_date || "Not recorded.",
-    payment_status: normalizedStatus,
-    order_list: rawData.order_list || "Not recorded.",
-    order_total: rawData.order_total || "Not confirmed.",
-    delivery_address: rawData.delivery_address || "Not recorded.",
-    next_action: rawData.next_action || "Not recorded.",
-    delivery_time: parsedDeliveryMoment ? parsedDeliveryMoment.format("HH:mm") : "",
-  };
+const formatCurrency = (value) => {
+  const amount = Number(value || 0);
+  return amount > 0 ? `R${amount.toLocaleString("en-ZA")}` : "R0";
 };
+
+const mapNoteToReport = (note) => ({
+  ...getIntelligenceReportViewModel(note),
+  id: note.id,
+  client_name: note.client_name || "Not recorded.",
+  delivery_date: note.delivery_date || null,
+  payment_status: normalizePaymentStatus(note.payment_status, ""),
+  order_list: note.order_list || "Not recorded.",
+  order_total: Number(note.order_total || 0),
+  delivery_address: note.delivery_address || "Not recorded.",
+  next_action: note.next_action || "Not recorded.",
+  fulfilment_status: note.fulfilment_status || "Active",
+});
 
 const getReportMoment = (report) => parseReportDate(report.delivery_date);
-const isFulfilled = (report) => {
-  const reportMoment = getReportMoment(report);
-  if (!reportMoment) return false;
-  return reportMoment.isBefore(moment(), "day");
-};
-const isPending = (report) => report.delivery_date === "Not recorded.";
-const isUrgent = (report) => {
-  const reportMoment = getReportMoment(report);
-  if (!reportMoment) return false;
-  return reportMoment.isSame(moment(), "day") || (reportMoment.isAfter(moment()) && reportMoment.diff(moment(), "hours", true) <= 24);
-};
+const isFulfilled = (report) => report.fulfilment_status === "Fulfilled";
+const isPending = (report) => !report.delivery_date && report.fulfilment_status === "Active";
+const isUrgent = (report) => report.delivery_date === moment().format("YYYY-MM-DD") && report.fulfilment_status === "Active";
 const isUpcoming = (report) => {
   const reportMoment = getReportMoment(report);
   if (!reportMoment) return false;
-  return reportMoment.isAfter(moment(), "day");
+  return reportMoment.isAfter(moment(), "day") && report.fulfilment_status === "Active";
 };
 const isOverdue = (report) => {
   const reportMoment = getReportMoment(report);
   if (!reportMoment) return false;
-  return reportMoment.isBefore(moment(), "day") && String(report.payment_status || "").toUpperCase() !== "PAID";
+  return reportMoment.isBefore(moment(), "day") && report.fulfilment_status === "Active";
 };
 
 const getFilterMatch = (order, filter) => {
@@ -208,10 +195,7 @@ export default function Orders() {
   }, [monthCursor]);
 
   const selectedDayOrders = useMemo(() => sortByDateAsc(allOrdersByDay[selectedDayKey] || []), [allOrdersByDay, selectedDayKey]);
-  const todaysOrders = useMemo(() => sortByDateAsc(reports.filter((report) => {
-    const reportMoment = getReportMoment(report);
-    return reportMoment && reportMoment.isSame(moment(), "day");
-  })), [reports]);
+  const todaysOrders = useMemo(() => sortByDateAsc(reports.filter((report) => report.delivery_date === moment().format("YYYY-MM-DD"))), [reports]);
 
   if (loading) return <Spinner />;
 
@@ -276,7 +260,7 @@ export default function Orders() {
                     <div key={order.id} style={{ textAlign: "left", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.16)", padding: "12px" }}>
                       <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", fontWeight: 600, color: "#F5F0E8" }}>{order.client_name}</p>
                       <p style={{ margin: "8px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(245,240,232,0.58)", lineHeight: 1.5 }}>{order.delivery_address}</p>
-                      <p style={{ margin: "6px 0 0", fontFamily: "var(--font-heading)", fontSize: "18px", color: "#d29c6c" }}>{order.order_total || "Not confirmed."}</p>
+                      <p style={{ margin: "6px 0 0", fontFamily: "var(--font-heading)", fontSize: "18px", color: "#d29c6c" }}>{formatCurrency(order.order_total)}</p>
                       <span style={{ display: "inline-flex", marginTop: "8px", padding: "4px 8px", ...badgeStyle, fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" }}>{order.payment_status || "PENDING"}</span>
                     </div>
                   );
@@ -355,7 +339,7 @@ export default function Orders() {
                   <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600, color: "#F5F0E8" }}>{order.client_name}</p>
                   <p style={{ margin: "8px 0 0", fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.58)", lineHeight: 1.5 }}>{order.delivery_address}</p>
                   <p style={{ margin: "10px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "#eee3b4", lineHeight: 1.6, whiteSpace: "pre-line" }}>{order.order_list}</p>
-                  <p style={{ margin: "10px 0 0", fontFamily: "var(--font-heading)", fontSize: "20px", color: "#d29c6c" }}>{order.order_total || "Not confirmed."}</p>
+                  <p style={{ margin: "10px 0 0", fontFamily: "var(--font-heading)", fontSize: "20px", color: "#d29c6c", fontWeight: 700 }}>{formatCurrency(order.order_total)}</p>
                   <span style={{ display: "inline-flex", marginTop: "10px", padding: "4px 8px", ...badgeStyle, fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" }}>{order.payment_status || "PENDING"}</span>
                   <p style={{ margin: "10px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "#eee3b4", lineHeight: 1.5 }}>{order.next_action || "Not recorded."}</p>
                 </div>
@@ -383,7 +367,7 @@ export default function Orders() {
                     <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.58)" }}>{order.delivery_address}</p>
                   </div>
                   <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-                    <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "20px", color: "#d29c6c" }}>{order.order_total || "Not confirmed."}</p>
+                    <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "20px", color: "#d29c6c" }}>{formatCurrency(order.order_total)}</p>
                     <span style={{ display: "inline-flex", padding: "4px 8px", ...badgeStyle, fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" }}>{order.payment_status || "PENDING"}</span>
                   </div>
                 </div>

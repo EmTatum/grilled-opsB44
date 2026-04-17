@@ -32,13 +32,13 @@ const valueStyle = {
   lineHeight: 1.5,
 };
 
-export default function IntelligenceReportCard({ report, onOpen }) {
+export default function IntelligenceReportCard({ report, onOpen, onMarkFulfilled }) {
   const normalizedStatus = normalizePaymentStatus(report.payment_status, report.payment_method);
   const badgeStyle = statusStyles[normalizedStatus];
+  const isFulfilled = report.fulfilment_status === "Fulfilled";
 
   return (
-    <button
-      onClick={() => onOpen(report)}
+    <div
       style={{
         width: "100%",
         textAlign: "left",
@@ -48,7 +48,6 @@ export default function IntelligenceReportCard({ report, onOpen }) {
         display: "flex",
         flexDirection: "column",
         gap: "14px",
-        cursor: "pointer",
         transition: "all 0.2s ease",
       }}
       onMouseEnter={(e) => {
@@ -60,9 +59,11 @@ export default function IntelligenceReportCard({ report, onOpen }) {
         e.currentTarget.style.boxShadow = "none";
       }}
     >
-      <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 700, color: "#d29c6c", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-        {report.client_name || "Not recorded."}
-      </p>
+      <button onClick={() => onOpen(report)} style={{ background: "transparent", border: "none", padding: 0, margin: 0, textAlign: "left", cursor: "pointer" }}>
+        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 700, color: "#d29c6c", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          {report.client_name || "Not recorded."}
+        </p>
+      </button>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "14px 18px" }}>
         <div>
@@ -85,6 +86,27 @@ export default function IntelligenceReportCard({ report, onOpen }) {
         <p style={labelStyle}>Action Item</p>
         <p style={{ ...valueStyle, color: "rgba(238,227,180,0.72)" }}>{report.next_action || "Not recorded."}</p>
       </div>
-    </button>
+
+      <button
+        onClick={() => !isFulfilled && onMarkFulfilled?.(report.id)}
+        disabled={isFulfilled}
+        style={{
+          background: "transparent",
+          border: isFulfilled ? "1px solid rgba(21,67,74,0.8)" : "1px solid #C9A84C",
+          color: isFulfilled ? "#7fc3cb" : "#C9A84C",
+          fontFamily: "var(--font-body)",
+          fontSize: "11px",
+          fontWeight: 600,
+          letterSpacing: "0.16em",
+          textTransform: "uppercase",
+          padding: "10px 14px",
+          cursor: isFulfilled ? "default" : "pointer",
+          opacity: isFulfilled ? 0.9 : 1,
+          alignSelf: "flex-start"
+        }}
+      >
+        {isFulfilled ? "Fulfilled" : "Mark Fulfilled"}
+      </button>
+    </div>
   );
 }

@@ -125,9 +125,18 @@ export default function Dashboard() {
   const followUpClients = useMemo(() => safeNotes.filter((n) => n.note_type === "Client Retention" || n.note_type === "Needs Attention").length, [safeNotes]);
   const completedToday = useMemo(() => normalizedOrders.filter((o) => o.status === "Fulfilled" && moment(o.updated_date || o.order_date).isSame(moment(), "day")).length, [normalizedOrders]);
   const completedYesterday = useMemo(() => normalizedOrders.filter((o) => o.status === "Fulfilled" && moment(o.updated_date || o.order_date).isSame(moment().subtract(1, "day"), "day")).length, [normalizedOrders]);
-  const revenueToday = useMemo(() => normalizedOrders.filter((o) => o.status === "Fulfilled" && moment(o.order_date).isSame(moment(), "day")).reduce((sum, order) => sum + Number(order.order_value || 0), 0), [normalizedOrders]);
-  const revenueWeek = useMemo(() => normalizedOrders.filter((o) => o.status === "Fulfilled" && moment(o.order_date).isSame(moment(), "week")).reduce((sum, order) => sum + Number(order.order_value || 0), 0), [normalizedOrders]);
-  const revenueMonth = useMemo(() => normalizedOrders.filter((o) => o.status === "Fulfilled" && moment(o.order_date).isSame(moment(), "month")).reduce((sum, order) => sum + Number(order.order_value || 0), 0), [normalizedOrders]);
+  const paidNotes = useMemo(() => safeNotes.filter((n) => n.payment_status === "PAID"), [safeNotes]);
+  const outstandingNotes = useMemo(() => safeNotes.filter((n) => ["CASH", "PENDING"].includes(n.payment_status)), [safeNotes]);
+  const revenueToday = useMemo(() => paidNotes.filter((n) => n.delivery_date === moment().format("YYYY-MM-DD")).reduce((sum, note) => sum + Number(note.order_total || 0), 0), [paidNotes]);
+  const revenueWeek = useMemo(() => paidNotes.filter((n) => {
+    const date = moment(n.delivery_date, "YYYY-MM-DD", true);
+    return date.isValid() && date.isSame(moment(), "week");
+  }).reduce((sum, note) => sum + Number(note.order_total || 0), 0), [paidNotes]);
+  const revenueMonth = useMemo(() => paidNotes.filter((n) => {
+    const date = moment(n.delivery_date, "YYYY-MM-DD", true);
+    return date.isValid() && date.isSame(moment(), "month");
+  }).reduce((sum, note) => sum + Number(note.order_total || 0), 0), [paidNotes]);
+  const outstandingTotal = useMemo(() => outstandingNotes.reduce((sum, note) => sum + Number(note.order_total || 0), 0), [outstandingNotes]);
   const creditOnAccountNotes = useMemo(() => safeNotes.filter((n) => n.note_type === "Credit on Account"), [safeNotes]);
   const debtOnAccountNotes = useMemo(() => safeNotes.filter((n) => n.note_type === "Debt on Account"), [safeNotes]);
   const totalCreditOnAccount = useMemo(() => creditOnAccountNotes.reduce((sum, note) => sum + Number(note.total_spend || 0), 0), [creditOnAccountNotes]);
@@ -169,7 +178,7 @@ export default function Dashboard() {
     const [orderData, productData, noteData] = await Promise.all([
       base44.entities.Order.list("-created_date", 50),
       base44.entities.Product.list("-created_date", 50),
-      base44.entities.CustomerNote.list("-created_date", 50),
+      base44.entities.CustomerNote.list("-created_date", 300),
     ]);
 
     setOrders(orderData ?? []);
@@ -311,6 +320,7 @@ export default function Dashboard() {
           today: revenueToday,
           week: revenueWeek,
           month: revenueMonth,
+          outstanding: outstandingTotal,
         }}
         liquidityTracking={{
           totalDebt: totalDebtOnAccount,

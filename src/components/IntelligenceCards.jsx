@@ -196,12 +196,13 @@ function DailyPerformanceWidget({ stats }) {
 function FinancialSummaryWidget({ stats }) {
   const navigate = useNavigate();
   return (
-    <WidgetCard icon={DollarSign} title="Financial Summary" onClick={() => navigate("/orders")} actionLabel="View Fulfilled Orders">
+    <WidgetCard icon={DollarSign} title="Financial Summary" onClick={() => navigate("/orders")} actionLabel="View Dispatches">
       <p style={valueStyle}>{stats.today > 0 ? `R${Number(stats.today).toLocaleString()}` : "—"}</p>
       <div style={{ marginTop: "10px" }}>
-        <MetricRow label="Today" value={stats.today > 0 ? `R${Number(stats.today).toLocaleString()}` : "—"} />
-        <MetricRow label="This Week" value={stats.week > 0 ? `R${Number(stats.week).toLocaleString()}` : "—"} />
-        <MetricRow label="This Month" value={stats.month > 0 ? `R${Number(stats.month).toLocaleString()}` : "—"} />
+        <MetricRow label="Collected Today" value={stats.today > 0 ? `R${Number(stats.today).toLocaleString()}` : "—"} />
+        <MetricRow label="Collected Week" value={stats.week > 0 ? `R${Number(stats.week).toLocaleString()}` : "—"} />
+        <MetricRow label="Collected Month" value={stats.month > 0 ? `R${Number(stats.month).toLocaleString()}` : "—"} />
+        <MetricRow label="Outstanding" value={stats.outstanding > 0 ? `R${Number(stats.outstanding).toLocaleString()}` : "—"} danger={stats.outstanding > 0} />
       </div>
     </WidgetCard>
   );

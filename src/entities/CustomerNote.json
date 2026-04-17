@@ -39,7 +39,7 @@
     },
     "last_order_date": {
       "type": "string",
-      "format": "date-time",
+      "format": "date",
       "title": "Last Order Date"
     },
     "total_spend": {
@@ -102,7 +102,18 @@
   ],
   "rls": {
     "create": null,
-    "read": null,
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
     "update": {
       "$or": [
         {

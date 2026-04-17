@@ -77,6 +77,8 @@ export default function CustomerNotes() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("new") === "1") { setEditNote(null); setFormOpen(true); }
+    const searchParam = params.get("search");
+    if (searchParam) setSearch(searchParam);
   }, [location.search]);
 
   const { deduped, duplicateSets } = useMemo(() => getDeduplicatedNotes(notes), [notes]);
@@ -97,8 +99,16 @@ export default function CustomerNotes() {
   );
 
   const handleSave = async (data) => {
-    if (editNote) await base44.entities.CustomerNote.update(editNote.id, data);
-    else await base44.entities.CustomerNote.create(data);
+    const today = new Date().toISOString().slice(0, 10);
+    const orderTotalValue = Number(data.order_total || 0) || 0;
+    const payload = {
+      ...data,
+      total_spend: orderTotalValue > 0 ? orderTotalValue : Number(data.total_spend || 0) || 0,
+      last_order_date: today,
+    };
+
+    if (editNote) await base44.entities.CustomerNote.update(editNote.id, payload);
+    else await base44.entities.CustomerNote.create(payload);
     setEditNote(null); load();
   };
 
@@ -151,6 +161,7 @@ export default function CustomerNotes() {
     ];
 
     const orderTotalValue = Number(String(reportData.order_total || "").replace(/[^\d.]/g, "")) || 0;
+    const today = new Date().toISOString().slice(0, 10);
     const updatedReport = {
       ...reportData,
       payment_status: normalizedStatus,
@@ -171,6 +182,7 @@ export default function CustomerNotes() {
       next_action: reportData.next_action || "",
       fulfilment_status: reportData.fulfilment_status || "Active",
       total_spend: orderTotalValue,
+      last_order_date: today,
     });
     await syncOrderFromReport(updatedReport, reportData.id);
   };

@@ -13,57 +13,78 @@ const Spinner = () => (
 );
 
 export default function ClientAnalytics() {
-  const [orders, setOrders] = useState([]);
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedClientName, setSelectedClientName] = useState(null);
 
   useEffect(() => {
-    Promise.all([
-      base44.entities.Order.list("-order_date", 500),
-      base44.entities.CustomerNote.list("-created_date", 500),
-    ]).then(([orderData, noteData]) => {
-      setOrders(orderData || []);
+    base44.entities.CustomerNote.list("-updated_date", 500).then((noteData) => {
       setNotes(noteData || []);
       setLoading(false);
     });
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = base44.entities.CustomerNote.subscribe((event) => {
+      if (event.type === "create") {
+        setNotes((prev) => [event.data, ...prev.filter((note) => note.id !== event.data.id)]);
+        return;
+      }
+      if (event.type === "update") {
+        setNotes((prev) => prev.map((note) => (note.id === event.id ? event.data : note)));
+        return;
+      }
+      if (event.type === "delete") {
+        setNotes((prev) => prev.filter((note) => note.id !== event.id));
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
   const clients = useMemo(() => {
-    const grouped = orders.reduce((acc, order) => {
-      const name = (order.client_name || "Unknown Client").trim();
+    const grouped = notes.reduce((acc, note) => {
+      const name = (note.client_name || "Unknown Client").trim();
+      if (!name) return acc;
       if (!acc[name]) acc[name] = [];
-      acc[name].push(order);
+      acc[name].push(note);
       return acc;
     }, {});
 
     return Object.entries(grouped)
-      .map(([client_name, clientOrders]) => {
-        const sortedOrders = [...clientOrders].sort((a, b) => moment(a.order_date).valueOf() - moment(b.order_date).valueOf());
-        const clientNotes = notes
-          .filter((note) => (note.client_name || "").trim() === client_name)
-          .sort((a, b) => moment(b.created_date).valueOf() - moment(a.created_date).valueOf());
-        const orderCount = sortedOrders.length;
-        const totalSpend = sortedOrders.reduce((sum, order) => sum + Number(order.order_value || 0), 0);
+      .map(([client_name, clientNotes]) => {
+        const sortedNotes = [...clientNotes].sort((a, b) => moment(a.delivery_date || a.last_order_date || a.updated_date || a.created_date).valueOf() - moment(b.delivery_date || b.last_order_date || b.updated_date || b.created_date).valueOf());
+        const completedLikeNotes = sortedNotes.filter((note) => Number(note.order_total || 0) > 0);
+        const orderCount = completedLikeNotes.length;
+        const totalSpend = completedLikeNotes.reduce((sum, note) => sum + Number(note.order_total || 0), 0);
+        const outstandingBalance = sortedNotes
+          .filter((note) => ["CASH", "PENDING"].includes(String(note.payment_status || "").toUpperCase()))
+          .reduce((sum, note) => sum + Number(note.order_total || 0), 0);
         const averageOrderValue = orderCount ? Math.round(totalSpend / orderCount) : 0;
-        const firstOrderDate = sortedOrders[0]?.order_date;
-        const lastOrderDate = sortedOrders[orderCount - 1]?.order_date;
-        const monthsActive = Math.max(moment(lastOrderDate).diff(moment(firstOrderDate), "months", true), 1);
+        const firstOrderDate = sortedNotes[0]?.delivery_date || sortedNotes[0]?.last_order_date || sortedNotes[0]?.created_date;
+        const lastOrderDate = sortedNotes[sortedNotes.length - 1]?.delivery_date || sortedNotes[sortedNotes.length - 1]?.last_order_date || sortedNotes[sortedNotes.length - 1]?.updated_date;
+        const monthsActive = firstOrderDate && lastOrderDate ? Math.max(moment(lastOrderDate).diff(moment(firstOrderDate), "months", true), 1) : 1;
         const monthlyRate = Number((orderCount / monthsActive).toFixed(1));
         const daysSinceLastOrder = lastOrderDate ? moment().diff(moment(lastOrderDate), "days") : 0;
-        const lastContactDate = clientNotes[0]?.created_date || null;
-        const spendSeriesMap = sortedOrders.reduce((acc, order) => {
-          const key = moment(order.order_date).startOf("month").format("MMM YYYY");
-          acc[key] = (acc[key] || 0) + Number(order.order_value || 0);
+        const lastContactDate = sortedNotes[sortedNotes.length - 1]?.updated_date || sortedNotes[sortedNotes.length - 1]?.created_date || null;
+        const spendSeriesMap = completedLikeNotes.reduce((acc, note) => {
+          const key = moment(note.delivery_date || note.last_order_date || note.created_date).startOf("month").format("MMM YYYY");
+          acc[key] = (acc[key] || 0) + Number(note.order_total || 0);
           return acc;
         }, {});
         const spendSeries = Object.entries(spendSeriesMap).map(([label, spend]) => ({ label, spend }));
+        const needsAttention = sortedNotes.some((note) => (
+          String(note.fulfilment_status || "") === "Active" &&
+          note.delivery_date &&
+          moment(note.delivery_date).isBefore(moment().subtract(48, "hours"))
+        ));
 
         return {
           client_name,
-          orders: [...sortedOrders].sort((a, b) => moment(b.order_date).valueOf() - moment(a.order_date).valueOf()),
+          orders: [...sortedNotes].sort((a, b) => moment(b.delivery_date || b.last_order_date || b.updated_date || b.created_date).valueOf() - moment(a.delivery_date || a.last_order_date || a.updated_date || a.created_date).valueOf()),
           orderCount,
           totalSpend,
+          outstandingBalance,
           averageOrderValue,
           purchaseFrequency: monthlyRate,
           purchaseFrequencyLabel: `${monthlyRate}/mo`,
@@ -72,11 +93,12 @@ export default function ClientAnalytics() {
           lastContactDate,
           daysSinceLastOrder,
           needsFollowUp: daysSinceLastOrder > 30,
+          needsAttention,
           spendSeries,
         };
       })
       .sort((a, b) => b.totalSpend - a.totalSpend);
-  }, [orders, notes]);
+  }, [notes]);
 
   useEffect(() => {
     if (!selectedClientName && clients.length > 0) {
