@@ -109,26 +109,35 @@ export const getReportDataFromTags = (tags = []) => {
   }
 };
 
-export const isIntelligenceReportNote = (note) => Boolean(getReportDataFromTags(note.tags || []));
+export const isIntelligenceReportNote = (note) => Boolean(
+  note?.delivery_date ||
+  note?.cell_number ||
+  note?.delivery_address ||
+  note?.order_list ||
+  note?.next_action ||
+  getReportDataFromTags(note.tags || [])
+);
 
 export const getIntelligenceReportViewModel = (note) => {
   const data = getReportDataFromTags(note.tags || []) || {};
+  const orderTotalValue = Number(note.order_total ?? data.order_total ?? data.total_amount_zar ?? 0) || 0;
 
   return {
     id: note.id,
     created_date: note.created_date,
-    client_name: data.client_name || note.client_name || "Not recorded.",
-    cell_number: data.cell_number || data.client_number || "Not recorded.",
-    delivery_date: data.delivery_date || data.dropoff_date || "Not recorded.",
-    delivery_address: data.delivery_address || data.client_address || "Not recorded.",
-    order_list: data.order_list || data.full_order_description || "Not recorded.",
+    client_name: note.client_name || data.client_name || "Not recorded.",
+    cell_number: note.cell_number || data.cell_number || data.client_number || "Not recorded.",
+    delivery_date: note.delivery_date || data.delivery_date || data.dropoff_date || "Not recorded.",
+    delivery_address: note.delivery_address || data.delivery_address || data.client_address || "Not recorded.",
+    order_list: note.order_list || data.order_list || data.full_order_description || "Not recorded.",
     payment_method: data.payment_method || "Not recorded.",
-    order_total: data.order_total || data.total_amount_zar || "Not confirmed.",
-    payment_status: data.payment_status || "PENDING",
+    order_total: orderTotalValue > 0 ? `R${orderTotalValue.toLocaleString("en-ZA")}` : "Not confirmed.",
+    payment_status: note.payment_status || data.payment_status || "PENDING",
     sentiment_analysis: data.sentiment_analysis || data.behavioral_insights || "Not recorded.",
     red_flags: data.red_flags || "None recorded.",
     green_flags: data.green_flags || "None recorded.",
-    next_action: data.next_action || data.action_item || "Not recorded.",
+    next_action: note.next_action || data.next_action || data.action_item || "Not recorded.",
+    fulfilment_status: note.fulfilment_status || "Active",
   };
 };
 

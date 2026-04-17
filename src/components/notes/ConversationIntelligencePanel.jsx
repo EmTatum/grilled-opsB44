@@ -2,6 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { syncOrderFromReport } from "../../utils/intelligenceOrderSync";
 
+const MONTHS = {
+  january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
+  july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
+  jan: 0, feb: 1, mar: 2, apr: 3, jun: 5, jul: 6, aug: 7, sep: 8, sept: 8, oct: 9, nov: 10, dec: 11,
+};
+
 const labelStyle = {
   fontFamily: "'Raleway', sans-serif",
   fontSize: "10px",
@@ -59,6 +65,87 @@ const replacePickupWithDelivery = (value) => {
 const sanitizeGeneratedReport = (data) => Object.fromEntries(
   Object.entries(data || {}).map(([key, value]) => [key, replacePickupWithDelivery(value)])
 );
+
+const toIsoDate = (date) => date.toISOString().slice(0, 10);
+
+const getUpcomingWeekday = (weekday) => {
+  const today = new Date();
+  const currentDay = today.getDay();
+  let diff = (weekday - currentDay + 7) % 7;
+  if (diff === 0) diff = 7;
+  const result = new Date(today);
+  result.setDate(today.getDate() + diff);
+  return toIsoDate(result);
+};
+
+const normalizeDeliveryDate = (value) => {
+  const raw = replacePickupWithDelivery(String(value || "")).trim();
+  if (!raw || /^not recorded\.?$/i.test(raw)) return null;
+
+  const lower = raw.toLowerCase();
+  const today = new Date();
+
+  if (lower === "today" || lower === "tonight") return toIsoDate(today);
+  if (lower === "tomorrow") {
+    const result = new Date(today);
+    result.setDate(today.getDate() + 1);
+    return toIsoDate(result);
+  }
+
+  const nextWeekdayMatch = lower.match(/^next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/);
+  if (nextWeekdayMatch) {
+    const weekdayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+    return getUpcomingWeekday(weekdayMap[nextWeekdayMatch[1]]);
+  }
+
+  const dayMonthMatch = lower.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)$/);
+  if (dayMonthMatch && MONTHS[dayMonthMatch[2]] !== undefined) {
+    const year = today.getFullYear();
+    const result = new Date(year, MONTHS[dayMonthMatch[2]], Number(dayMonthMatch[1]));
+    return Number.isNaN(result.getTime()) ? null : toIsoDate(result);
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : toIsoDate(parsed);
+};
+
+const normalizePaymentStatusValue = (value) => {
+  const lower = String(value || "").toLowerCase();
+  if (lower.includes("cash")) return "CASH";
+  if (lower.includes("paid") || lower.includes("eft paid") || lower.includes("to be paid")) return "PAID";
+  return "PENDING";
+};
+
+const normalizeOrderTotalValue = (value) => {
+  const numeric = Number(String(value || "").replace(/[^\d.]/g, ""));
+  return Number.isFinite(numeric) ? numeric : 0;
+};
+
+const buildReportContent = (result) => [
+  "CLIENT INFORMATION",
+  `Client Name: ${result.client_name || "Not recorded."}`,
+  `Cell Number: ${result.cell_number || "Not recorded."}`,
+  `Payment Method: ${result.payment_method || "Not recorded."}`,
+  `Payment Status: ${result.payment_status || "PENDING"}`,
+  "",
+  "DELIVERY INFORMATION",
+  `Delivery Date: ${result.delivery_date || "Not recorded."}`,
+  `Delivery Address: ${result.delivery_address || "Not recorded."}`,
+  "",
+  "ORDER DETAILS",
+  `${result.order_list || "Not recorded."}`,
+  `Order Total: ${result.order_total > 0 ? `R${result.order_total.toLocaleString("en-ZA")}` : "Not confirmed."}`,
+  "",
+  "CLIENT SENTIMENT",
+  `Sentiment Analysis: ${result.sentiment_analysis || "Not recorded."}`,
+  "",
+  "FLAGS",
+  `Red Flags: ${result.red_flags || "None recorded."}`,
+  `Green Flags: ${result.green_flags || "None recorded."}`,
+  "",
+  "NEXT STEPS",
+  `Next Action: ${result.next_action || "Not recorded."}`,
+].join("\n");
 
 export default function ConversationIntelligencePanel({ onSaved }) {
   const [conversation, setConversation] = useState("");
@@ -170,65 +257,77 @@ Conversation:\n${sanitizedConversation}`,
       }
     });
 
-    const result = sanitizeGeneratedReport(rawResult);
+    const sanitized = sanitizeGeneratedReport(rawResult);
+    const normalizedResult = {
+      ...sanitized,
+      client_name: (sanitized.client_name || "Client Intelligence Report").slice(0, 120),
+      delivery_date: normalizeDeliveryDate(sanitized.delivery_date),
+      cell_number: sanitized.cell_number || "",
+      payment_status: normalizePaymentStatusValue(sanitized.payment_status),
+      order_total: normalizeOrderTotalValue(sanitized.order_total),
+      delivery_address: sanitized.delivery_address || "",
+      order_list: sanitized.order_list || "",
+      next_action: sanitized.next_action || "",
+      fulfilment_status: "Active",
+      total_spend: normalizeOrderTotalValue(sanitized.order_total),
+    };
 
-    setReport(result);
+    setReport({
+      ...normalizedResult,
+      order_total: normalizedResult.order_total > 0 ? `R${normalizedResult.order_total.toLocaleString("en-ZA")}` : "Not confirmed.",
+      delivery_date: normalizedResult.delivery_date || "Not recorded.",
+    });
     setIsComposerCollapsed(true);
     setLoading(false);
     setSaving(true);
 
     const payload = {
-      client_name: (result.client_name || "Client Intelligence Report").slice(0, 120),
+      client_name: normalizedResult.client_name,
       note_type: "General",
       priority: "Medium",
-      content: [
-        "CLIENT INFORMATION",
-        `Client Name: ${result.client_name || "Not recorded."}`,
-        `Cell Number: ${result.cell_number || "Not recorded."}`,
-        `Payment Method: ${result.payment_method || "Not recorded."}`,
-        `Payment Status: ${result.payment_status || "PENDING"}`,
-        "",
-        "DELIVERY INFORMATION",
-        `Delivery Date: ${result.delivery_date || "Not recorded."}`,
-        `Delivery Address: ${result.delivery_address || "Not recorded."}`,
-        "",
-        "ORDER DETAILS",
-        `${result.order_list || "Not recorded."}`,
-        `Order Total: ${result.order_total || "Not confirmed."}`,
-        "",
-        "CLIENT SENTIMENT",
-        `Sentiment Analysis: ${result.sentiment_analysis || "Not recorded."}`,
-        "",
-        "FLAGS",
-        `Red Flags: ${result.red_flags || "None recorded."}`,
-        `Green Flags: ${result.green_flags || "None recorded."}`,
-        "",
-        "NEXT STEPS",
-        `Next Action: ${result.next_action || "Not recorded."}`,
-      ].join("\n"),
-      total_spend: Number(String(result.order_total || "").replace(/[^\d.]/g, "")) || 0,
+      content: buildReportContent(normalizedResult),
+      delivery_date: normalizedResult.delivery_date,
+      cell_number: normalizedResult.cell_number,
+      payment_status: normalizedResult.payment_status,
+      order_total: normalizedResult.order_total,
+      delivery_address: normalizedResult.delivery_address,
+      order_list: normalizedResult.order_list,
+      next_action: normalizedResult.next_action,
+      fulfilment_status: "Active",
+      total_spend: normalizedResult.total_spend,
       tags: [
         "intelligence-report-v3",
-        `payment-status:${result.payment_status || "PENDING"}`,
+        `payment-status:${normalizedResult.payment_status}`,
         `report-data:${JSON.stringify({
-          client_name: result.client_name || "Not recorded.",
-          cell_number: result.cell_number || "Not recorded.",
-          payment_method: result.payment_method || "Not recorded.",
-          payment_status: result.payment_status || "PENDING",
-          delivery_date: result.delivery_date || "Not recorded.",
-          delivery_address: result.delivery_address || "Not recorded.",
-          order_list: result.order_list || "Not recorded.",
-          order_total: result.order_total || "Not confirmed.",
-          sentiment_analysis: result.sentiment_analysis || "Not recorded.",
-          red_flags: result.red_flags || "None recorded.",
-          green_flags: result.green_flags || "None recorded.",
-          next_action: result.next_action || "Not recorded.",
+          client_name: normalizedResult.client_name,
+          cell_number: normalizedResult.cell_number || "Not recorded.",
+          payment_method: sanitized.payment_method || "Not recorded.",
+          payment_status: normalizedResult.payment_status,
+          delivery_date: normalizedResult.delivery_date || "Not recorded.",
+          delivery_address: normalizedResult.delivery_address || "Not recorded.",
+          order_list: normalizedResult.order_list || "Not recorded.",
+          order_total: normalizedResult.order_total > 0 ? `R${normalizedResult.order_total.toLocaleString("en-ZA")}` : "Not confirmed.",
+          sentiment_analysis: sanitized.sentiment_analysis || "Not recorded.",
+          red_flags: sanitized.red_flags || "None recorded.",
+          green_flags: sanitized.green_flags || "None recorded.",
+          next_action: normalizedResult.next_action || "Not recorded.",
         })}`,
       ],
     };
 
-    const savedRecord = await base44.entities.CustomerNote.create(payload);
-    await syncOrderFromReport(result, savedRecord.id);
+    const existingRecord = normalizedResult.delivery_date
+      ? (await base44.entities.CustomerNote.filter({ client_name: normalizedResult.client_name, delivery_date: normalizedResult.delivery_date }, "-updated_date", 1))[0]
+      : null;
+
+    const savedRecord = existingRecord
+      ? await base44.entities.CustomerNote.update(existingRecord.id, payload)
+      : await base44.entities.CustomerNote.create(payload);
+    await syncOrderFromReport({
+      ...sanitized,
+      ...normalizedResult,
+      order_total: normalizedResult.order_total > 0 ? `R${normalizedResult.order_total.toLocaleString("en-ZA")}` : "Not confirmed.",
+      delivery_date: normalizedResult.delivery_date || "Not recorded.",
+    }, savedRecord.id);
     setSaving(false);
     setSavedIndicator(true);
     setConversation("");

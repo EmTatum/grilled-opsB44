@@ -150,9 +150,11 @@ export default function CustomerNotes() {
       })}`,
     ];
 
+    const orderTotalValue = Number(String(reportData.order_total || "").replace(/[^\d.]/g, "")) || 0;
     const updatedReport = {
       ...reportData,
       payment_status: normalizedStatus,
+      fulfilment_status: reportData.fulfilment_status || "Active",
     };
 
     setActiveReport(updatedReport);
@@ -160,7 +162,15 @@ export default function CustomerNotes() {
       client_name: reportData.client_name,
       content,
       tags: nextTags,
-      total_spend: Number(String(reportData.order_total || "").replace(/[^\d.]/g, "")) || 0,
+      delivery_date: reportData.delivery_date || null,
+      cell_number: reportData.cell_number || "",
+      payment_status: normalizedStatus,
+      order_total: orderTotalValue,
+      delivery_address: reportData.delivery_address || "",
+      order_list: reportData.order_list || "",
+      next_action: reportData.next_action || "",
+      fulfilment_status: reportData.fulfilment_status || "Active",
+      total_spend: orderTotalValue,
     });
     await syncOrderFromReport(updatedReport, reportData.id);
   };
