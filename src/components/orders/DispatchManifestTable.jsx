@@ -60,8 +60,10 @@ export default function DispatchManifestTable({ orders, title = "Daily Dispatch 
               <th style={{ ...headerCell, width: "180px" }}>Client Name</th>
               <th style={headerCell}>Items To Pack</th>
               <th style={{ ...headerCell, width: "220px" }}>Address</th>
-              <th style={{ ...headerCell, width: "150px" }}>Payment</th>
-              <th style={{ ...headerCell, width: "320px" }}>Verification Checklist</th>
+              <th style={{ ...headerCell, width: "170px" }}>Payment</th>
+              <th style={{ ...headerCell, width: "130px" }}>Order Status</th>
+              <th style={{ ...headerCell, width: "180px" }}>Member Details</th>
+              <th style={{ ...headerCell, width: "320px" }}>Packing Checklist</th>
             </tr>
           </thead>
           <tbody>
@@ -102,8 +104,18 @@ export default function DispatchManifestTable({ orders, title = "Daily Dispatch 
                           {order.payment_status}
                         </p>
                       )}
-                      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", color: "rgba(245,240,232,0.5)", margin: 0, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                        {order.status || "Pending"}
+                    </div>
+                  </td>
+                  <td style={bodyCell}>
+                    <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", color: "rgba(245,240,232,0.5)", margin: 0, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                      {order.status || "Pending"}
+                    </p>
+                  </td>
+                  <td style={bodyCell}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "#F5F0E8", margin: 0 }}>{order.client_name || "Not recorded."}</p>
+                      <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "10px", color: "rgba(245,240,232,0.5)", margin: 0, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                        {moment(order.order_date).format("ddd D MMM · h:mm A")}
                       </p>
                     </div>
                   </td>
