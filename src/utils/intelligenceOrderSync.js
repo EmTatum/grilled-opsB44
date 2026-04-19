@@ -3,6 +3,14 @@ import { normalizePaymentStatus } from "./customerNotes";
 
 const parseOrderValue = (value) => Number(String(value || "").replace(/[^\d.]/g, "")) || 0;
 
+const getSafeOrderDate = (value) => {
+  const rawValue = String(value || "").trim();
+  if (!rawValue || rawValue === "Not recorded.") return new Date().toISOString();
+
+  const parsedDate = new Date(rawValue);
+  return Number.isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
+};
+
 export const buildOrderFromReport = (reportData, sourceReportId) => {
   const paymentStatus = normalizePaymentStatus(reportData.payment_status, reportData.payment_method);
   const hasDeliveryDate = Boolean(reportData.delivery_date && reportData.delivery_date !== "Not recorded.");
@@ -14,7 +22,7 @@ export const buildOrderFromReport = (reportData, sourceReportId) => {
     payment_method: reportData.payment_method || "Other",
     payment_status: paymentStatus,
     order_value: parseOrderValue(reportData.order_total),
-    order_date: hasDeliveryDate ? new Date(reportData.delivery_date).toISOString() : new Date().toISOString(),
+    order_date: hasDeliveryDate ? getSafeOrderDate(reportData.delivery_date) : new Date().toISOString(),
     status: paymentStatus === "PAID" || paymentStatus === "CASH" ? "Confirmed" : "Pending",
     planner_status: paymentStatus === "PAID" || paymentStatus === "CASH" ? "Processing" : "Pending",
     source_report_id: sourceReportId,
