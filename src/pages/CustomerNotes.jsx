@@ -256,6 +256,7 @@ export default function CustomerNotes() {
                   key={note.id}
                   report={getIntelligenceReportViewModel(note)}
                   onOpen={setActiveReport}
+                  onDelete={setDeleteId}
                 />
               ))}
             </div>

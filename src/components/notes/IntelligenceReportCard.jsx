@@ -1,3 +1,4 @@
+import { Trash2 } from "lucide-react";
 import { normalizePaymentStatus } from "../../utils/customerNotes";
 
 const statusStyles = {
@@ -32,7 +33,7 @@ const valueStyle = {
   lineHeight: 1.5,
 };
 
-export default function IntelligenceReportCard({ report, onOpen, onMarkFulfilled }) {
+export default function IntelligenceReportCard({ report, onOpen, onMarkFulfilled, onDelete }) {
   const normalizedStatus = normalizePaymentStatus(report.payment_status, report.payment_method);
   const badgeStyle = statusStyles[normalizedStatus];
   const isFulfilled = report.fulfilment_status === "Fulfilled";
@@ -59,11 +60,22 @@ export default function IntelligenceReportCard({ report, onOpen, onMarkFulfilled
         e.currentTarget.style.boxShadow = "none";
       }}
     >
-      <button onClick={() => onOpen(report)} style={{ background: "transparent", border: "none", padding: 0, margin: 0, textAlign: "left", cursor: "pointer" }}>
-        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 700, color: "#d29c6c", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-          {report.client_name || "Not recorded."}
-        </p>
-      </button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+        <button onClick={() => onOpen(report)} style={{ background: "transparent", border: "none", padding: 0, margin: 0, textAlign: "left", cursor: "pointer", flex: 1 }}>
+          <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 700, color: "#d29c6c", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            {report.client_name || "Not recorded."}
+          </p>
+        </button>
+        <button
+          onClick={() => onDelete?.(report.id)}
+          style={{ padding: "4px", background: "none", border: "none", cursor: "pointer", color: "rgba(245,240,232,0.28)", transition: "color 0.15s" }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = "#C2185B"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(245,240,232,0.28)"; }}
+          aria-label="Delete report"
+        >
+          <Trash2 size={12} strokeWidth={1.5} />
+        </button>
+      </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "14px 18px" }}>
         <div>
