@@ -30,6 +30,23 @@ const enhanceOrder = (order, reportData) => ({
   status: order.status || "Pending",
 });
 
+const getManifestKey = (order) => order.source_report_id || order.id;
+
+const getDeduplicatedManifestOrders = (orders) => {
+  const latestOrders = new Map();
+
+  (orders || []).forEach((order) => {
+    const key = getManifestKey(order);
+    const existing = latestOrders.get(key);
+
+    if (!existing || moment(order.updated_date || order.created_date || order.order_date).valueOf() >= moment(existing.updated_date || existing.created_date || existing.order_date).valueOf()) {
+      latestOrders.set(key, order);
+    }
+  });
+
+  return Array.from(latestOrders.values());
+};
+
 export default function DailyDispatchManifest() {
   const [manifestOrders, setManifestOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,10 +57,10 @@ export default function DailyDispatchManifest() {
 
     const rebuildManifest = () => {
       const reportMap = buildReportMap(intelligenceReports);
-      const activeOrders = (ordersData || [])
+      const activeOrders = getDeduplicatedManifestOrders(ordersData || [])
         .filter((order) => order.status !== "Cancelled")
         .map((order) => enhanceOrder(order, reportMap[order.source_report_id] || {}))
-        .filter((order) => moment(order.order_date).isSame(moment(), "day") || moment(order.order_date).isAfter(moment(), "day"))
+        .filter((order) => moment(order.order_date).isValid() && (moment(order.order_date).isSame(moment(), "day") || moment(order.order_date).isAfter(moment(), "day")))
         .sort((a, b) => moment(a.order_date).valueOf() - moment(b.order_date).valueOf());
 
       setManifestOrders(activeOrders);
@@ -83,6 +100,8 @@ export default function DailyDispatchManifest() {
         intelligenceReports = intelligenceReports.map((note) => note.id === event.id ? event.data : note);
         if (isIntelligenceReportNote(event.data)) {
           syncDispatchManifestOrders({ noteId: event.data.id });
+        } else {
+          ordersData = ordersData.filter((order) => order.source_report_id !== event.id);
         }
       }
       if (event.type === "delete") {
