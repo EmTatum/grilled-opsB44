@@ -5,7 +5,6 @@ import PageHeader from "../components/PageHeader";
 import DispatchManifestTable from "../components/orders/DispatchManifestTable";
 import DispatchIssuePanel from "../components/orders/DispatchIssuePanel";
 import { getReportDataFromTags, isIntelligenceReportNote, normalizePaymentStatus } from "../utils/customerNotes";
-import { syncDispatchManifestOrders } from "@/functions/syncDispatchManifestOrders";
 
 const Spinner = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -92,15 +91,10 @@ export default function DailyDispatchManifest() {
     const unsubscribeNotes = base44.entities.CustomerNote.subscribe((event) => {
       if (event.type === "create") {
         intelligenceReports = [event.data, ...intelligenceReports.filter((note) => note.id !== event.data.id)];
-        if (isIntelligenceReportNote(event.data)) {
-          syncDispatchManifestOrders({ noteId: event.data.id });
-        }
       }
       if (event.type === "update") {
         intelligenceReports = intelligenceReports.map((note) => note.id === event.id ? event.data : note);
-        if (isIntelligenceReportNote(event.data)) {
-          syncDispatchManifestOrders({ noteId: event.data.id });
-        } else {
+        if (!isIntelligenceReportNote(event.data)) {
           ordersData = ordersData.filter((order) => order.source_report_id !== event.id);
         }
       }
