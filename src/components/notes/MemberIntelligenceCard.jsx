@@ -99,9 +99,9 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
           </div>
 
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button onClick={() => onFulfilled(order, note)} style={buttonBase}>✓ Fulfilled</button>
+            <button onClick={() => onFulfilled(order)} style={buttonBase}>✓ Fulfilled</button>
             <button onClick={() => onCancelled(order)} style={{ ...buttonBase, border: "1px solid rgba(194,24,91,0.6)", color: "#C2185B" }}>✗ Cancel</button>
-            <button onClick={() => onViewReport(note)} style={buttonBase}>📋 Full Report</button>
+            <button onClick={() => onViewReport(order)} style={buttonBase}>📋 Full Report</button>
             <button onClick={() => setEditing(true)} style={buttonBase}>✏️ Edit</button>
             <button onClick={() => { setShowFollowUp((prev) => !prev); setShowConfirmOptions(false); }} style={buttonBase}>📞 Follow Up</button>
             {!order.order_confirmed ? (
@@ -141,6 +141,7 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
         <div style={{ display: "grid", gap: "12px" }}>
           <input value={draft.delivery_date || ""} onChange={(e) => setDraft({ ...draft, delivery_date: e.target.value })} placeholder="YYYY-MM-DD or YYYY-MM-DDTHH:MM" style={inputStyle} />
           <textarea value={draft.delivery_address || ""} onChange={(e) => setDraft({ ...draft, delivery_address: e.target.value })} placeholder="Delivery address" style={{ ...inputStyle, minHeight: "90px", resize: "vertical" }} />
+          <input value={draft.cell_number || ""} onChange={(e) => setDraft({ ...draft, cell_number: e.target.value })} placeholder="Cell number" style={inputStyle} />
           <select value={draft.payment_status || "PENDING"} onChange={(e) => setDraft({ ...draft, payment_status: e.target.value })} style={{ ...inputStyle, cursor: "pointer" }}>
             <option value="PAID">PAID</option>
             <option value="CASH">CASH</option>

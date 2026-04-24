@@ -17,7 +17,8 @@ const Spinner = () => (
 
 export default function CustomerNotes() {
   const [notes, setNotes] = useState([]);
-  const [memberOrders, setMemberOrders] = useState([]);
+  const [activeOrders, setActiveOrders] = useState([]);
+  const [historyOrders, setHistoryOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [conversation, setConversation] = useState("");
   const [preview, setPreview] = useState(null);
@@ -55,29 +56,36 @@ export default function CustomerNotes() {
     return null;
   };
 
-  const load = async () => {
-    const [noteRecords, memberOrderRecords] = await Promise.all([
-      base44.entities.CustomerNote.list("-updated_date", 200),
-      base44.entities.MemberOrder.list("-updated_date", 300),
-    ]);
+  const loadNotes = async () => {
+    const noteRecords = await base44.entities.CustomerNote.list("-updated_date", 200);
     setNotes(noteRecords || []);
-    setMemberOrders(memberOrderRecords || []);
+  };
+
+  const loadOrders = async () => {
+    const [activeRecords, fulfilledRecords, cancelledRecords] = await Promise.all([
+      base44.entities.MemberOrder.filter({ fulfilment_status: "Active" }, "delivery_date", 300),
+      base44.entities.MemberOrder.filter({ fulfilment_status: "Fulfilled" }, "delivery_date", 300),
+      base44.entities.MemberOrder.filter({ fulfilment_status: "Cancelled" }, "delivery_date", 300),
+    ]);
+
+    setActiveOrders(sortByDeliveryDate(activeRecords || []));
+    setHistoryOrders(sortByDeliveryDate([...(fulfilledRecords || []), ...(cancelledRecords || [])]));
+  };
+
+  const load = async () => {
+    await Promise.all([loadNotes(), loadOrders()]);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    const unsubscribeNotes = base44.entities.CustomerNote.subscribe((event) => {
-      if (event.type === "create") setNotes((prev) => [event.data, ...prev.filter((note) => note.id !== event.data.id)]);
-      if (event.type === "update") setNotes((prev) => prev.map((note) => (note.id === event.id ? event.data : note)));
-      if (event.type === "delete") setNotes((prev) => prev.filter((note) => note.id !== event.id));
+    const unsubscribeNotes = base44.entities.CustomerNote.subscribe(() => {
+      loadNotes();
     });
 
-    const unsubscribeOrders = base44.entities.MemberOrder.subscribe((event) => {
-      if (event.type === "create") setMemberOrders((prev) => [event.data, ...prev.filter((order) => order.id !== event.data.id)]);
-      if (event.type === "update") setMemberOrders((prev) => prev.map((order) => (order.id === event.id ? event.data : order)));
-      if (event.type === "delete") setMemberOrders((prev) => prev.filter((order) => order.id !== event.id));
+    const unsubscribeOrders = base44.entities.MemberOrder.subscribe(() => {
+      loadOrders();
     });
 
     return () => {
@@ -90,9 +98,6 @@ export default function CustomerNotes() {
     acc[note.id] = note;
     return acc;
   }, {}), [notes]);
-
-  const activeOrders = useMemo(() => sortByDeliveryDate(memberOrders.filter((order) => order.fulfilment_status === "Active")), [memberOrders]);
-  const historyOrders = useMemo(() => sortByDeliveryDate(memberOrders.filter((order) => order.fulfilment_status === "Fulfilled" || order.fulfilment_status === "Cancelled")), [memberOrders]);
 
   const generatePreview = async () => {
     if (!conversation.trim() || generating || saving) return;
@@ -138,78 +143,87 @@ ${conversation}`,
     if (!preview || saving) return;
     setSaving(true);
 
-    const existingNote = notes.find((note) => normalizeClientName(note.client_name) === normalizeClientName(preview.client_name));
     const combinedDeliveryDate = buildCombinedDeliveryDate(preview.delivery_date, null);
+    const reportContent = buildCustomerNoteContent(preview);
     const notePayload = {
       client_name: preview.client_name,
       note_type: "General",
-      priority: existingNote?.priority || "Medium",
-      content: buildCustomerNoteContent(preview),
+      priority: "Medium",
+      content: reportContent,
       tags: [
         `latest-order-status:${preview.latest_order_status || "Not recorded."}`,
         `order-frequency:${preview.order_frequency || "Not recorded."}`,
         `client-notes:${preview.client_notes || "Not recorded."}`
-      ],
-      cell_number: preview.cell_number || "",
-      delivery_date: combinedDeliveryDate || "",
-      delivery_address: preview.delivery_address || "",
-      order_list: preview.order_list || "",
-      order_total: Number(preview.order_total || 0),
-      payment_status: preview.payment_status,
-      next_action: preview.next_action || "",
-      total_spend: Number(preview.order_total || 0),
-      fulfilment_status: existingNote?.fulfilment_status || "Active"
+      ]
     };
 
+    const matchedNotes = await base44.entities.CustomerNote.list("-updated_date", 200);
+    const existingNote = (matchedNotes || []).find((note) => normalizeClientName(note.client_name) === normalizeClientName(preview.client_name));
     const savedNote = existingNote
       ? await base44.entities.CustomerNote.update(existingNote.id, notePayload)
       : await base44.entities.CustomerNote.create(notePayload);
 
-    const existingOrder = memberOrders.find((order) => normalizeClientName(order.client_name) === normalizeClientName(preview.client_name));
     const orderPayload = {
       client_name: preview.client_name,
       cell_number: preview.cell_number || "",
       delivery_date: combinedDeliveryDate || "",
       delivery_address: preview.delivery_address || "",
       order_list: preview.order_list || "",
-      order_total: Number(preview.order_total || 0),
+      order_total: parseInt(preview.order_total || 0, 10) || 0,
       payment_status: preview.payment_status,
       next_action: preview.next_action || "",
-      intelligence_report_id: savedNote.id,
-      ...(existingOrder ? {} : { fulfilment_status: "Active" })
+      intelligence_report_id: savedNote.id
     };
 
-    if (existingOrder) await base44.entities.MemberOrder.update(existingOrder.id, orderPayload);
-    else await base44.entities.MemberOrder.create(orderPayload);
+    const matchedOrders = await base44.entities.MemberOrder.list("-updated_date", 300);
+    const existingOrder = (matchedOrders || []).find((order) => normalizeClientName(order.client_name) === normalizeClientName(preview.client_name));
 
+    if (existingOrder) {
+      await base44.entities.MemberOrder.update(existingOrder.id, orderPayload);
+    } else {
+      await base44.entities.MemberOrder.create({ ...orderPayload, fulfilment_status: "Active" });
+    }
+
+    await Promise.all([loadNotes(), loadOrders()]);
     setPreview(null);
     setConversation("");
     setSaving(false);
   };
 
-  const handleFulfilled = async (order, note) => {
-    setMemberOrders((prev) => prev.map((item) => item.id === order.id ? { ...item, fulfilment_status: "Fulfilled" } : item));
-    if (note) setNotes((prev) => prev.map((item) => item.id === note.id ? { ...item, priority: "Low" } : item));
-    await Promise.all([
-      base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Fulfilled" }),
-      note ? base44.entities.CustomerNote.update(note.id, { priority: "Low" }) : Promise.resolve()
-    ]);
+  const handleFulfilled = async (order) => {
+    await base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Fulfilled" });
+    await loadOrders();
   };
 
   const handleCancelled = async (order) => {
-    setMemberOrders((prev) => prev.map((item) => item.id === order.id ? { ...item, fulfilment_status: "Cancelled" } : item));
     await base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Cancelled" });
+    await loadOrders();
   };
 
   const handleSaveEdit = async (draft) => {
-    setMemberOrders((prev) => prev.map((item) => item.id === draft.id ? { ...item, ...draft } : item));
     await base44.entities.MemberOrder.update(draft.id, {
       delivery_date: buildCombinedDeliveryDate(draft.delivery_date, null) || "",
       delivery_address: draft.delivery_address || "",
       payment_status: draft.payment_status || "PENDING",
-      order_total: Number(draft.order_total || 0),
+      order_total: parseInt(draft.order_total || 0, 10) || 0,
+      cell_number: draft.cell_number || "",
       next_action: draft.next_action || ""
     });
+    await loadOrders();
+  };
+
+  const handleViewReport = async (order) => {
+    if (order.intelligence_report_id) {
+      const linked = await base44.entities.CustomerNote.filter({ id: order.intelligence_report_id }, "-updated_date", 1);
+      if (linked?.[0]) {
+        setSelectedNote(linked[0]);
+        return;
+      }
+    }
+
+    const matched = await base44.entities.CustomerNote.list("-updated_date", 200);
+    const note = (matched || []).find((item) => normalizeClientName(item.client_name) === normalizeClientName(order.client_name));
+    setSelectedNote(note || { client_name: order.client_name, content: "No report content found." });
   };
 
   if (loading) return <Spinner />;
@@ -248,15 +262,15 @@ ${conversation}`,
                 note={notesById[order.intelligence_report_id] || null}
                 onFulfilled={handleFulfilled}
                 onCancelled={handleCancelled}
-                onViewReport={setSelectedNote}
+                onViewReport={handleViewReport}
                 onSaveEdit={handleSaveEdit}
                 onSaveFollowUp={async (order, nextAction) => {
-                  setMemberOrders((prev) => prev.map((item) => item.id === order.id ? { ...item, next_action: nextAction } : item));
                   await base44.entities.MemberOrder.update(order.id, { next_action: nextAction });
+                  await loadOrders();
                 }}
                 onConfirmStatus={async (order, paymentStatus) => {
-                  setMemberOrders((prev) => prev.map((item) => item.id === order.id ? { ...item, payment_status: paymentStatus, order_confirmed: true } : item));
                   await base44.entities.MemberOrder.update(order.id, { payment_status: paymentStatus, order_confirmed: true });
+                  await loadOrders();
                 }}
               />
             ))}
@@ -264,7 +278,7 @@ ${conversation}`,
         )}
       </section>
 
-      <MemberHistorySection orders={historyOrders} notesById={notesById} onViewReport={setSelectedNote} />
+      <MemberHistorySection orders={historyOrders} notesById={notesById} onViewReport={handleViewReport} />
 
       <ReportContentModal open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)} note={selectedNote} />
     </div>

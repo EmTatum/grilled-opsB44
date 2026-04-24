@@ -30,7 +30,7 @@ export default function MemberHistorySection({ orders, notesById, onViewReport }
                       <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", ...statusStyle[order.fulfilment_status], fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>
                         {order.fulfilment_status}
                       </span>
-                      <button onClick={() => linkedNote && onViewReport(linkedNote)} disabled={!linkedNote} style={{ background: "transparent", border: "1px solid #C9A84C", color: "#C9A84C", fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", padding: "8px 12px", cursor: linkedNote ? "pointer" : "default", opacity: linkedNote ? 1 : 0.45 }}>
+                      <button onClick={() => onViewReport(order)} style={{ background: "transparent", border: "1px solid #C9A84C", color: "#C9A84C", fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", padding: "8px 12px", cursor: "pointer", opacity: 1 }}>
                         📋 Full Report
                       </button>
                     </div>
