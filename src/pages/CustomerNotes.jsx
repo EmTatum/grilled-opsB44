@@ -64,14 +64,11 @@ export default function CustomerNotes() {
   };
 
   const loadOrders = async () => {
-    const [activeRecords, fulfilledRecords, cancelledRecords] = await Promise.all([
-      base44.entities.MemberOrder.filter({ fulfilment_status: "Active" }, "delivery_date", 300),
-      base44.entities.MemberOrder.filter({ fulfilment_status: "Fulfilled" }, "delivery_date", 300),
-      base44.entities.MemberOrder.filter({ fulfilment_status: "Cancelled" }, "delivery_date", 300),
-    ]);
+    const allOrders = await base44.entities.MemberOrder.list("delivery_date", 500);
+    const liveOrders = allOrders || [];
 
-    setActiveOrders(sortByDeliveryDate(activeRecords || []));
-    setHistoryOrders(sortByDeliveryDate([...(fulfilledRecords || []), ...(cancelledRecords || [])]));
+    setActiveOrders(sortByDeliveryDate(liveOrders.filter((order) => order.fulfilment_status === "Active")));
+    setHistoryOrders(sortByDeliveryDate(liveOrders.filter((order) => order.fulfilment_status === "Fulfilled" || order.fulfilment_status === "Cancelled")));
   };
 
   const load = async () => {
@@ -176,10 +173,11 @@ ${conversation}`,
       ? await base44.entities.MemberOrder.update(existingOrders[0].id, orderPayload)
       : await base44.entities.MemberOrder.create(orderPayload);
 
+    await loadOrders();
     setSavedPreviewOrderId(savedOrder.id);
     setPreview({ ...extractedData, intelligence_report_id: savedNote.id, id: savedOrder.id });
     setSaveMessage(`Report saved for ${extractedData.client_name}`);
-    await Promise.all([loadNotes(), loadOrders()]);
+    await loadNotes();
     setGenerating(false);
     setSaving(false);
   };
@@ -269,7 +267,7 @@ ${conversation}`,
 
         {activeOrders.length === 0 ? (
           <div style={{ textAlign: "center", padding: "56px 20px", border: "1px dashed rgba(201,168,76,0.15)", background: "#111111" }}>
-            <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "rgba(201,168,76,0.5)", letterSpacing: "0.1em", textTransform: "uppercase" }}>No Active Member Orders</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "rgba(245,240,232,0.7)" }}>No active orders. Generate a report above to get started.</p>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px" }}>
