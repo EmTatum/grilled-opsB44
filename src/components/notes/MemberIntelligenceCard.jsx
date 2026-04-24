@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { PAYMENT_STYLES } from "./member-intelligence-config";
 import { formatDeliveryDateTime, formatRand } from "./memberIntelligenceUtils";
 
@@ -26,6 +27,30 @@ const buttonBase = {
   cursor: "pointer"
 };
 
+const confirmedChipConfig = {
+  PAID: {
+    icon: "✓",
+    text: "PAID CONFIRMED",
+    background: "rgba(22,163,74,0.12)",
+    border: "1px solid rgba(22,163,74,0.45)",
+    color: "#86efac"
+  },
+  CASH: {
+    icon: "💵",
+    text: "CASH CONFIRMED",
+    background: "rgba(141,32,28,0.12)",
+    border: "1px solid rgba(141,32,28,0.45)",
+    color: "#f5b4b0"
+  },
+  PENDING: {
+    icon: "⏳",
+    text: "PENDING CONFIRMED",
+    background: "rgba(217,119,6,0.12)",
+    border: "1px solid rgba(217,119,6,0.45)",
+    color: "#fbbf24"
+  }
+};
+
 export default function MemberIntelligenceCard({ order, note, onFulfilled, onCancelled, onViewReport, onSaveEdit, onSaveFollowUp, onConfirmStatus }) {
   const [editing, setEditing] = useState(false);
   const [showFollowUp, setShowFollowUp] = useState(false);
@@ -42,6 +67,7 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
   }, [order]);
 
   const paymentStyle = PAYMENT_STYLES[order.payment_status] || PAYMENT_STYLES.PENDING;
+  const confirmedChip = confirmedChipConfig[order.payment_status] || confirmedChipConfig.PENDING;
 
   return (
     <div style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", borderLeft: `4px solid ${paymentStyle.accent}`, padding: "22px", display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -51,8 +77,9 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
         </div>
         <div style={{ display: "flex", gap: "8px", alignItems: "flex-start", flexWrap: "wrap", justifyContent: "flex-end" }}>
           {order.order_confirmed && (
-            <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", background: "rgba(20,184,166,0.12)", border: "1px solid rgba(20,184,166,0.4)", color: "#5eead4", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", height: "fit-content" }}>
-              ✓ Confirmed
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 10px", background: confirmedChip.background, border: confirmedChip.border, color: confirmedChip.color, fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", height: "fit-content" }}>
+              <span>{confirmedChip.icon}</span>
+              <span>{confirmedChip.text}</span>
             </span>
           )}
           <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", background: paymentStyle.badgeBackground, border: `1px solid ${paymentStyle.badgeBorder}`, color: paymentStyle.badgeColor, fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", height: "fit-content" }}>
@@ -77,7 +104,14 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
             <button onClick={() => onViewReport(note)} style={buttonBase}>📋 Full Report</button>
             <button onClick={() => setEditing(true)} style={buttonBase}>✏️ Edit</button>
             <button onClick={() => { setShowFollowUp((prev) => !prev); setShowConfirmOptions(false); }} style={buttonBase}>📞 Follow Up</button>
-            <button onClick={() => { setShowConfirmOptions((prev) => !prev); setShowFollowUp(false); }} style={buttonBase}>✅ Confirm</button>
+            {!order.order_confirmed ? (
+              <button onClick={() => { setShowConfirmOptions((prev) => !prev); setShowFollowUp(false); }} style={buttonBase}>✅ Confirm</button>
+            ) : (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "10px 14px", background: confirmedChip.background, border: confirmedChip.border, color: confirmedChip.color, fontFamily: "var(--font-body)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                <span>{confirmedChip.icon}</span>
+                <span>{confirmedChip.text}</span>
+              </span>
+            )}
           </div>
 
           {showFollowUp && (
@@ -98,6 +132,7 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
                 <button onClick={async () => { await onConfirmStatus(order, "PAID"); setShowConfirmOptions(false); }} style={buttonBase}>PAID (EFT received)</button>
                 <button onClick={async () => { await onConfirmStatus(order, "CASH"); setShowConfirmOptions(false); }} style={buttonBase}>CASH (on delivery)</button>
                 <button onClick={async () => { await onConfirmStatus(order, "PENDING"); setShowConfirmOptions(false); }} style={buttonBase}>Keep as PENDING</button>
+                <button onClick={() => setShowConfirmOptions(false)} style={{ ...buttonBase, border: "1px solid rgba(245,240,232,0.18)", color: "rgba(245,240,232,0.7)", display: "inline-flex", alignItems: "center", gap: "6px" }}><X size={14} /> Close</button>
               </div>
             </div>
           )}
