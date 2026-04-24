@@ -3,50 +3,34 @@ import { normalizePaymentStatus } from "./customerNotes";
 
 const parseOrderValue = (value) => Number(String(value || "").replace(/[^\d.]/g, "")) || 0;
 
-const getSafeOrderDate = (value) => {
-  const rawValue = String(value || "").trim();
-  if (!rawValue || rawValue === "Not recorded.") return new Date().toISOString();
-
-  const parsedDate = new Date(rawValue);
-  return Number.isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
-};
-
-export const buildOrderFromReport = (reportData, sourceReportId) => {
-  const paymentStatus = normalizePaymentStatus(reportData.payment_status, reportData.payment_method);
-  const hasDeliveryDate = Boolean(reportData.delivery_date && reportData.delivery_date !== "Not recorded.");
-
-  return {
-    client_name: reportData.client_name || "Not recorded.",
-    order_details: reportData.order_list || "Not recorded.",
-    delivery_address: reportData.delivery_address || "Not recorded.",
-    payment_method: reportData.payment_method || "Other",
-    payment_status: paymentStatus,
-    order_value: parseOrderValue(reportData.order_total),
-    order_date: hasDeliveryDate ? getSafeOrderDate(reportData.delivery_date) : new Date().toISOString(),
-    status: paymentStatus === "PAID" || paymentStatus === "CASH" ? "Confirmed" : "Pending",
-    planner_status: paymentStatus === "PAID" || paymentStatus === "CASH" ? "Processing" : "Pending",
-    source_report_id: sourceReportId,
-    time_slot: reportData.delivery_date || "",
-    special_instructions: reportData.next_action || "",
-    priority_level: "Medium",
-  };
-};
+export const buildOrderFromReport = (reportData, sourceReportId) => ({
+  client_name: reportData.client_name || "Not recorded.",
+  cell_number: reportData.cell_number || "",
+  delivery_date: reportData.delivery_date && reportData.delivery_date !== "Not recorded." ? reportData.delivery_date : "",
+  delivery_address: reportData.delivery_address || "",
+  order_list: reportData.order_list || "",
+  order_total: parseOrderValue(reportData.order_total),
+  payment_status: normalizePaymentStatus(reportData.payment_status, reportData.payment_method),
+  next_action: reportData.next_action || "",
+  fulfilment_status: reportData.fulfilment_status || "Active",
+  intelligence_report_id: sourceReportId,
+});
 
 export const syncOrderFromReport = async (reportData, sourceReportId) => {
   const payload = buildOrderFromReport(reportData, sourceReportId);
-  const existingOrders = await base44.entities.Order.filter({ source_report_id: sourceReportId }, "-created_date", 1);
+  const existingOrders = await base44.entities.MemberOrder.filter({ intelligence_report_id: sourceReportId }, "-created_date", 1);
 
   if (existingOrders.length > 0) {
-    return base44.entities.Order.update(existingOrders[0].id, payload);
+    return base44.entities.MemberOrder.update(existingOrders[0].id, payload);
   }
 
-  return base44.entities.Order.create(payload);
+  return base44.entities.MemberOrder.create(payload);
 };
 
 export const syncReportFromOrder = async (order) => {
-  if (!order.source_report_id) return null;
+  if (!order.intelligence_report_id) return null;
 
-  const report = await base44.entities.CustomerNote.get(order.source_report_id);
+  const report = await base44.entities.CustomerNote.get(order.intelligence_report_id);
   const currentTags = report.tags || [];
   const currentReportTag = currentTags.find((tag) => String(tag).startsWith("report-data:"));
   const currentData = currentReportTag ? JSON.parse(currentReportTag.replace("report-data:", "")) : {};
@@ -54,17 +38,17 @@ export const syncReportFromOrder = async (order) => {
   const nextData = {
     ...currentData,
     client_name: order.client_name || "Not recorded.",
-    cell_number: currentData.cell_number || "Not recorded.",
-    payment_method: order.payment_method || "Not recorded.",
-    payment_status: order.payment_status || normalizePaymentStatus(order.payment_status, order.payment_method),
-    delivery_date: order.time_slot || currentData.delivery_date || "Not recorded.",
+    cell_number: order.cell_number || currentData.cell_number || "Not recorded.",
+    payment_method: currentData.payment_method || "Not recorded.",
+    payment_status: order.payment_status || "PENDING",
+    delivery_date: order.delivery_date || currentData.delivery_date || "Not recorded.",
     delivery_address: order.delivery_address || "Not recorded.",
-    order_list: order.order_details || "Not recorded.",
-    order_total: order.order_value ? `R${Number(order.order_value).toLocaleString()}` : "Not confirmed.",
+    order_list: order.order_list || "Not recorded.",
+    order_total: order.order_total ? `R${Number(order.order_total).toLocaleString("en-ZA")}` : "Not confirmed.",
     sentiment_analysis: currentData.sentiment_analysis || "Not recorded.",
     red_flags: currentData.red_flags || "None recorded.",
     green_flags: currentData.green_flags || "None recorded.",
-    next_action: order.special_instructions || currentData.next_action || "Not recorded.",
+    next_action: order.next_action || currentData.next_action || "Not recorded.",
   };
 
   const nextTags = [
@@ -99,10 +83,18 @@ export const syncReportFromOrder = async (order) => {
     `Next Action: ${nextData.next_action}`,
   ].join("\n");
 
-  return base44.entities.CustomerNote.update(order.source_report_id, {
+  return base44.entities.CustomerNote.update(order.intelligence_report_id, {
     client_name: nextData.client_name,
     content,
     tags: nextTags,
-    total_spend: parseOrderValue(nextData.order_total),
+    cell_number: order.cell_number || "",
+    delivery_date: order.delivery_date || "",
+    delivery_address: order.delivery_address || "",
+    order_list: order.order_list || "",
+    order_total: Number(order.order_total || 0),
+    payment_status: order.payment_status || "PENDING",
+    next_action: order.next_action || "",
+    fulfilment_status: order.fulfilment_status || "Active",
+    total_spend: Number(order.order_total || 0),
   });
 };
