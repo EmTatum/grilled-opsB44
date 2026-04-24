@@ -174,6 +174,7 @@ export default function CustomerNotes() {
         onGenerate={generatePreview}
         generating={generating}
         preview={preview}
+        onPreviewChange={setPreview}
         onSave={savePreview}
         saving={saving}
       />

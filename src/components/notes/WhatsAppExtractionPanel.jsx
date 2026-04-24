@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Pencil } from "lucide-react";
 import { EXTRACTION_PROMPT } from "./member-intelligence-config";
 
 const panelStyle = {
@@ -46,23 +47,42 @@ const previewGridStyle = {
 const fieldBoxStyle = {
   background: "#111111",
   border: "1px solid rgba(201,168,76,0.16)",
-  padding: "14px"
+  padding: "14px",
+  cursor: "pointer"
 };
 
-export default function WhatsAppExtractionPanel({ conversation, onConversationChange, onGenerate, generating, preview, onSave, saving }) {
+const inlineInputStyle = {
+  width: "100%",
+  background: "#1a1a1a",
+  border: "1px solid rgba(201,168,76,0.28)",
+  color: "#F5F0E8",
+  padding: "10px 12px",
+  fontFamily: "var(--font-body)",
+  fontSize: "13px",
+  outline: "none"
+};
+
+export default function WhatsAppExtractionPanel({ conversation, onConversationChange, onGenerate, generating, preview, onPreviewChange, onSave, saving }) {
+  const [editingField, setEditingField] = useState(null);
+
   const previewFields = useMemo(() => preview ? [
-    ["Client Name", preview.client_name || "—"],
-    ["Cell Number", preview.cell_number || "—"],
-    ["Delivery Date", preview.delivery_date || "—"],
-    ["Delivery Address", preview.delivery_address || "—"],
-    ["Payment Status", preview.payment_status || "—"],
-    ["Order Total", Number(preview.order_total || 0) > 0 ? `R${Number(preview.order_total).toLocaleString("en-ZA")}` : "TBC"],
-    ["Next Action", preview.next_action || "—"],
-    ["Sentiment Analysis", preview.sentiment_analysis || "—"],
-    ["Red Flags", preview.red_flags || "—"],
-    ["Green Flags", preview.green_flags || "—"],
-    ["Order List", preview.order_list || "—"]
+    { key: "client_name", label: "Client Name", value: preview.client_name || "", type: "text" },
+    { key: "cell_number", label: "Cell Number", value: preview.cell_number || "", type: "text" },
+    { key: "delivery_date", label: "Delivery Date", value: preview.delivery_date || "", type: "date" },
+    { key: "delivery_time", label: "Delivery Time", value: preview.delivery_time || "", type: "text" },
+    { key: "delivery_address", label: "Delivery Address", value: preview.delivery_address || "", type: "text" },
+    { key: "payment_status", label: "Payment Status", value: preview.payment_status || "PENDING", type: "select" },
+    { key: "order_total", label: "Order Total", value: preview.order_total ?? 0, type: "number" },
+    { key: "order_list", label: "Order List", value: preview.order_list || "", type: "textarea" },
+    { key: "next_action", label: "Next Action", value: preview.next_action || "", type: "text" },
+    { key: "sentiment_analysis", label: "Sentiment Analysis", value: preview.sentiment_analysis || "", type: "text" },
+    { key: "red_flags", label: "Red Flags", value: preview.red_flags || "", type: "text" },
+    { key: "green_flags", label: "Green Flags", value: preview.green_flags || "", type: "text" },
   ] : [], [preview]);
+
+  const updatePreviewField = (key, value) => {
+    onPreviewChange((current) => ({ ...current, [key]: key === "order_total" ? Number(value || 0) : value }));
+  };
 
   return (
     <section style={panelStyle}>
@@ -100,12 +120,65 @@ export default function WhatsAppExtractionPanel({ conversation, onConversationCh
           </div>
 
           <div style={previewGridStyle}>
-            {previewFields.map(([label, value]) => (
-              <div key={label} style={fieldBoxStyle}>
-                <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(201,168,76,0.6)" }}>{label}</p>
-                <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{String(value)}</p>
-              </div>
-            ))}
+            {previewFields.map((field) => {
+              const isEditing = editingField === field.key;
+              const displayValue = field.type === "number"
+                ? Number(field.value || 0) > 0 ? `R${Number(field.value).toLocaleString("en-ZA")}` : "0"
+                : (field.value || "—");
+
+              return (
+                <div key={field.key} style={fieldBoxStyle} onClick={() => setEditingField(field.key)}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "center" }}>
+                    <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(201,168,76,0.6)" }}>{field.label}</p>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setEditingField(field.key); }} style={{ background: "transparent", border: "none", padding: 0, color: "rgba(201,168,76,0.72)", cursor: "pointer", display: "inline-flex" }}>
+                      <Pencil size={14} />
+                    </button>
+                  </div>
+
+                  <div style={{ marginTop: "8px" }} onClick={(e) => e.stopPropagation()}>
+                    {isEditing ? (
+                      field.type === "textarea" ? (
+                        <textarea
+                          autoFocus
+                          value={field.value}
+                          onChange={(e) => updatePreviewField(field.key, e.target.value)}
+                          onBlur={() => setEditingField(null)}
+                          style={{ ...inlineInputStyle, minHeight: "92px", resize: "vertical" }}
+                        />
+                      ) : field.type === "select" ? (
+                        <select
+                          autoFocus
+                          value={field.value}
+                          onChange={(e) => updatePreviewField(field.key, e.target.value)}
+                          onBlur={() => setEditingField(null)}
+                          style={{ ...inlineInputStyle, cursor: "pointer" }}
+                        >
+                          <option value="PAID">PAID</option>
+                          <option value="CASH">CASH</option>
+                          <option value="PENDING">PENDING</option>
+                        </select>
+                      ) : (
+                        <input
+                          autoFocus
+                          type={field.type}
+                          value={field.value}
+                          onChange={(e) => updatePreviewField(field.key, e.target.value)}
+                          onBlur={() => setEditingField(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && field.type !== "date" && field.type !== "number") {
+                              setEditingField(null);
+                            }
+                          }}
+                          style={inlineInputStyle}
+                        />
+                      )
+                    ) : (
+                      <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{String(displayValue)}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <button onClick={onSave} disabled={saving} style={{ ...buttonStyle, opacity: saving ? 0.6 : 1, cursor: saving ? "default" : "pointer" }}>
