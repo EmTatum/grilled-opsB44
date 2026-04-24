@@ -64,6 +64,22 @@ const inlineInputStyle = {
 
 export default function WhatsAppExtractionPanel({ conversation, onConversationChange, onGenerate, generating, preview, onPreviewChange, onSave, saving }) {
   const [editingField, setEditingField] = useState(null);
+  const [importMessage, setImportMessage] = useState("");
+
+  const handleImportFile = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || "");
+      onConversationChange(text);
+      const lineCount = text ? text.split(/\r?\n/).length : 0;
+      setImportMessage(`Chat imported — ${lineCount} lines loaded`);
+      event.target.value = "";
+    };
+    reader.readAsText(file);
+  };
 
   const previewFields = useMemo(() => preview ? [
     { key: "client_name", label: "Client Name", value: preview.client_name || "", type: "text" },
@@ -91,16 +107,30 @@ export default function WhatsAppExtractionPanel({ conversation, onConversationCh
         <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.5)" }}>Paste a WhatsApp conversation, extract a clean intelligence report, then review it before saving.</p>
       </div>
 
-      <div>
-        <label style={{ display: "block", marginBottom: "10px", fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(201,168,76,0.68)" }}>
-          Paste WhatsApp Conversation
-        </label>
-        <textarea
-          value={conversation}
-          onChange={(e) => onConversationChange(e.target.value)}
-          style={inputStyle}
-          placeholder="Paste the full WhatsApp conversation here..."
-        />
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <label htmlFor="whatsapp-import" style={{ ...buttonStyle, alignSelf: "unset", display: "inline-flex", alignItems: "center" }}>
+            📎 Import WhatsApp Export
+          </label>
+          <input id="whatsapp-import" type="file" accept=".txt,text/plain" onChange={handleImportFile} style={{ display: "none" }} />
+          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.45)" }}>Accepts WhatsApp .txt export files</p>
+        </div>
+
+        {importMessage && (
+          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(201,168,76,0.78)" }}>{importMessage}</p>
+        )}
+
+        <div>
+          <label style={{ display: "block", marginBottom: "10px", fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(201,168,76,0.68)" }}>
+            Paste WhatsApp Conversation
+          </label>
+          <textarea
+            value={conversation}
+            onChange={(e) => onConversationChange(e.target.value)}
+            style={inputStyle}
+            placeholder="Paste the full WhatsApp conversation here..."
+          />
+        </div>
       </div>
 
       <button onClick={onGenerate} disabled={!conversation.trim() || generating || saving} style={{ ...buttonStyle, opacity: !conversation.trim() || generating || saving ? 0.6 : 1, cursor: !conversation.trim() || generating || saving ? "default" : "pointer" }}>
