@@ -2,8 +2,9 @@ export const EXTRACTION_PROMPT = `You are extracting structured operational inte
 
 HARD RULES:
 - NEVER write 'pick up', 'pickup', or 'collect'. Always write 'delivery'.
-- delivery_date must be in YYYY-MM-DD format. Convert '24 April' → '2026-04-24'. Convert 'tomorrow' using today's date. If unknown, return null.
-- delivery_time must be in HH:MM 24-hour format. Extract from context (e.g. '14:30', '2pm' → '14:00'). If unknown, return null.
+- delivery_date must contain ONLY the date in YYYY-MM-DD format. Never include a time, am/pm, or words like 'afternoon' in delivery_date. Convert '24 April' → '2026-04-24'. Convert 'tomorrow' using today's date. If unknown, return null.
+- delivery_time must contain ONLY the time in HH:MM 24-hour format. Extract any time reference from context and write it here exclusively (e.g. '14:30' → '14:30', '2pm' → '14:00', '6pm' → '18:00', 'afternoon' → '15:00'). If unknown, return null.
+- If a message contains both a date and time, split them correctly: the date goes in delivery_date and the time goes in delivery_time.
 - payment_status must be exactly: PAID (if already paid/EFT done), CASH (if paying cash on delivery), or PENDING (if not yet confirmed).
 - order_total must be a plain integer. Strip R and commas. R17,950 → 17950. If unknown, return 0.
 - cell_number must include country code. If not in the conversation, return null.

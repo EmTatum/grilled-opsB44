@@ -71,11 +71,37 @@ export default function CustomerNotes() {
       prompt: `${EXTRACTION_PROMPT}\n\nWhatsApp conversation:\n${conversation}`,
       response_json_schema: EXTRACTION_SCHEMA
     });
+    const normalizedDeliveryDate = (() => {
+      const raw = String(result.delivery_date || "").trim();
+      const match = raw.match(/\d{4}-\d{2}-\d{2}/);
+      return match ? match[0] : null;
+    })();
+
+    const normalizedDeliveryTime = (() => {
+      const raw = String(result.delivery_time || "").trim().toLowerCase();
+      if (!raw) return null;
+      const hhmmMatch = raw.match(/^(\d{1,2}):(\d{2})$/);
+      if (hhmmMatch) {
+        return `${hhmmMatch[1].padStart(2, "0")}:${hhmmMatch[2]}`;
+      }
+      const ampmMatch = raw.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+      if (ampmMatch) {
+        let hours = Number(ampmMatch[1]);
+        const minutes = ampmMatch[2] || "00";
+        const meridiem = ampmMatch[3];
+        if (meridiem === "pm" && hours !== 12) hours += 12;
+        if (meridiem === "am" && hours === 12) hours = 0;
+        return `${String(hours).padStart(2, "0")}:${minutes}`;
+      }
+      if (raw.includes("afternoon")) return "15:00";
+      return null;
+    })();
+
     setPreview({
       ...result,
       cell_number: result.cell_number || null,
-      delivery_date: result.delivery_date || null,
-      delivery_time: result.delivery_time || null,
+      delivery_date: normalizedDeliveryDate,
+      delivery_time: normalizedDeliveryTime,
       delivery_address: result.delivery_address || null,
       order_total: parseInt(result.order_total || 0, 10) || 0,
       payment_status: result.payment_status || "PENDING"
