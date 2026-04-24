@@ -157,10 +157,9 @@ ${conversation}`,
       ]
     };
 
-    const matchedNotes = await base44.entities.CustomerNote.list("-updated_date", 200);
-    const existingNote = (matchedNotes || []).find((note) => normalizeClientName(note.client_name) === normalizeClientName(preview.client_name));
-    const savedNote = existingNote
-      ? await base44.entities.CustomerNote.update(existingNote.id, notePayload)
+    const existingNotes = await base44.entities.CustomerNote.filter({ client_name: preview.client_name }, "-updated_date", 1);
+    const savedNote = existingNotes?.[0]
+      ? await base44.entities.CustomerNote.update(existingNotes[0].id, notePayload)
       : await base44.entities.CustomerNote.create(notePayload);
 
     const orderPayload = {
@@ -175,11 +174,10 @@ ${conversation}`,
       intelligence_report_id: savedNote.id
     };
 
-    const matchedOrders = await base44.entities.MemberOrder.list("-updated_date", 300);
-    const existingOrder = (matchedOrders || []).find((order) => normalizeClientName(order.client_name) === normalizeClientName(preview.client_name));
+    const existingOrders = await base44.entities.MemberOrder.filter({ client_name: preview.client_name }, "-updated_date", 1);
 
-    if (existingOrder) {
-      await base44.entities.MemberOrder.update(existingOrder.id, orderPayload);
+    if (existingOrders?.[0]) {
+      await base44.entities.MemberOrder.update(existingOrders[0].id, orderPayload);
     } else {
       await base44.entities.MemberOrder.create({ ...orderPayload, fulfilment_status: "Active" });
     }
