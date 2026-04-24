@@ -84,14 +84,13 @@ export default function WhatsAppExtractionPanel({ conversation, onConversationCh
   const previewFields = useMemo(() => preview ? [
     { key: "client_name", label: "Client Name", value: preview.client_name || "", type: "text" },
     { key: "cell_number", label: "Cell Number", value: preview.cell_number || "", type: "text" },
-    { key: "delivery_date", label: "Delivery Date", value: preview.delivery_date || "", type: "date" },
-    { key: "delivery_time", label: "Delivery Time", value: preview.delivery_time || "", type: "text" },
+    { key: "delivery_date", label: "Delivery Date", value: preview.delivery_date || "", type: "text" },
     { key: "delivery_address", label: "Delivery Address", value: preview.delivery_address || "", type: "text" },
     { key: "payment_status", label: "Payment Status", value: preview.payment_status || "PENDING", type: "select" },
     { key: "order_total", label: "Order Total", value: preview.order_total ?? 0, type: "number" },
     { key: "order_list", label: "Order List", value: preview.order_list || "", type: "textarea" },
     { key: "next_action", label: "Next Action", value: preview.next_action || "", type: "text" },
-    { key: "sentiment_analysis", label: "Sentiment Analysis", value: preview.sentiment_analysis || "", type: "text" },
+    { key: "latest_order_status", label: "Latest Order Status", value: preview.latest_order_status || "", type: "text" },
     { key: "red_flags", label: "Red Flags", value: preview.red_flags || "", type: "text" },
     { key: "green_flags", label: "Green Flags", value: preview.green_flags || "", type: "text" },
   ] : [], [preview]);
@@ -134,7 +133,7 @@ export default function WhatsAppExtractionPanel({ conversation, onConversationCh
       </div>
 
       <button onClick={onGenerate} disabled={!conversation.trim() || generating || saving} style={{ ...buttonStyle, opacity: !conversation.trim() || generating || saving ? 0.6 : 1, cursor: !conversation.trim() || generating || saving ? "default" : "pointer" }}>
-        {generating ? "Generating..." : "Generate Intelligence Report"}
+        {generating ? "Generating..." : "GENERATE INTELLIGENCE REPORT"}
       </button>
 
       <details style={{ border: "1px solid rgba(201,168,76,0.12)", background: "#111111" }}>

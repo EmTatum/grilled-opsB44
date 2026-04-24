@@ -1,5 +1,5 @@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { formatRand } from "./memberIntelligenceUtils";
+import { formatDeliveryDateTime, formatRand } from "./memberIntelligenceUtils";
 
 const statusStyle = {
   Fulfilled: { border: "1px solid rgba(255,255,255,0.2)", color: "rgba(245,240,232,0.7)", background: "rgba(255,255,255,0.05)" },
@@ -22,7 +22,7 @@ export default function MemberHistorySection({ orders }) {
             {orders.map((order) => (
               <div key={order.id} style={{ display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(120px, 1fr) minmax(120px, 1fr) auto", gap: "12px", alignItems: "center", padding: "14px", background: "#111111", border: "1px solid rgba(201,168,76,0.12)" }}>
                 <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
-                <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.6)" }}>{order.delivery_date || "No date set"}</p>
+                <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.6)" }}>{formatDeliveryDateTime(order.delivery_date)}</p>
                 <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#d29c6c" }}>{formatRand(order.order_total)}</p>
                 <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", ...statusStyle[order.fulfilment_status], fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>
                   {order.fulfilment_status}

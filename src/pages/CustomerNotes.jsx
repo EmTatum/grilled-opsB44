@@ -5,7 +5,7 @@ import WhatsAppExtractionPanel from "../components/notes/WhatsAppExtractionPanel
 import MemberIntelligenceCard from "../components/notes/MemberIntelligenceCard";
 import MemberHistorySection from "../components/notes/MemberHistorySection";
 import ReportContentModal from "../components/notes/ReportContentModal";
-import { EXTRACTION_PROMPT, EXTRACTION_SCHEMA } from "../components/notes/member-intelligence-config";
+import { EXTRACTION_SCHEMA } from "../components/notes/member-intelligence-config";
 import { buildCustomerNoteContent, sortByDeliveryDate } from "../components/notes/memberIntelligenceUtils";
 
 const Spinner = () => (
@@ -98,7 +98,23 @@ export default function CustomerNotes() {
     if (!conversation.trim() || generating || saving) return;
     setGenerating(true);
     const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `${EXTRACTION_PROMPT}\n\nWhatsApp conversation:\n${conversation}`,
+      prompt: `Extract structured data from this WhatsApp conversation for a private concierge delivery service.
+
+RULES:
+1. Never use pick up, pickup or collect — always use delivery
+2. delivery_date: if date+time found, return 'YYYY-MM-DDTHH:MM'. If date only, return 'YYYY-MM-DD'. If only time with no date, return null. Today is 2026-04-24.
+3. payment_status: PAID (already paid/EFT confirmed), CASH (paying cash on delivery), PENDING (not confirmed). No other values.
+4. order_total: integer only, no currency symbols. R5,600 → 5600
+5. cell_number: include country code. If not found, return null.
+6. delivery_address: as stated in conversation. If not confirmed, return null.
+7. order_list: one item per line with quantities and prices where mentioned.
+8. latest_order_status: summarise whether order is confirmed, pending items, awaiting payment — based on the most recent messages.
+9. order_frequency: infer from conversation — first time, repeat, referred, regular, etc.
+
+Return JSON: { client_name, cell_number, delivery_date, delivery_address, order_list, order_total, payment_status, next_action, latest_order_status, order_frequency, sentiment_analysis, red_flags, green_flags, client_notes }
+
+WhatsApp conversation:
+${conversation}`,
       response_json_schema: EXTRACTION_SCHEMA
     });
 

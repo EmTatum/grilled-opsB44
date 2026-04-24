@@ -54,6 +54,7 @@ const sectionConfigs = {
 };
 
 const normalizeDate = (value) => String(value || "").trim();
+const getDatePart = (value) => normalizeDate(value).split("T")[0] || "";
 
 const classifyOrders = (orders) => {
   const activeOrders = orders.filter((order) => order.fulfilment_status === "Active");
@@ -61,12 +62,12 @@ const classifyOrders = (orders) => {
   return {
     activeOrders,
     overdue: activeOrders.filter((order) => {
-      const date = normalizeDate(order.delivery_date);
+      const date = getDatePart(order.delivery_date);
       return date && date < TODAY;
     }),
-    today: activeOrders.filter((order) => normalizeDate(order.delivery_date) === TODAY),
+    today: activeOrders.filter((order) => getDatePart(order.delivery_date) === TODAY),
     upcoming: activeOrders.filter((order) => {
-      const date = normalizeDate(order.delivery_date);
+      const date = getDatePart(order.delivery_date);
       return date && date > TODAY;
     }),
     unscheduled: activeOrders.filter((order) => !normalizeDate(order.delivery_date)),
