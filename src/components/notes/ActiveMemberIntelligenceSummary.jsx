@@ -6,6 +6,7 @@ import { sortByDeliveryDate } from "./memberIntelligenceUtils";
 export default function ActiveMemberIntelligenceSummary({ notesById, refreshKey, onFulfilled, onCancelled, onViewReport, onSaveEdit, onSaveFollowUp, onConfirmStatus }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [confirmedPayments, setConfirmedPayments] = useState({});
 
   const loadActiveOrders = async () => {
     const records = await base44.entities.MemberOrder.filter({ fulfilment_status: "Active" }, "delivery_date", 300);
@@ -45,6 +46,8 @@ export default function ActiveMemberIntelligenceSummary({ notesById, refreshKey,
               key={order.id}
               order={order}
               note={notesById[order.intelligence_report_id] || null}
+              confirmedPayment={confirmedPayments[order.id]}
+              setConfirmedPayments={setConfirmedPayments}
               onFulfilled={onFulfilled}
               onCancelled={onCancelled}
               onViewReport={onViewReport}
