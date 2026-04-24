@@ -1,9 +1,9 @@
 import { formatDeliveryDateTime } from "../notes/memberIntelligenceUtils";
 
 const paymentBadgeStyles = {
-  PAID: { background: "#15434a", color: "#F5F0E8", border: "1px solid rgba(21,67,74,0.9)" },
-  CASH: { background: "#d29c6c", color: "#0b0e11", border: "1px solid rgba(210,156,108,0.9)" },
-  PENDING: { background: "#8d201c", color: "#F5F0E8", border: "1px solid rgba(141,32,28,0.95)" },
+  PAID: { background: "rgba(22,163,74,0.12)", color: "#86efac", border: "1px solid rgba(22,163,74,0.45)" },
+  CASH: { background: "rgba(141,32,28,0.12)", color: "#f5b4b0", border: "1px solid rgba(141,32,28,0.45)" },
+  PENDING: { background: "rgba(217,119,6,0.12)", color: "#fbbf24", border: "1px solid rgba(217,119,6,0.45)" },
 };
 
 const labelStyle = {
@@ -24,9 +24,9 @@ const valueStyle = {
 };
 
 const fulfilledButtonStyle = {
-  background: "#15434a",
-  border: "1px solid rgba(21,67,74,0.95)",
-  color: "#F5F0E8",
+  background: "transparent",
+  border: "1px solid #C9A84C",
+  color: "#C9A84C",
   fontFamily: "var(--font-body)",
   fontSize: "11px",
   fontWeight: 600,
@@ -37,9 +37,9 @@ const fulfilledButtonStyle = {
 };
 
 const cancelledButtonStyle = {
-  background: "#8d201c",
-  border: "1px solid rgba(141,32,28,0.95)",
-  color: "#F5F0E8",
+  background: "transparent",
+  border: "1px solid rgba(194,24,91,0.6)",
+  color: "#C2185B",
   fontFamily: "var(--font-body)",
   fontSize: "11px",
   fontWeight: 600,
@@ -58,7 +58,7 @@ export default function MemberOrderDispatchCards({ orders, onStatusChange, secti
           <div
             key={order.id}
             style={{
-              background: "#1c191a",
+              background: "#1a1a1a",
               border: `1px solid ${sectionBorderColor}`,
               padding: "20px",
               display: "flex",
@@ -94,11 +94,11 @@ export default function MemberOrderDispatchCards({ orders, onStatusChange, secti
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(120px, 180px) minmax(0, 1fr)", gap: "12px" }}>
                 <p style={labelStyle}>Delivery Address</p>
-                <p style={valueStyle}>{order.delivery_address || "Not recorded."}</p>
+                <p style={valueStyle}>{order.delivery_address || "Address TBC"}</p>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(120px, 180px) minmax(0, 1fr)", gap: "12px" }}>
                 <p style={labelStyle}>Cell</p>
-                <p style={valueStyle}>{order.cell_number || "Not recorded."}</p>
+                <p style={valueStyle}>{order.cell_number || "No number"}</p>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(120px, 180px) minmax(0, 1fr)", gap: "12px", alignItems: "start" }}>
                 <p style={labelStyle}>Order</p>
@@ -108,11 +108,11 @@ export default function MemberOrderDispatchCards({ orders, onStatusChange, secti
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(120px, 180px) minmax(0, 1fr)", gap: "12px" }}>
                 <p style={labelStyle}>Total</p>
-                <p style={valueStyle}>{`R${Number(order.order_total || 0).toLocaleString("en-ZA")}`}</p>
+                <p style={valueStyle}>{Number(order.order_total || 0) > 0 ? `R${Number(order.order_total).toLocaleString("en-ZA")}` : "TBC"}</p>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(120px, 180px) minmax(0, 1fr)", gap: "12px" }}>
                 <p style={labelStyle}>Next Action</p>
-                <p style={valueStyle}>{order.next_action || "Not recorded."}</p>
+                <p style={valueStyle}>{order.next_action || "No next action set"}</p>
               </div>
             </div>
 
