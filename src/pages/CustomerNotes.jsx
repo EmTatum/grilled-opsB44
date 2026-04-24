@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import PageHeader from "../components/PageHeader";
 import WhatsAppExtractionPanel from "../components/notes/WhatsAppExtractionPanel";
-import MemberIntelligenceCard from "../components/notes/MemberIntelligenceCard";
+import ActiveMemberIntelligenceSummary from "../components/notes/ActiveMemberIntelligenceSummary";
 import MemberHistorySection from "../components/notes/MemberHistorySection";
 import ReportContentModal from "../components/notes/ReportContentModal";
 import { EXTRACTION_SCHEMA } from "../components/notes/member-intelligence-config";
@@ -17,8 +17,8 @@ const Spinner = () => (
 
 export default function CustomerNotes() {
   const [notes, setNotes] = useState([]);
-  const [activeOrders, setActiveOrders] = useState([]);
   const [historyOrders, setHistoryOrders] = useState([]);
+  const [activeSummaryRefreshKey, setActiveSummaryRefreshKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [conversation, setConversation] = useState("");
   const [preview, setPreview] = useState(null);
@@ -67,7 +67,6 @@ export default function CustomerNotes() {
     const allOrders = await base44.entities.MemberOrder.list("delivery_date", 500);
     const liveOrders = allOrders || [];
 
-    setActiveOrders(sortByDeliveryDate(liveOrders.filter((order) => order.fulfilment_status === "Active")));
     setHistoryOrders(sortByDeliveryDate(liveOrders.filter((order) => order.fulfilment_status === "Fulfilled" || order.fulfilment_status === "Cancelled")));
   };
 
@@ -173,6 +172,7 @@ ${conversation}`,
       ? await base44.entities.MemberOrder.update(existingOrders[0].id, orderPayload)
       : await base44.entities.MemberOrder.create(orderPayload);
 
+    setActiveSummaryRefreshKey((current) => current + 1);
     await loadOrders();
     setSavedPreviewOrderId(savedOrder.id);
     setPreview({ ...extractedData, intelligence_report_id: savedNote.id, id: savedOrder.id });
@@ -184,14 +184,12 @@ ${conversation}`,
 
   const handleFulfilled = async (order) => {
     const updatedOrder = await base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Fulfilled" });
-    setActiveOrders((current) => current.filter((item) => item.id !== order.id));
     setHistoryOrders((current) => sortByDeliveryDate([updatedOrder, ...current.filter((item) => item.id !== order.id)]));
     return updatedOrder;
   };
 
   const handleCancelled = async (order) => {
     const updatedOrder = await base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Cancelled" });
-    setActiveOrders((current) => current.filter((item) => item.id !== order.id));
     setHistoryOrders((current) => sortByDeliveryDate([updatedOrder, ...current.filter((item) => item.id !== order.id)]));
     return updatedOrder;
   };
@@ -205,7 +203,6 @@ ${conversation}`,
       cell_number: draft.cell_number || "",
       next_action: draft.next_action || ""
     });
-    setActiveOrders((current) => current.map((item) => item.id === updatedOrder.id ? updatedOrder : item));
     return updatedOrder;
   };
 
@@ -253,48 +250,43 @@ ${conversation}`,
           };
 
           await base44.entities.MemberOrder.update(savedPreviewOrderId, payload);
+          setActiveSummaryRefreshKey((current) => current + 1);
           await loadOrders();
         }}
         saving={saving}
         saveMessage={saveMessage}
       />
 
-      <section style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div>
-          <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase" }}>Active Member Intelligence Summary</p>
-          <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.45)" }}>{activeOrders.length} active orders sorted by delivery date</p>
-        </div>
-
-        {activeOrders.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "56px 20px", border: "1px dashed rgba(201,168,76,0.15)", background: "#111111" }}>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "rgba(245,240,232,0.7)" }}>No active orders. Generate a report above to get started.</p>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px" }}>
-            {activeOrders.map((order) => (
-              <MemberIntelligenceCard
-                key={order.id}
-                order={order}
-                note={notesById[order.intelligence_report_id] || null}
-                onFulfilled={handleFulfilled}
-                onCancelled={handleCancelled}
-                onViewReport={handleViewReport}
-                onSaveEdit={handleSaveEdit}
-                onSaveFollowUp={async (order, nextAction) => {
-                  const updatedOrder = await base44.entities.MemberOrder.update(order.id, { next_action: nextAction });
-                  setActiveOrders((current) => current.map((item) => item.id === updatedOrder.id ? updatedOrder : item));
-                  return updatedOrder;
-                }}
-                onConfirmStatus={async (order, paymentStatus) => {
-                  const updatedOrder = await base44.entities.MemberOrder.update(order.id, { payment_status: paymentStatus, order_confirmed: true });
-                  setActiveOrders((current) => current.map((item) => item.id === updatedOrder.id ? updatedOrder : item));
-                  return updatedOrder;
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+      <ActiveMemberIntelligenceSummary
+        notesById={notesById}
+        refreshKey={activeSummaryRefreshKey}
+        onFulfilled={async (order) => {
+          const updatedOrder = await handleFulfilled(order);
+          setActiveSummaryRefreshKey((current) => current + 1);
+          return updatedOrder;
+        }}
+        onCancelled={async (order) => {
+          const updatedOrder = await handleCancelled(order);
+          setActiveSummaryRefreshKey((current) => current + 1);
+          return updatedOrder;
+        }}
+        onViewReport={handleViewReport}
+        onSaveEdit={async (draft) => {
+          const updatedOrder = await handleSaveEdit(draft);
+          setActiveSummaryRefreshKey((current) => current + 1);
+          return updatedOrder;
+        }}
+        onSaveFollowUp={async (order, nextAction) => {
+          const updatedOrder = await base44.entities.MemberOrder.update(order.id, { next_action: nextAction });
+          setActiveSummaryRefreshKey((current) => current + 1);
+          return updatedOrder;
+        }}
+        onConfirmStatus={async (order, paymentStatus) => {
+          const updatedOrder = await base44.entities.MemberOrder.update(order.id, { payment_status: paymentStatus, order_confirmed: true });
+          setActiveSummaryRefreshKey((current) => current + 1);
+          return updatedOrder;
+        }}
+      />
 
       <MemberHistorySection orders={historyOrders} notesById={notesById} onViewReport={handleViewReport} />
 
