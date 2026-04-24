@@ -115,7 +115,8 @@ RULES:
 2. delivery_date: if date+time found, return 'YYYY-MM-DDTHH:MM'. If date only, return 'YYYY-MM-DD'. If only time with no date, return null. Today is 2026-04-24.
 3. payment_status: PAID (already paid/EFT confirmed), CASH (paying cash on delivery), PENDING (not confirmed). No other values.
 4. order_total: integer only, no currency symbols. R5,600 → 5600
-5. cell_number: include country code. If not found, return null.
+5. ORDER EXTRACTION RULE: WhatsApp conversations often contain multiple orders or order revisions over time. You must extract ONLY the most recent, final confirmed order — the last version of what the client wants, based on the chronological order of messages. If a client first orders item A, then later adds item B, or changes their order entirely, use only the final order as it stands at the end of the conversation. Do not combine old and new orders. Do not use the first order mentioned if it was subsequently changed or added to. The order_list must reflect what was confirmed in the LAST order discussion in the chat.
+6. cell_number: include country code. If not found, return null.
 6. delivery_address: as stated in conversation. If not confirmed, return null.
 7. order_list: one item per line with quantities and prices where mentioned.
 8. latest_order_status: summarise whether order is confirmed, pending items, awaiting payment — based on the most recent messages.

@@ -11,6 +11,7 @@ HARD RULES:
 - Time must be in 24-hour HH:MM format. Convert '6pm' → '18:00', '2pm' → '14:00', 'midday' → '12:00'.
 - payment_status must be exactly: PAID (if already paid/EFT done), CASH (if paying cash on delivery), or PENDING (if not yet confirmed).
 - order_total must be a plain integer. Strip R and commas. R17,950 → 17950. If unknown, return 0.
+- ORDER EXTRACTION RULE: WhatsApp conversations often contain multiple orders or order revisions over time. You must extract ONLY the most recent, final confirmed order — the last version of what the client wants, based on the chronological order of messages. If a client first orders item A, then later adds item B, or changes their order entirely, use only the final order as it stands at the end of the conversation. Do not combine old and new orders. Do not use the first order mentioned if it was subsequently changed or added to. The order_list must reflect what was confirmed in the LAST order discussion in the chat.
 - cell_number must include country code. If not in the conversation, return null.
 - delivery_address: full address as stated. If not confirmed, return null.
 
