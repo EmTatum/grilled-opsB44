@@ -30,6 +30,18 @@ export default function CustomerNotes() {
 
   const normalizeClientName = (value) => String(value || "").trim().toLowerCase();
 
+  const buildNotePayload = (report) => ({
+    client_name: report.client_name,
+    note_type: "General",
+    priority: "Medium",
+    content: buildCustomerNoteContent(report),
+    tags: [
+      `latest-order-status:${report.latest_order_status || "Not recorded."}`,
+      `order-frequency:${report.order_frequency || "Not recorded."}`,
+      `client-notes:${report.client_notes || "Not recorded."}`
+    ]
+  });
+
   const normalizeTimeValue = (value) => {
     const raw = String(value || "").trim().toLowerCase();
     if (!raw) return null;
@@ -136,23 +148,15 @@ ${conversation}`,
       payment_status: result.payment_status || "PENDING"
     };
 
-    const reportContent = buildCustomerNoteContent(extractedData);
-    const notePayload = {
-      client_name: extractedData.client_name,
-      note_type: "General",
-      priority: "Medium",
-      content: reportContent,
-      tags: [
-        `latest-order-status:${extractedData.latest_order_status || "Not recorded."}`,
-        `order-frequency:${extractedData.order_frequency || "Not recorded."}`,
-        `client-notes:${extractedData.client_notes || "Not recorded."}`
-      ]
-    };
+    const notePayload = buildNotePayload(extractedData);
 
-    const existingNotes = await base44.entities.CustomerNote.filter({ client_name: extractedData.client_name }, "-updated_date", 1);
-    const savedNote = existingNotes?.[0]
-      ? await base44.entities.CustomerNote.update(existingNotes[0].id, notePayload)
-      : await base44.entities.CustomerNote.create(notePayload);
+    const existingOrders = await base44.entities.MemberOrder.filter({ client_name: extractedData.client_name }, "-updated_date", 1);
+    const linkedNoteId = existingOrders?.[0]?.intelligence_report_id || null;
+    const savedNote = linkedNoteId
+      ? await base44.entities.CustomerNote.update(linkedNoteId, notePayload)
+      : (await base44.entities.CustomerNote.filter({ client_name: extractedData.client_name }, "-updated_date", 1))?.[0]
+        ? await base44.entities.CustomerNote.update((await base44.entities.CustomerNote.filter({ client_name: extractedData.client_name }, "-updated_date", 1))[0].id, notePayload)
+        : await base44.entities.CustomerNote.create(notePayload);
 
     const orderPayload = {
       client_name: extractedData.client_name,
@@ -167,7 +171,6 @@ ${conversation}`,
       fulfilment_status: "Active"
     };
 
-    const existingOrders = await base44.entities.MemberOrder.filter({ client_name: extractedData.client_name }, "-updated_date", 1);
     const savedOrder = existingOrders?.[0]
       ? await base44.entities.MemberOrder.update(existingOrders[0].id, orderPayload)
       : await base44.entities.MemberOrder.create(orderPayload);
@@ -203,6 +206,19 @@ ${conversation}`,
       cell_number: draft.cell_number || "",
       next_action: draft.next_action || ""
     });
+
+    if (updatedOrder.intelligence_report_id) {
+      await base44.entities.CustomerNote.update(updatedOrder.intelligence_report_id, buildNotePayload({
+        ...preview,
+        ...draft,
+        delivery_date: buildCombinedDeliveryDate(draft.delivery_date, null) || "",
+        payment_status: draft.payment_status || "PENDING",
+        order_total: parseInt(draft.order_total || 0, 10) || 0,
+        cell_number: draft.cell_number || "",
+        next_action: draft.next_action || ""
+      }));
+    }
+
     return updatedOrder;
   };
 
@@ -249,7 +265,12 @@ ${conversation}`,
             next_action: nextPreview.next_action || ""
           };
 
-          await base44.entities.MemberOrder.update(savedPreviewOrderId, payload);
+          const updatedOrder = await base44.entities.MemberOrder.update(savedPreviewOrderId, payload);
+
+          if (updatedOrder.intelligence_report_id) {
+            await base44.entities.CustomerNote.update(updatedOrder.intelligence_report_id, buildNotePayload(nextPreview));
+          }
+
           setActiveSummaryRefreshKey((current) => current + 1);
           await loadOrders();
         }}
@@ -273,6 +294,17 @@ ${conversation}`,
         onViewReport={handleViewReport}
         onSaveEdit={async (draft) => {
           const updatedOrder = await handleSaveEdit(draft);
+          if (updatedOrder.id === savedPreviewOrderId) {
+            setPreview((current) => current ? ({
+              ...current,
+              delivery_date: updatedOrder.delivery_date || current.delivery_date,
+              delivery_address: updatedOrder.delivery_address || "",
+              payment_status: updatedOrder.payment_status || "PENDING",
+              order_total: updatedOrder.order_total || 0,
+              cell_number: updatedOrder.cell_number || "",
+              next_action: updatedOrder.next_action || ""
+            }) : current);
+          }
           setActiveSummaryRefreshKey((current) => current + 1);
           return updatedOrder;
         }}
