@@ -248,31 +248,9 @@ ${conversation}`,
         onGenerate={generatePreview}
         generating={generating}
         preview={preview}
-        onPreviewChange={async (updater) => {
+        onPreviewChange={(updater) => {
           const nextPreview = typeof updater === "function" ? updater(preview) : updater;
           setPreview(nextPreview);
-
-          if (!savedPreviewOrderId) return;
-
-          const payload = {
-            client_name: nextPreview.client_name || "",
-            cell_number: nextPreview.cell_number || "",
-            delivery_date: buildCombinedDeliveryDate(nextPreview.delivery_date, null) || "",
-            delivery_address: nextPreview.delivery_address || "",
-            order_list: nextPreview.order_list || "",
-            order_total: parseInt(nextPreview.order_total || 0, 10) || 0,
-            payment_status: nextPreview.payment_status || "PENDING",
-            next_action: nextPreview.next_action || ""
-          };
-
-          const updatedOrder = await base44.entities.MemberOrder.update(savedPreviewOrderId, payload);
-
-          if (updatedOrder.intelligence_report_id) {
-            await base44.entities.CustomerNote.update(updatedOrder.intelligence_report_id, buildNotePayload(nextPreview));
-          }
-
-          setActiveSummaryRefreshKey((current) => current + 1);
-          await loadOrders();
         }}
         saving={saving}
         saveMessage={saveMessage}
