@@ -41,6 +41,7 @@ const inputBase = {
 
 export default function CustomerNotes() {
   const [notes, setNotes] = useState([]);
+  const [memberOrders, setMemberOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editNote, setEditNote] = useState(null);
@@ -51,10 +52,18 @@ export default function CustomerNotes() {
   const [activeReport, setActiveReport] = useState(null);
 
   const location = useLocation();
-  const load = async () => { setNotes(await base44.entities.CustomerNote.list("-created_date", 100)); setLoading(false); };
+  const load = async () => {
+    const [noteRecords, memberOrderRecords] = await Promise.all([
+      base44.entities.CustomerNote.list("-created_date", 100),
+      base44.entities.MemberOrder.list("-created_date", 300),
+    ]);
+    setNotes(noteRecords || []);
+    setMemberOrders(memberOrderRecords || []);
+    setLoading(false);
+  };
   useEffect(() => { load(); }, []);
   useEffect(() => {
-    const unsubscribe = base44.entities.CustomerNote.subscribe((event) => {
+    const unsubscribeNotes = base44.entities.CustomerNote.subscribe((event) => {
       if (event.type === "create") {
         setNotes((prev) => [event.data, ...prev.filter((note) => note.id !== event.data.id)]);
         return;
@@ -72,7 +81,24 @@ export default function CustomerNotes() {
       }
     });
 
-    return unsubscribe;
+    const unsubscribeMemberOrders = base44.entities.MemberOrder.subscribe((event) => {
+      if (event.type === "create") {
+        setMemberOrders((prev) => [event.data, ...prev.filter((order) => order.id !== event.data.id)]);
+        return;
+      }
+      if (event.type === "update") {
+        setMemberOrders((prev) => prev.map((order) => (order.id === event.id ? event.data : order)));
+        return;
+      }
+      if (event.type === "delete") {
+        setMemberOrders((prev) => prev.filter((order) => order.id !== event.id));
+      }
+    });
+
+    return () => {
+      unsubscribeNotes();
+      unsubscribeMemberOrders();
+    };
   }, []);
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -92,6 +118,10 @@ export default function CustomerNotes() {
 
   const reportNotes = useMemo(() => filtered.filter(isIntelligenceReportNote), [filtered]);
   const standardNotes = useMemo(() => filtered.filter((note) => !isIntelligenceReportNote(note)), [filtered]);
+  const memberOrderMap = useMemo(() => memberOrders.reduce((acc, order) => {
+    if (order.intelligence_report_id) acc[order.intelligence_report_id] = order;
+    return acc;
+  }, {}), [memberOrders]);
 
   const duplicateCount = useMemo(
     () => generatedDuplicateSets.reduce((sum, group) => sum + group.length - 1, 0),
@@ -215,7 +245,7 @@ export default function CustomerNotes() {
 
       <ConversationIntelligencePanel onSaved={(savedRecord) => {
         if (!savedRecord) return;
-        setActiveReport(getIntelligenceReportViewModel(savedRecord));
+        setActiveReport({ ...getIntelligenceReportViewModel(savedRecord), memberOrder: memberOrderMap[savedRecord.id] || null });
       }} />
 
       <DuplicateNotesBanner duplicateCount={duplicateCount} onMerge={handleMergeDuplicates} merging={mergingDuplicates} />
@@ -254,9 +284,13 @@ export default function CustomerNotes() {
               {reportNotes.map((note) => (
                 <IntelligenceReportCard
                   key={note.id}
-                  report={getIntelligenceReportViewModel(note)}
+                  report={{ ...getIntelligenceReportViewModel(note), memberOrder: memberOrderMap[note.id] || null }}
                   onOpen={setActiveReport}
                   onDelete={setDeleteId}
+                  onMarkFulfilled={async (memberOrderId) => {
+                    if (!memberOrderId) return;
+                    await base44.entities.MemberOrder.update(memberOrderId, { fulfilment_status: "Fulfilled" });
+                  }}
                 />
               ))}
             </div>

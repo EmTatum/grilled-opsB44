@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import moment from "moment";
-import { getIntelligenceReportViewModel, isIntelligenceReportNote, normalizePaymentStatus } from "../utils/customerNotes";
+import MemberOrderStatusCards from "../components/orders/MemberOrderStatusCards";
+import MemberOrderDispatchCards from "../components/orders/MemberOrderDispatchCards";
 
 const GoldBtn = ({ onClick, children }) => (
   <button
@@ -35,157 +36,56 @@ const Spinner = () => (
   </div>
 );
 
-const inputBase = {
-  background: "#1c191a",
-  border: "1px solid rgba(210,156,108,0.2)",
-  borderRadius: "2px",
-  color: "#F5F0E8",
-  fontFamily: "var(--font-body)",
-  fontSize: "14px",
-  outline: "none",
-};
-
-const paymentBadgeMap = {
-  PAID: { border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.05)", color: "rgba(245,240,232,0.7)" },
-  CASH: { border: "1px solid rgba(201,168,76,0.5)", background: "rgba(201,168,76,0.1)", color: "#C9A84C" },
-  PENDING: { border: "1px solid rgba(194,24,91,0.4)", background: "rgba(194,24,91,0.08)", color: "#C2185B" },
-};
-
-const statusBlockConfig = {
-  upcoming: { label: "UPCOMING", background: "#0f2426", labelColor: "#7fc3cb", valueColor: "#7fc3cb" },
-  pending: { label: "PENDING", background: "#1a1a1a", labelColor: "#C9A84C", valueColor: "#C9A84C" },
-  urgent: { label: "URGENT", background: "#2b1116", labelColor: "#C2185B", valueColor: "#F5F0E8", strong: true },
-  fulfilled: { label: "FULFILLED", background: "#161616", labelColor: "rgba(245,240,232,0.7)", valueColor: "#F5F0E8" },
-  overdue: { label: "OVERDUE", background: "#2b1116", labelColor: "#C2185B", valueColor: "#C9A84C", italic: true },
-};
-
-const parseReportDate = (value) => {
-  if (!value) return null;
-  const parsed = moment(value, "YYYY-MM-DD", true);
-  if (parsed.isValid()) return parsed;
-  return null;
-};
-
-const formatCurrency = (value) => {
-  const amount = Number(value || 0);
-  return amount > 0 ? `R${amount.toLocaleString("en-ZA")}` : "R0";
-};
-
-const mapNoteToReport = (note) => ({
-  ...getIntelligenceReportViewModel(note),
-  id: note.id,
-  client_name: note.client_name || "Not recorded.",
-  delivery_date: note.delivery_date || null,
-  payment_status: normalizePaymentStatus(note.payment_status, ""),
-  order_list: note.order_list || "Not recorded.",
-  order_total: Number(note.order_total || 0),
-  delivery_address: note.delivery_address || "Not recorded.",
-  next_action: note.next_action || "Not recorded.",
-  fulfilment_status: note.fulfilment_status || "Active",
-});
-
-const getReportMoment = (report) => parseReportDate(report.delivery_date);
-const isFulfilled = (report) => report.fulfilment_status === "Fulfilled";
-const isPending = (report) => !report.delivery_date && report.fulfilment_status === "Active";
-const isUrgent = (report) => report.delivery_date === moment().format("YYYY-MM-DD") && report.fulfilment_status === "Active";
-const isUpcoming = (report) => {
-  const reportMoment = getReportMoment(report);
-  if (!reportMoment) return false;
-  return reportMoment.isAfter(moment(), "day") && report.fulfilment_status === "Active";
-};
-const isOverdue = (report) => {
-  const reportMoment = getReportMoment(report);
-  if (!reportMoment) return false;
-  return reportMoment.isBefore(moment(), "day") && report.fulfilment_status === "Active";
-};
-
-const getFilterMatch = (order, filter) => {
-  if (filter === "all") return true;
-  if (filter === "upcoming") return isUpcoming(order);
-  if (filter === "pending") return isPending(order);
-  if (filter === "urgent") return isUrgent(order);
-  if (filter === "fulfilled") return isFulfilled(order);
-  if (filter === "overdue") return isOverdue(order);
-  return true;
-};
-
-const sortByDateAsc = (items) => [...items].sort((a, b) => {
-  const aMoment = getReportMoment(a);
-  const bMoment = getReportMoment(b);
-  return (aMoment?.valueOf() || 0) - (bMoment?.valueOf() || 0);
-});
+const getDayKey = (value) => String(value || "").slice(0, 10);
 
 export default function Orders() {
-  const [reports, setReports] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState("all");
   const [weekCursor, setWeekCursor] = useState(moment().startOf("week"));
   const [monthCursor, setMonthCursor] = useState(moment().startOf("month"));
-  const [selectedDayKey, setSelectedDayKey] = useState(moment().format("YYYY-MM-DD"));
-
-  const load = async () => {
-    const noteRecords = await base44.entities.CustomerNote.list("-updated_date", 300);
-    setReports((noteRecords || []).filter(isIntelligenceReportNote).map(mapNoteToReport));
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); }, []);
+  const [selectedDayKey, setSelectedDayKey] = useState(moment("2026-04-24").format("YYYY-MM-DD"));
 
   useEffect(() => {
-    const unsubscribeNotes = base44.entities.CustomerNote.subscribe((event) => {
+    const load = async () => {
+      const records = await base44.entities.MemberOrder.list("delivery_date", 300);
+      setOrders(records || []);
+      setLoading(false);
+    };
+
+    load();
+
+    const unsubscribe = base44.entities.MemberOrder.subscribe((event) => {
       if (event.type === "create") {
-        if (!isIntelligenceReportNote(event.data)) return;
-        setReports((prev) => [mapNoteToReport(event.data), ...prev.filter((report) => report.id !== event.data.id)]);
+        setOrders((prev) => [...prev, event.data]);
         return;
       }
       if (event.type === "update") {
-        if (!isIntelligenceReportNote(event.data)) {
-          setReports((prev) => prev.filter((report) => report.id !== event.id));
-          return;
-        }
-        const nextReport = mapNoteToReport(event.data);
-        setReports((prev) => {
-          const existing = prev.some((report) => report.id === event.id);
-          if (!existing) return [nextReport, ...prev];
-          return prev.map((report) => (report.id === event.id ? nextReport : report));
-        });
+        setOrders((prev) => prev.map((order) => (order.id === event.id ? event.data : order)));
         return;
       }
       if (event.type === "delete") {
-        setReports((prev) => prev.filter((report) => report.id !== event.id));
+        setOrders((prev) => prev.filter((order) => order.id !== event.id));
       }
     });
 
-    return unsubscribeNotes;
+    return unsubscribe;
   }, []);
 
-  const filteredOrders = useMemo(() => sortByDateAsc(reports.filter((report) => getFilterMatch(report, statusFilter))), [reports, statusFilter]);
-  const allOrdersByDay = useMemo(() => reports.reduce((acc, report) => {
-    const key = getReportMoment(report)?.format("YYYY-MM-DD");
+  const counts = useMemo(() => ({
+    active: orders.filter((order) => order.fulfilment_status === "Active").length,
+    fulfilled: orders.filter((order) => order.fulfilment_status === "Fulfilled").length,
+    cancelled: orders.filter((order) => order.fulfilment_status === "Cancelled").length,
+  }), [orders]);
+
+  const allOrdersByDay = useMemo(() => orders.reduce((acc, order) => {
+    const key = getDayKey(order.delivery_date);
     if (!key) return acc;
     if (!acc[key]) acc[key] = [];
-    acc[key].push(report);
+    acc[key].push(order);
     return acc;
-  }, {}), [reports]);
-
-  const statusCounts = useMemo(() => ({
-    upcoming: reports.filter(isUpcoming).length,
-    pending: reports.filter(isPending).length,
-    urgent: reports.filter(isUrgent).length,
-    fulfilled: reports.filter(isFulfilled).length,
-    overdue: reports.filter(isOverdue).length,
-  }), [reports]);
+  }, {}), [orders]);
 
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, index) => weekCursor.clone().add(index, "days")), [weekCursor]);
-
-  const weeklyOrdersByDay = useMemo(() => {
-    const map = {};
-    weekDays.forEach((day) => {
-      const key = day.format("YYYY-MM-DD");
-      map[key] = allOrdersByDay[key] || [];
-    });
-    return map;
-  }, [allOrdersByDay, weekDays]);
 
   const monthDays = useMemo(() => {
     const start = monthCursor.clone().startOf("month").startOf("week");
@@ -194,8 +94,12 @@ export default function Orders() {
     return Array.from({ length: count }, (_, index) => start.clone().add(index, "days"));
   }, [monthCursor]);
 
-  const selectedDayOrders = useMemo(() => sortByDateAsc(allOrdersByDay[selectedDayKey] || []), [allOrdersByDay, selectedDayKey]);
-  const todaysOrders = useMemo(() => sortByDateAsc(reports.filter((report) => report.delivery_date === moment().format("YYYY-MM-DD"))), [reports]);
+  const todaysOrders = useMemo(() => orders.filter((order) => getDayKey(order.delivery_date) === "2026-04-24"), [orders]);
+  const selectedDayOrders = useMemo(() => allOrdersByDay[selectedDayKey] || [], [allOrdersByDay, selectedDayKey]);
+
+  const handleStatusChange = async (id, fulfilment_status) => {
+    await base44.entities.MemberOrder.update(id, { fulfilment_status });
+  };
 
   if (loading) return <Spinner />;
 
@@ -205,31 +109,13 @@ export default function Orders() {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
           <div>
             <h1 style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "42px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#d29c6c" }}>Orders</h1>
-            <p style={{ margin: "10px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "#eee3b4", fontWeight: 300 }}>All orders logged onto their date for clear and easy review of timelines.</p>
+            <p style={{ margin: "10px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "#eee3b4", fontWeight: 300 }}>Member orders scheduled by delivery date.</p>
             <div style={{ width: "60px", height: "2px", background: "#d29c6c", marginTop: "16px" }} />
           </div>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px", marginBottom: "30px" }}>
-        {Object.entries(statusBlockConfig).map(([key, config]) => (
-          <button
-            key={key}
-            onClick={() => setStatusFilter((prev) => prev === key ? "all" : key)}
-            style={{
-              textAlign: "left",
-              background: config.background,
-              border: statusFilter === key ? "1px solid rgba(201,168,76,0.6)" : "1px solid rgba(201,168,76,0.25)",
-              padding: "18px",
-              cursor: "pointer",
-              boxShadow: statusFilter === key ? "0 0 20px rgba(201,168,76,0.1)" : "none",
-            }}
-          >
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: config.labelColor, fontWeight: config.strong ? 700 : 500, fontStyle: config.italic ? "italic" : "normal" }}>{config.label}</p>
-            <p style={{ margin: "10px 0 0", fontFamily: "var(--font-heading)", fontSize: "34px", color: config.valueColor, fontWeight: 700 }}>{statusCounts[key]}</p>
-          </button>
-        ))}
-      </div>
+      <MemberOrderStatusCards counts={counts} />
 
       <div style={{ marginBottom: "26px" }}>
         <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#d29c6c" }}>Weekly View</p>
@@ -244,27 +130,19 @@ export default function Orders() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "12px", marginBottom: "40px" }}>
         {weekDays.map((day) => {
-          const dayOrders = weeklyOrdersByDay[day.format("YYYY-MM-DD")] || [];
+          const dayKey = day.format("YYYY-MM-DD");
+          const dayOrders = allOrdersByDay[dayKey] || [];
           return (
-            <div key={day.format()} style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.18)", minHeight: "260px" }}>
-              <div style={{ padding: "14px", borderBottom: "1px solid rgba(201,168,76,0.18)", background: "#0a0a0a" }}>
-                <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#d29c6c" }}>{day.format("ddd")}</p>
-                <p style={{ margin: "10px 0 0", fontFamily: "var(--font-heading)", fontSize: "30px", color: "#F5F0E8", lineHeight: 1 }}>{day.format("D")}</p>
-                <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "#eee3b4" }}>{day.format("MMM")}</p>
-                <p style={{ margin: "4px 0 0", fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(238,227,180,0.62)" }}>{day.format("YYYY")}</p>
-              </div>
-              <div style={{ padding: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                {dayOrders.map((order) => {
-                  const badgeStyle = paymentBadgeMap[order.payment_status || "PENDING"] || paymentBadgeMap.PENDING;
-                  return (
-                    <div key={order.id} style={{ textAlign: "left", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.16)", padding: "12px" }}>
-                      <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", fontWeight: 600, color: "#F5F0E8" }}>{order.client_name}</p>
-                      <p style={{ margin: "8px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(245,240,232,0.58)", lineHeight: 1.5 }}>{order.delivery_address}</p>
-                      <p style={{ margin: "6px 0 0", fontFamily: "var(--font-heading)", fontSize: "18px", color: "#d29c6c" }}>{formatCurrency(order.order_total)}</p>
-                      <span style={{ display: "inline-flex", marginTop: "8px", padding: "4px 8px", ...badgeStyle, fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" }}>{order.payment_status || "PENDING"}</span>
-                    </div>
-                  );
-                })}
+            <div key={dayKey} style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.18)", minHeight: "220px", padding: "14px" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#d29c6c" }}>{day.format("ddd")}</p>
+              <p style={{ margin: "10px 0 0", fontFamily: "var(--font-heading)", fontSize: "30px", color: "#F5F0E8", lineHeight: 1 }}>{day.format("D")}</p>
+              <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                {dayOrders.map((order) => (
+                  <div key={order.id} style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.16)", padding: "10px" }}>
+                    <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", fontWeight: 600, color: "#F5F0E8" }}>{order.client_name}</p>
+                    <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(245,240,232,0.58)" }}>{order.delivery_address || "Not recorded."}</p>
+                  </div>
+                ))}
               </div>
             </div>
           );
@@ -287,38 +165,14 @@ export default function Orders() {
         {monthDays.map((day) => {
           const key = day.format("YYYY-MM-DD");
           const dayOrders = allOrdersByDay[key] || [];
-          const uniqueDayOrders = dayOrders.reduce((acc, order) => {
-            const existing = acc.find((item) => item.client_name === order.client_name);
-            if (!existing) acc.push(order);
-            return acc;
-          }, []);
-          const isCurrentMonth = day.isSame(monthCursor, "month");
-          const isPastDay = day.isBefore(moment(), "day");
-          const isToday = day.isSame(moment(), "day");
           return (
-            <button key={key} onClick={() => setSelectedDayKey(key)} style={{ minHeight: "110px", background: isToday ? "rgba(210,156,108,0.08)" : selectedDayKey === key ? "rgba(201,168,76,0.08)" : "#111111", border: isToday ? "1px solid rgba(210,156,108,0.55)" : "1px solid rgba(201,168,76,0.16)", padding: "10px", cursor: "pointer", textAlign: "left", opacity: isCurrentMonth ? 1 : 0.45, position: "relative", overflow: "hidden" }}>
-              {isPastDay && (
-                <span style={{ position: "absolute", left: "-10%", top: "50%", width: "120%", height: "1px", background: "rgba(238,227,180,0.35)", transform: "rotate(-18deg)", transformOrigin: "center" }} />
-              )}
-              <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "22px", color: "#F5F0E8", position: "relative", zIndex: 1 }}>{day.format("D")}</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px", position: "relative", zIndex: 1 }}>
-                {uniqueDayOrders.slice(0, 2).map((order) => (
-                  <div key={order.id} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                    <span style={{ fontFamily: "var(--font-body)", fontSize: "10px", color: "rgba(245,240,232,0.82)", display: "block", lineHeight: 1.2 }}>
-                      {order.client_name}
-                    </span>
-                    {order.delivery_time && (
-                      <span style={{ fontFamily: "var(--font-body)", fontSize: "9px", color: "rgba(201,168,76,0.72)", display: "block", lineHeight: 1.2, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                        {order.delivery_time}
-                      </span>
-                    )}
-                  </div>
+            <button key={key} onClick={() => setSelectedDayKey(key)} style={{ minHeight: "110px", background: selectedDayKey === key ? "rgba(201,168,76,0.08)" : "#111111", border: "1px solid rgba(201,168,76,0.16)", padding: "10px", cursor: "pointer", textAlign: "left", opacity: day.isSame(monthCursor, "month") ? 1 : 0.45 }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "22px", color: "#F5F0E8" }}>{day.format("D")}</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px" }}>
+                {dayOrders.slice(0, 2).map((order) => (
+                  <span key={order.id} style={{ fontFamily: "var(--font-body)", fontSize: "10px", color: "rgba(245,240,232,0.82)", lineHeight: 1.2 }}>{order.client_name}</span>
                 ))}
-                {uniqueDayOrders.length > 2 && (
-                  <span style={{ fontFamily: "var(--font-body)", fontSize: "10px", color: "#C9A84C", display: "block", lineHeight: 1.3 }}>
-                    +{uniqueDayOrders.length - 2} more
-                  </span>
-                )}
+                {dayOrders.length > 2 && <span style={{ fontFamily: "var(--font-body)", fontSize: "10px", color: "#C9A84C", lineHeight: 1.3 }}>+{dayOrders.length - 2} more</span>}
               </div>
             </button>
           );
@@ -328,53 +182,13 @@ export default function Orders() {
       <div style={{ marginBottom: "24px" }}>
         <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#d29c6c" }}>Today&apos;s Orders</p>
         <div style={{ width: "72px", height: "2px", background: "rgba(201,168,76,0.55)", marginTop: "10px", marginBottom: "18px" }} />
-        {todaysOrders.length === 0 ? (
-          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(238,227,180,0.62)" }}>No deliveries scheduled.</p>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "12px", marginBottom: "30px" }}>
-            {todaysOrders.map((order) => {
-              const badgeStyle = paymentBadgeMap[order.payment_status || "PENDING"] || paymentBadgeMap.PENDING;
-              return (
-                <div key={order.id} style={{ textAlign: "left", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", padding: "14px" }}>
-                  <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 600, color: "#F5F0E8" }}>{order.client_name}</p>
-                  <p style={{ margin: "8px 0 0", fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.58)", lineHeight: 1.5 }}>{order.delivery_address}</p>
-                  <p style={{ margin: "10px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "#eee3b4", lineHeight: 1.6, whiteSpace: "pre-line" }}>{order.order_list}</p>
-                  <p style={{ margin: "10px 0 0", fontFamily: "var(--font-heading)", fontSize: "20px", color: "#d29c6c", fontWeight: 700 }}>{formatCurrency(order.order_total)}</p>
-                  <span style={{ display: "inline-flex", marginTop: "10px", padding: "4px 8px", ...badgeStyle, fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" }}>{order.payment_status || "PENDING"}</span>
-                  <p style={{ margin: "10px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "#eee3b4", lineHeight: 1.5 }}>{order.next_action || "Not recorded."}</p>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {todaysOrders.length === 0 ? <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(238,227,180,0.62)" }}>No deliveries scheduled.</p> : <MemberOrderDispatchCards orders={todaysOrders} onStatusChange={handleStatusChange} showActionItem={true} compact={true} />}
       </div>
 
-      <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.2)", marginBottom: "32px" }}>
-        <div style={{ padding: "16px 18px", borderBottom: "1px solid rgba(201,168,76,0.18)", background: "#0a0a0a", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-          <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "22px", color: "#d29c6c", textTransform: "uppercase", letterSpacing: "0.08em" }}>Orders for {moment(selectedDayKey).format("D MMMM YYYY")}</p>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <input value={statusFilter === "all" ? "All statuses" : statusBlockConfig[statusFilter].label} readOnly style={{ ...inputBase, padding: "10px 12px", minWidth: "150px", color: "rgba(245,240,232,0.72)" }} />
-          </div>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {selectedDayOrders.map((order) => {
-            const badgeStyle = paymentBadgeMap[order.payment_status || "PENDING"] || paymentBadgeMap.PENDING;
-            return (
-              <div key={order.id} style={{ textAlign: "left", padding: "16px 18px", borderBottom: "1px solid rgba(255,255,255,0.04)", background: "transparent" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", flexWrap: "wrap" }}>
-                  <div>
-                    <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: 600, color: "#F5F0E8" }}>{order.client_name}</p>
-                    <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.58)" }}>{order.delivery_address}</p>
-                  </div>
-                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-                    <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "20px", color: "#d29c6c" }}>{formatCurrency(order.order_total)}</p>
-                    <span style={{ display: "inline-flex", padding: "4px 8px", ...badgeStyle, fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" }}>{order.payment_status || "PENDING"}</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      <div style={{ marginBottom: "24px" }}>
+        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#d29c6c" }}>Selected Day</p>
+        <div style={{ width: "72px", height: "2px", background: "rgba(201,168,76,0.55)", marginTop: "10px", marginBottom: "18px" }} />
+        {selectedDayOrders.length === 0 ? <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(238,227,180,0.62)" }}>No member orders on this day.</p> : <MemberOrderDispatchCards orders={selectedDayOrders} onStatusChange={handleStatusChange} showActionItem={true} compact={true} />}
       </div>
     </div>
   );
