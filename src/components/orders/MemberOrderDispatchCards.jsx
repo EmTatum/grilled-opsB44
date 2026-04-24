@@ -1,3 +1,5 @@
+import { formatDeliveryDateTime } from "../notes/memberIntelligenceUtils";
+
 const paymentBadgeStyles = {
   PAID: { background: "#15434a", color: "#F5F0E8", border: "1px solid rgba(21,67,74,0.9)" },
   CASH: { background: "#d29c6c", color: "#0b0e11", border: "1px solid rgba(210,156,108,0.9)" },
@@ -88,7 +90,7 @@ export default function MemberOrderDispatchCards({ orders, onStatusChange, secti
             <div style={{ display: "grid", gap: "10px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(120px, 180px) minmax(0, 1fr)", gap: "12px" }}>
                 <p style={labelStyle}>Delivery Date</p>
-                <p style={valueStyle}>{order.delivery_date || "Not recorded."}</p>
+                <p style={valueStyle}>{formatDeliveryDateTime(order.delivery_date)}</p>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(120px, 180px) minmax(0, 1fr)", gap: "12px" }}>
                 <p style={labelStyle}>Delivery Address</p>

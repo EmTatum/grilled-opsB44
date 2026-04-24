@@ -2,9 +2,13 @@ export const EXTRACTION_PROMPT = `You are extracting structured operational inte
 
 HARD RULES:
 - NEVER write 'pick up', 'pickup', or 'collect'. Always write 'delivery'.
-- delivery_date must contain ONLY the date in YYYY-MM-DD format. Never include a time, am/pm, or words like 'afternoon' in delivery_date. Convert '24 April' → '2026-04-24'. Convert 'tomorrow' using today's date. If unknown, return null.
-- delivery_time must contain ONLY the time in HH:MM 24-hour format. Extract any time reference from context and write it here exclusively (e.g. '14:30' → '14:30', '2pm' → '14:00', '6pm' → '18:00', 'afternoon' → '15:00'). If unknown, return null.
-- If a message contains both a date and time, split them correctly: the date goes in delivery_date and the time goes in delivery_time.
+- delivery_date uses a single combined field.
+- If a date AND time are found, write delivery_date as YYYY-MM-DDTHH:MM. Example: 2026-04-24T18:00.
+- If only a date is found, write delivery_date as YYYY-MM-DD.
+- If only a time is found with no date, write delivery_date as null and write that time context into next_action.
+- If neither date nor time is found, write delivery_date as null.
+- NEVER write time into next_action if a proper delivery_date value can be constructed.
+- Time must be in 24-hour HH:MM format. Convert '6pm' → '18:00', '2pm' → '14:00', 'midday' → '12:00'.
 - payment_status must be exactly: PAID (if already paid/EFT done), CASH (if paying cash on delivery), or PENDING (if not yet confirmed).
 - order_total must be a plain integer. Strip R and commas. R17,950 → 17950. If unknown, return 0.
 - cell_number must include country code. If not in the conversation, return null.
@@ -14,8 +18,7 @@ Return a JSON object with these fields:
 {
   client_name: string,
   cell_number: string or null,
-  delivery_date: YYYY-MM-DD string or null,
-  delivery_time: HH:MM string or null,
+  delivery_date: YYYY-MM-DDTHH:MM string, YYYY-MM-DD string, or null,
   delivery_address: string or null,
   order_list: string (one item per line, include quantities),
   order_total: integer,
@@ -35,7 +38,6 @@ export const EXTRACTION_SCHEMA = {
     client_name: { type: "string" },
     cell_number: { anyOf: [{ type: "string" }, { type: "null" }] },
     delivery_date: { anyOf: [{ type: "string" }, { type: "null" }] },
-    delivery_time: { anyOf: [{ type: "string" }, { type: "null" }] },
     delivery_address: { anyOf: [{ type: "string" }, { type: "null" }] },
     order_list: { type: "string" },
     order_total: { type: "number" },
@@ -52,7 +54,6 @@ export const EXTRACTION_SCHEMA = {
     "client_name",
     "cell_number",
     "delivery_date",
-    "delivery_time",
     "delivery_address",
     "order_list",
     "order_total",

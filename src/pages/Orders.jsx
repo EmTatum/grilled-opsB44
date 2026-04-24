@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import moment from "moment";
 import MemberOrderStatusCards from "../components/orders/MemberOrderStatusCards";
 import MemberOrderDispatchCards from "../components/orders/MemberOrderDispatchCards";
+import { formatDeliveryDateTime } from "../components/notes/memberIntelligenceUtils";
 
 const GoldBtn = ({ onClick, children }) => (
   <button
@@ -140,7 +141,8 @@ export default function Orders() {
                 {dayOrders.map((order) => (
                   <div key={order.id} style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.16)", padding: "10px" }}>
                     <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", fontWeight: 600, color: "#F5F0E8" }}>{order.client_name}</p>
-                    <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(245,240,232,0.58)" }}>{order.delivery_address || "Not recorded."}</p>
+                    <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(245,240,232,0.58)" }}>{formatDeliveryDateTime(order.delivery_date)}</p>
+                    <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(245,240,232,0.42)" }}>{order.delivery_address || "Not recorded."}</p>
                   </div>
                 ))}
               </div>

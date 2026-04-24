@@ -25,6 +25,36 @@ export default function CustomerNotes() {
   const [saving, setSaving] = useState(false);
   const [selectedNote, setSelectedNote] = useState(null);
 
+  const normalizeClientName = (value) => String(value || "").trim().toLowerCase();
+
+  const normalizeTimeValue = (value) => {
+    const raw = String(value || "").trim().toLowerCase();
+    if (!raw) return null;
+    if (raw === "midday") return "12:00";
+    const hhmmMatch = raw.match(/^(\d{1,2}):(\d{2})$/);
+    if (hhmmMatch) return `${hhmmMatch[1].padStart(2, "0")}:${hhmmMatch[2]}`;
+    const ampmMatch = raw.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+    if (ampmMatch) {
+      let hours = Number(ampmMatch[1]);
+      const minutes = ampmMatch[2] || "00";
+      const meridiem = ampmMatch[3];
+      if (meridiem === "pm" && hours !== 12) hours += 12;
+      if (meridiem === "am" && hours === 12) hours = 0;
+      return `${String(hours).padStart(2, "0")}:${minutes}`;
+    }
+    return null;
+  };
+
+  const buildCombinedDeliveryDate = (dateValue, timeValue) => {
+    const dateRaw = String(dateValue || "").trim();
+    const dateMatch = dateRaw.match(/\d{4}-\d{2}-\d{2}/);
+    const normalizedDate = dateMatch ? dateMatch[0] : null;
+    const normalizedTime = normalizeTimeValue(timeValue);
+    if (normalizedDate && normalizedTime) return `${normalizedDate}T${normalizedTime}`;
+    if (normalizedDate) return normalizedDate;
+    return null;
+  };
+
   const load = async () => {
     const [noteRecords, memberOrderRecords] = await Promise.all([
       base44.entities.CustomerNote.list("-updated_date", 200),
@@ -71,37 +101,16 @@ export default function CustomerNotes() {
       prompt: `${EXTRACTION_PROMPT}\n\nWhatsApp conversation:\n${conversation}`,
       response_json_schema: EXTRACTION_SCHEMA
     });
-    const normalizedDeliveryDate = (() => {
-      const raw = String(result.delivery_date || "").trim();
-      const match = raw.match(/\d{4}-\d{2}-\d{2}/);
-      return match ? match[0] : null;
-    })();
 
-    const normalizedDeliveryTime = (() => {
-      const raw = String(result.delivery_time || "").trim().toLowerCase();
-      if (!raw) return null;
-      const hhmmMatch = raw.match(/^(\d{1,2}):(\d{2})$/);
-      if (hhmmMatch) {
-        return `${hhmmMatch[1].padStart(2, "0")}:${hhmmMatch[2]}`;
-      }
-      const ampmMatch = raw.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
-      if (ampmMatch) {
-        let hours = Number(ampmMatch[1]);
-        const minutes = ampmMatch[2] || "00";
-        const meridiem = ampmMatch[3];
-        if (meridiem === "pm" && hours !== 12) hours += 12;
-        if (meridiem === "am" && hours === 12) hours = 0;
-        return `${String(hours).padStart(2, "0")}:${minutes}`;
-      }
-      if (raw.includes("afternoon")) return "15:00";
-      return null;
-    })();
+    const rawDeliveryValue = String(result.delivery_date || "").trim();
+    const combinedDeliveryDate = rawDeliveryValue.includes("T")
+      ? rawDeliveryValue
+      : buildCombinedDeliveryDate(rawDeliveryValue, null);
 
     setPreview({
       ...result,
       cell_number: result.cell_number || null,
-      delivery_date: normalizedDeliveryDate,
-      delivery_time: normalizedDeliveryTime,
+      delivery_date: combinedDeliveryDate,
       delivery_address: result.delivery_address || null,
       order_total: parseInt(result.order_total || 0, 10) || 0,
       payment_status: result.payment_status || "PENDING"
@@ -113,7 +122,8 @@ export default function CustomerNotes() {
     if (!preview || saving) return;
     setSaving(true);
 
-    const existingNote = notes.find((note) => note.client_name === preview.client_name);
+    const existingNote = notes.find((note) => normalizeClientName(note.client_name) === normalizeClientName(preview.client_name));
+    const combinedDeliveryDate = buildCombinedDeliveryDate(preview.delivery_date, null);
     const notePayload = {
       client_name: preview.client_name,
       note_type: "General",
@@ -125,7 +135,7 @@ export default function CustomerNotes() {
         `client-notes:${preview.client_notes || "Not recorded."}`
       ],
       cell_number: preview.cell_number || "",
-      delivery_date: preview.delivery_date || "",
+      delivery_date: combinedDeliveryDate || "",
       delivery_address: preview.delivery_address || "",
       order_list: preview.order_list || "",
       order_total: Number(preview.order_total || 0),
@@ -139,12 +149,11 @@ export default function CustomerNotes() {
       ? await base44.entities.CustomerNote.update(existingNote.id, notePayload)
       : await base44.entities.CustomerNote.create(notePayload);
 
-    const existingOrder = memberOrders.find((order) => order.intelligence_report_id === savedNote.id) || memberOrders.find((order) => order.client_name === preview.client_name);
+    const existingOrder = memberOrders.find((order) => normalizeClientName(order.client_name) === normalizeClientName(preview.client_name));
     const orderPayload = {
       client_name: preview.client_name,
       cell_number: preview.cell_number || "",
-      delivery_date: preview.delivery_date || "",
-      delivery_time: preview.delivery_time || "",
+      delivery_date: combinedDeliveryDate || "",
       delivery_address: preview.delivery_address || "",
       order_list: preview.order_list || "",
       order_total: Number(preview.order_total || 0),
@@ -179,8 +188,7 @@ export default function CustomerNotes() {
   const handleSaveEdit = async (draft) => {
     setMemberOrders((prev) => prev.map((item) => item.id === draft.id ? { ...item, ...draft } : item));
     await base44.entities.MemberOrder.update(draft.id, {
-      delivery_date: draft.delivery_date || "",
-      delivery_time: draft.delivery_time || "",
+      delivery_date: buildCombinedDeliveryDate(draft.delivery_date, null) || "",
       delivery_address: draft.delivery_address || "",
       payment_status: draft.payment_status || "PENDING",
       order_total: Number(draft.order_total || 0),

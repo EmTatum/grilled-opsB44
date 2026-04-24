@@ -1,30 +1,6 @@
 import { useEffect, useState } from "react";
 import { PAYMENT_STYLES } from "./member-intelligence-config";
-import { formatRand } from "./memberIntelligenceUtils";
-
-const formatDisplayDate = (value) => {
-  if (!value) return null;
-  const parsed = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-};
-
-const formatDisplayTime = (value) => {
-  if (!value) return null;
-  const [hours, minutes] = String(value).split(":");
-  if (hours === undefined || minutes === undefined) return null;
-  return `${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}`;
-};
-
-const buildDateTimeLine = (deliveryDate, deliveryTime) => {
-  const dateText = formatDisplayDate(deliveryDate);
-  if (!dateText) return "📅 Date TBC";
-
-  const timeText = formatDisplayTime(deliveryTime);
-  if (!timeText) return `📅 ${dateText} — Time TBC`;
-
-  return `📅 ${dateText} at ${timeText}`;
-};
+import { formatDeliveryDateTime, formatRand } from "./memberIntelligenceUtils";
 
 const inputStyle = {
   width: "100%",
@@ -88,7 +64,7 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
       {!editing ? (
         <>
           <div style={{ display: "grid", gap: "10px" }}>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8" }}>{buildDateTimeLine(order.delivery_date, order.delivery_time)}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8" }}>{formatDeliveryDateTime(order.delivery_date)}</p>
             <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: order.delivery_address ? "#F5F0E8" : "rgba(245,240,232,0.45)", whiteSpace: "pre-wrap", fontStyle: order.delivery_address ? "normal" : "italic" }}>📍 {order.delivery_address || "Address TBC"}</p>
             <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: order.cell_number ? "#F5F0E8" : "rgba(245,240,232,0.45)" }}>📞 {order.cell_number || "No number"}</p>
             <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#d29c6c" }}>💰 {formatRand(order.order_total)}</p>
@@ -128,8 +104,7 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
         </>
       ) : (
         <div style={{ display: "grid", gap: "12px" }}>
-          <input value={draft.delivery_date || ""} onChange={(e) => setDraft({ ...draft, delivery_date: e.target.value })} placeholder="YYYY-MM-DD" style={inputStyle} />
-          <input value={draft.delivery_time || ""} onChange={(e) => setDraft({ ...draft, delivery_time: e.target.value })} placeholder="HH:MM" style={inputStyle} />
+          <input value={draft.delivery_date || ""} onChange={(e) => setDraft({ ...draft, delivery_date: e.target.value })} placeholder="YYYY-MM-DD or YYYY-MM-DDTHH:MM" style={inputStyle} />
           <textarea value={draft.delivery_address || ""} onChange={(e) => setDraft({ ...draft, delivery_address: e.target.value })} placeholder="Delivery address" style={{ ...inputStyle, minHeight: "90px", resize: "vertical" }} />
           <select value={draft.payment_status || "PENDING"} onChange={(e) => setDraft({ ...draft, payment_status: e.target.value })} style={{ ...inputStyle, cursor: "pointer" }}>
             <option value="PAID">PAID</option>
