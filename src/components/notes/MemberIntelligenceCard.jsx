@@ -56,9 +56,11 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
   const [showFollowUp, setShowFollowUp] = useState(false);
   const [showConfirmOptions, setShowConfirmOptions] = useState(false);
   const [followUpNote, setFollowUpNote] = useState("");
+  const [cardOrder, setCardOrder] = useState(order);
   const [draft, setDraft] = useState(order);
 
   useEffect(() => {
+    setCardOrder(order);
     setDraft(order);
     setEditing(false);
     setShowFollowUp(false);
@@ -66,24 +68,24 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
     setFollowUpNote("");
   }, [order]);
 
-  const paymentStyle = PAYMENT_STYLES[order.payment_status] || PAYMENT_STYLES.PENDING;
-  const confirmedChip = confirmedChipConfig[order.payment_status] || confirmedChipConfig.PENDING;
+  const paymentStyle = PAYMENT_STYLES[cardOrder.payment_status] || PAYMENT_STYLES.PENDING;
+  const confirmedChip = confirmedChipConfig[cardOrder.payment_status] || confirmedChipConfig.PENDING;
 
   return (
     <div style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", borderLeft: `4px solid ${paymentStyle.accent}`, padding: "22px", display: "flex", flexDirection: "column", gap: "16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
         <div>
-          <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", color: "#F5F0E8", lineHeight: 1.05 }}>{order.client_name || "Unknown Client"}</p>
+          <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", color: "#F5F0E8", lineHeight: 1.05 }}>{cardOrder.client_name || "Unknown Client"}</p>
         </div>
         <div style={{ display: "flex", gap: "8px", alignItems: "flex-start", flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {order.order_confirmed && (
+          {cardOrder.order_confirmed && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 10px", background: confirmedChip.background, border: confirmedChip.border, color: confirmedChip.color, fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", height: "fit-content" }}>
               <span>{confirmedChip.icon}</span>
-              <span>{confirmedChip.text}</span>
+              <span>{confirmedChip.text.replace(" CONFIRMED", "")}</span>
             </span>
           )}
           <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", background: paymentStyle.badgeBackground, border: `1px solid ${paymentStyle.badgeBorder}`, color: paymentStyle.badgeColor, fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", height: "fit-content" }}>
-            {order.payment_status}
+            {cardOrder.payment_status}
           </span>
         </div>
       </div>
@@ -91,25 +93,25 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
       {!editing ? (
         <>
           <div style={{ display: "grid", gap: "10px" }}>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8" }}>{formatDeliveryDateTime(order.delivery_date)}</p>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: order.delivery_address ? "#F5F0E8" : "rgba(245,240,232,0.45)", whiteSpace: "pre-wrap", fontStyle: order.delivery_address ? "normal" : "italic" }}>📍 {order.delivery_address || "Address TBC"}</p>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: order.cell_number ? "#F5F0E8" : "rgba(245,240,232,0.45)" }}>📞 {order.cell_number || "No number"}</p>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#d29c6c" }}>💰 {formatRand(order.order_total)}</p>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.58)", fontStyle: "italic" }}>⚡ {order.next_action || "No next action set"}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8" }}>{formatDeliveryDateTime(cardOrder.delivery_date)}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: cardOrder.delivery_address ? "#F5F0E8" : "rgba(245,240,232,0.45)", whiteSpace: "pre-wrap", fontStyle: cardOrder.delivery_address ? "normal" : "italic" }}>📍 {cardOrder.delivery_address || "Address TBC"}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: cardOrder.cell_number ? "#F5F0E8" : "rgba(245,240,232,0.45)" }}>📞 {cardOrder.cell_number || "No number"}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#d29c6c" }}>💰 {formatRand(cardOrder.order_total)}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.58)", fontStyle: "italic" }}>⚡ {cardOrder.next_action || "No next action set"}</p>
           </div>
 
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button onClick={() => onFulfilled(order)} style={buttonBase}>✓ Fulfilled</button>
-            <button onClick={() => onCancelled(order)} style={{ ...buttonBase, border: "1px solid rgba(194,24,91,0.6)", color: "#C2185B" }}>✗ Cancel</button>
-            <button onClick={() => onViewReport(order)} style={buttonBase}>📋 Full Report</button>
+            <button onClick={async () => { await onFulfilled(cardOrder); }} style={buttonBase}>✓ Fulfilled</button>
+            <button onClick={async () => { await onCancelled(cardOrder); }} style={{ ...buttonBase, border: "1px solid rgba(194,24,91,0.6)", color: "#C2185B" }}>✗ Cancel</button>
+            <button onClick={() => onViewReport(cardOrder)} style={buttonBase}>📋 Full Report</button>
             <button onClick={() => setEditing(true)} style={buttonBase}>✏️ Edit</button>
             <button onClick={() => { setShowFollowUp((prev) => !prev); setShowConfirmOptions(false); }} style={buttonBase}>📞 Follow Up</button>
-            {!order.order_confirmed ? (
+            {!cardOrder.order_confirmed ? (
               <button onClick={() => { setShowConfirmOptions((prev) => !prev); setShowFollowUp(false); }} style={buttonBase}>✅ Confirm</button>
             ) : (
               <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "10px 14px", background: confirmedChip.background, border: confirmedChip.border, color: confirmedChip.color, fontFamily: "var(--font-body)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" }}>
                 <span>{confirmedChip.icon}</span>
-                <span>{confirmedChip.text}</span>
+                <span>{confirmedChip.text.replace(" CONFIRMED", "")}</span>
               </span>
             )}
           </div>
@@ -119,7 +121,7 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
               <label style={{ fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(201,168,76,0.68)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Log follow-up note</label>
               <input value={followUpNote} onChange={(e) => setFollowUpNote(e.target.value)} placeholder="Called, no answer — try again at 5pm" style={inputStyle} />
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                <button onClick={async () => { if (!followUpNote.trim()) return; await onSaveFollowUp(order, followUpNote.trim()); setFollowUpNote(""); setShowFollowUp(false); }} style={buttonBase}>Save</button>
+                <button onClick={async () => { if (!followUpNote.trim()) return; const updatedOrder = await onSaveFollowUp(cardOrder, followUpNote.trim()); if (updatedOrder) setCardOrder(updatedOrder); setFollowUpNote(""); setShowFollowUp(false); }} style={buttonBase}>Save</button>
                 <button onClick={() => { setFollowUpNote(""); setShowFollowUp(false); }} style={{ ...buttonBase, border: "1px solid rgba(245,240,232,0.18)", color: "rgba(245,240,232,0.7)" }}>Cancel</button>
               </div>
             </div>
@@ -129,9 +131,9 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
             <div style={{ display: "grid", gap: "10px", padding: "14px", background: "#111111", border: "1px solid rgba(20,184,166,0.18)" }}>
               <label style={{ fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(20,184,166,0.8)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Confirm payment status</label>
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                <button onClick={async () => { await onConfirmStatus(order, "PAID"); setShowConfirmOptions(false); }} style={buttonBase}>PAID (EFT received)</button>
-                <button onClick={async () => { await onConfirmStatus(order, "CASH"); setShowConfirmOptions(false); }} style={buttonBase}>CASH (on delivery)</button>
-                <button onClick={async () => { await onConfirmStatus(order, "PENDING"); setShowConfirmOptions(false); }} style={buttonBase}>Keep as PENDING</button>
+                <button onClick={async () => { const updatedOrder = await onConfirmStatus(cardOrder, "PAID"); if (updatedOrder) setCardOrder(updatedOrder); setShowConfirmOptions(false); }} style={buttonBase}>PAID (EFT received)</button>
+                <button onClick={async () => { const updatedOrder = await onConfirmStatus(cardOrder, "CASH"); if (updatedOrder) setCardOrder(updatedOrder); setShowConfirmOptions(false); }} style={buttonBase}>CASH (on delivery)</button>
+                <button onClick={async () => { const updatedOrder = await onConfirmStatus(cardOrder, "PENDING"); if (updatedOrder) setCardOrder(updatedOrder); setShowConfirmOptions(false); }} style={buttonBase}>Keep as PENDING</button>
                 <button onClick={() => setShowConfirmOptions(false)} style={{ ...buttonBase, border: "1px solid rgba(245,240,232,0.18)", color: "rgba(245,240,232,0.7)", display: "inline-flex", alignItems: "center", gap: "6px" }}><X size={14} /> Close</button>
               </div>
             </div>
@@ -150,7 +152,7 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
           <input value={draft.order_total ?? 0} onChange={(e) => setDraft({ ...draft, order_total: Number(e.target.value || 0) })} type="number" placeholder="Order total" style={inputStyle} />
           <textarea value={draft.next_action || ""} onChange={(e) => setDraft({ ...draft, next_action: e.target.value })} placeholder="Next action" style={{ ...inputStyle, minHeight: "80px", resize: "vertical" }} />
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button onClick={async () => { await onSaveEdit(draft); setEditing(false); }} style={buttonBase}>Save</button>
+            <button onClick={async () => { const updatedOrder = await onSaveEdit(draft); if (updatedOrder) setCardOrder(updatedOrder); setEditing(false); }} style={buttonBase}>Save</button>
             <button onClick={() => { setDraft(order); setEditing(false); }} style={{ ...buttonBase, border: "1px solid rgba(245,240,232,0.18)", color: "rgba(245,240,232,0.7)" }}>Cancel</button>
           </div>
         </div>

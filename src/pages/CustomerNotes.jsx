@@ -185,17 +185,21 @@ ${conversation}`,
   };
 
   const handleFulfilled = async (order) => {
-    await base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Fulfilled" });
-    await loadOrders();
+    const updatedOrder = await base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Fulfilled" });
+    setActiveOrders((current) => current.filter((item) => item.id !== order.id));
+    setHistoryOrders((current) => sortByDeliveryDate([updatedOrder, ...current.filter((item) => item.id !== order.id)]));
+    return updatedOrder;
   };
 
   const handleCancelled = async (order) => {
-    await base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Cancelled" });
-    await loadOrders();
+    const updatedOrder = await base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Cancelled" });
+    setActiveOrders((current) => current.filter((item) => item.id !== order.id));
+    setHistoryOrders((current) => sortByDeliveryDate([updatedOrder, ...current.filter((item) => item.id !== order.id)]));
+    return updatedOrder;
   };
 
   const handleSaveEdit = async (draft) => {
-    await base44.entities.MemberOrder.update(draft.id, {
+    const updatedOrder = await base44.entities.MemberOrder.update(draft.id, {
       delivery_date: buildCombinedDeliveryDate(draft.delivery_date, null) || "",
       delivery_address: draft.delivery_address || "",
       payment_status: draft.payment_status || "PENDING",
@@ -203,7 +207,8 @@ ${conversation}`,
       cell_number: draft.cell_number || "",
       next_action: draft.next_action || ""
     });
-    await loadOrders();
+    setActiveOrders((current) => current.map((item) => item.id === updatedOrder.id ? updatedOrder : item));
+    return updatedOrder;
   };
 
   const handleViewReport = async (order) => {
@@ -278,12 +283,14 @@ ${conversation}`,
                 onViewReport={handleViewReport}
                 onSaveEdit={handleSaveEdit}
                 onSaveFollowUp={async (order, nextAction) => {
-                  await base44.entities.MemberOrder.update(order.id, { next_action: nextAction });
-                  await loadOrders();
+                  const updatedOrder = await base44.entities.MemberOrder.update(order.id, { next_action: nextAction });
+                  setActiveOrders((current) => current.map((item) => item.id === updatedOrder.id ? updatedOrder : item));
+                  return updatedOrder;
                 }}
                 onConfirmStatus={async (order, paymentStatus) => {
-                  await base44.entities.MemberOrder.update(order.id, { payment_status: paymentStatus, order_confirmed: true });
-                  await loadOrders();
+                  const updatedOrder = await base44.entities.MemberOrder.update(order.id, { payment_status: paymentStatus, order_confirmed: true });
+                  setActiveOrders((current) => current.map((item) => item.id === updatedOrder.id ? updatedOrder : item));
+                  return updatedOrder;
                 }}
               />
             ))}
