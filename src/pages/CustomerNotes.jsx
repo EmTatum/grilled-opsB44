@@ -116,16 +116,16 @@ export default function CustomerNotes() {
     return matchSearch && matchType;
   }), [deduped, search, typeFilter]);
 
+  const memberOrderMap = useMemo(() => memberOrders.reduce((acc, order) => {
+    if (order.intelligence_report_id) acc[order.intelligence_report_id] = order;
+    return acc;
+  }, {}), [memberOrders]);
   const reportNotes = useMemo(() => filtered.filter((note) => {
     if (!isIntelligenceReportNote(note)) return false;
     const linkedOrder = memberOrderMap[note.id];
     return !linkedOrder || linkedOrder.fulfilment_status === "Active";
   }), [filtered, memberOrderMap]);
   const standardNotes = useMemo(() => filtered.filter((note) => !isIntelligenceReportNote(note)), [filtered]);
-  const memberOrderMap = useMemo(() => memberOrders.reduce((acc, order) => {
-    if (order.intelligence_report_id) acc[order.intelligence_report_id] = order;
-    return acc;
-  }, {}), [memberOrders]);
 
   const duplicateCount = useMemo(
     () => generatedDuplicateSets.reduce((sum, group) => sum + group.length - 1, 0),
