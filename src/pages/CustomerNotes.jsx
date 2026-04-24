@@ -73,9 +73,11 @@ export default function CustomerNotes() {
     });
     setPreview({
       ...result,
+      cell_number: result.cell_number || null,
       delivery_date: result.delivery_date || null,
+      delivery_time: result.delivery_time || null,
       delivery_address: result.delivery_address || null,
-      order_total: Number(result.order_total || 0),
+      order_total: parseInt(result.order_total || 0, 10) || 0,
       payment_status: result.payment_status || "PENDING"
     });
     setGenerating(false);
@@ -91,7 +93,12 @@ export default function CustomerNotes() {
       note_type: "General",
       priority: existingNote?.priority || "Medium",
       content: buildCustomerNoteContent(preview),
-      cell_number: preview.cell_number,
+      tags: [
+        `latest-order-status:${preview.latest_order_status || "Not recorded."}`,
+        `order-frequency:${preview.order_frequency || "Not recorded."}`,
+        `client-notes:${preview.client_notes || "Not recorded."}`
+      ],
+      cell_number: preview.cell_number || "",
       delivery_date: preview.delivery_date || "",
       delivery_address: preview.delivery_address || "",
       order_list: preview.order_list || "",
@@ -106,11 +113,12 @@ export default function CustomerNotes() {
       ? await base44.entities.CustomerNote.update(existingNote.id, notePayload)
       : await base44.entities.CustomerNote.create(notePayload);
 
-    const existingOrder = memberOrders.find((order) => order.intelligence_report_id === savedNote.id);
+    const existingOrder = memberOrders.find((order) => order.intelligence_report_id === savedNote.id) || memberOrders.find((order) => order.client_name === preview.client_name);
     const orderPayload = {
       client_name: preview.client_name,
-      cell_number: preview.cell_number,
+      cell_number: preview.cell_number || "",
       delivery_date: preview.delivery_date || "",
+      delivery_time: preview.delivery_time || "",
       delivery_address: preview.delivery_address || "",
       order_list: preview.order_list || "",
       order_total: Number(preview.order_total || 0),
@@ -146,6 +154,7 @@ export default function CustomerNotes() {
     setMemberOrders((prev) => prev.map((item) => item.id === draft.id ? { ...item, ...draft } : item));
     await base44.entities.MemberOrder.update(draft.id, {
       delivery_date: draft.delivery_date || "",
+      delivery_time: draft.delivery_time || "",
       delivery_address: draft.delivery_address || "",
       payment_status: draft.payment_status || "PENDING",
       order_total: Number(draft.order_total || 0),

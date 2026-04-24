@@ -52,22 +52,24 @@ export default function MemberIntelligenceCard({ order, note, onFulfilled, onCan
       {!editing ? (
         <>
           <div style={{ display: "grid", gap: "10px" }}>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8" }}><span style={{ color: "rgba(201,168,76,0.68)", textTransform: "uppercase", letterSpacing: "0.12em", fontSize: "10px" }}>Delivery Date</span><br />{order.delivery_date || <em style={{ color: "rgba(245,240,232,0.45)" }}>No date set</em>}</p>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8", whiteSpace: "pre-wrap" }}><span style={{ color: "rgba(201,168,76,0.68)", textTransform: "uppercase", letterSpacing: "0.12em", fontSize: "10px" }}>Delivery Address</span><br />{order.delivery_address || "Address TBC"}</p>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#d29c6c" }}><span style={{ color: "rgba(201,168,76,0.68)", textTransform: "uppercase", letterSpacing: "0.12em", fontSize: "10px" }}>Order Total</span><br />{formatRand(order.order_total)}</p>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.58)", fontStyle: "italic" }}>{order.next_action || "No next action set"}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8" }}>📅 {order.delivery_date || "Date TBC"} at {order.delivery_time || "Time TBC"}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: order.delivery_address ? "#F5F0E8" : "rgba(245,240,232,0.45)", whiteSpace: "pre-wrap", fontStyle: order.delivery_address ? "normal" : "italic" }}>📍 {order.delivery_address || "Address TBC"}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: order.cell_number ? "#F5F0E8" : "rgba(245,240,232,0.45)" }}>📞 {order.cell_number || "No number"}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#d29c6c" }}>💰 {formatRand(order.order_total)}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.58)", fontStyle: "italic" }}>⚡ {order.next_action || "No next action set"}</p>
           </div>
 
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
             <button onClick={() => onFulfilled(order, note)} style={buttonBase}>✓ Fulfilled</button>
             <button onClick={() => onCancelled(order)} style={{ ...buttonBase, border: "1px solid rgba(194,24,91,0.6)", color: "#C2185B" }}>✗ Cancel</button>
-            <button onClick={() => onViewReport(note)} style={buttonBase}>📋 View Report</button>
+            <button onClick={() => onViewReport(note)} style={buttonBase}>📋 Full Report</button>
             <button onClick={() => setEditing(true)} style={buttonBase}>✏️ Edit</button>
           </div>
         </>
       ) : (
         <div style={{ display: "grid", gap: "12px" }}>
           <input value={draft.delivery_date || ""} onChange={(e) => setDraft({ ...draft, delivery_date: e.target.value })} placeholder="YYYY-MM-DD" style={inputStyle} />
+          <input value={draft.delivery_time || ""} onChange={(e) => setDraft({ ...draft, delivery_time: e.target.value })} placeholder="HH:MM" style={inputStyle} />
           <textarea value={draft.delivery_address || ""} onChange={(e) => setDraft({ ...draft, delivery_address: e.target.value })} placeholder="Delivery address" style={{ ...inputStyle, minHeight: "90px", resize: "vertical" }} />
           <select value={draft.payment_status || "PENDING"} onChange={(e) => setDraft({ ...draft, payment_status: e.target.value })} style={{ ...inputStyle, cursor: "pointer" }}>
             <option value="PAID">PAID</option>

@@ -14,6 +14,10 @@
       "type": "string",
       "title": "Delivery Date"
     },
+    "delivery_time": {
+      "type": "string",
+      "title": "Delivery Time (HH:MM)"
+    },
     "delivery_address": {
       "type": "string",
       "title": "Delivery Address"
