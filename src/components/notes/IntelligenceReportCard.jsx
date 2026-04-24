@@ -100,7 +100,7 @@ export default function IntelligenceReportCard({ report, onOpen, onMarkFulfilled
       </div>
 
       <button
-        onClick={() => !isFulfilled && onMarkFulfilled?.(report.id)}
+        onClick={() => !isFulfilled && onMarkFulfilled?.(report.memberOrder?.id)}
         disabled={isFulfilled}
         style={{
           background: "transparent",

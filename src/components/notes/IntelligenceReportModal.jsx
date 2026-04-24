@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { normalizePaymentStatus } from "../../utils/customerNotes";
 
 const labelStyle = {
@@ -117,6 +117,8 @@ export default function IntelligenceReportModal({ open, onOpenChange, report, on
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent style={{ background: "#0f0f0f", border: "1px solid rgba(201,168,76,0.28)", maxWidth: "min(1100px, calc(100vw - 32px))", width: "100%", height: "calc(100vh - 32px)", padding: 0 }}>
+        <DialogTitle style={{ position: "absolute", width: "1px", height: "1px", padding: 0, margin: "-1px", overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>Member Intelligence File</DialogTitle>
+        <DialogDescription style={{ position: "absolute", width: "1px", height: "1px", padding: 0, margin: "-1px", overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>View and edit member intelligence details, order information, and client notes.</DialogDescription>
         <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", padding: "20px 24px", borderBottom: "1px solid rgba(201,168,76,0.18)", flexWrap: "wrap" }}>
             <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", color: "#d29c6c", letterSpacing: "0.08em", textTransform: "uppercase" }}>Member Intelligence File</p>

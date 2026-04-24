@@ -71,7 +71,7 @@ export default function CustomerNotes() {
 
       if (event.type === "update") {
         setNotes((prev) => prev.map((note) => (note.id === event.id ? event.data : note)));
-        setActiveReport((prev) => (prev?.id === event.id ? getIntelligenceReportViewModel(event.data) : prev));
+        setActiveReport((prev) => (prev?.id === event.id ? { ...getIntelligenceReportViewModel(event.data), memberOrder: memberOrderMap[event.id] || prev?.memberOrder || null } : prev));
         return;
       }
 
@@ -298,6 +298,8 @@ export default function CustomerNotes() {
                   onDelete={setDeleteId}
                   onMarkFulfilled={async (memberOrderId) => {
                     if (!memberOrderId) return;
+                    const memberOrder = memberOrders.find((order) => order.id === memberOrderId);
+                    if (!memberOrder) return;
                     await base44.entities.MemberOrder.update(memberOrderId, { fulfilment_status: "Fulfilled" });
                   }}
                 />
