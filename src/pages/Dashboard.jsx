@@ -5,7 +5,7 @@ import PageHeader from "../components/PageHeader";
 import DashboardStatCard from "../components/member-orders/DashboardStatCard.jsx";
 import OrdersByPaymentStatus from "../components/member-orders/OrdersByPaymentStatus.jsx";
 import TodaysOrdersList from "../components/member-orders/TodaysOrdersList.jsx";
-import { getDatePart, getTodayKey } from "../components/member-orders/memberOrderUtils";
+import { getDatePart, getTodayKey, sortByDeliveryDateAscNullsLast } from "../components/member-orders/memberOrderUtils";
 
 const Spinner = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -19,21 +19,35 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     const load = async () => {
       const records = await base44.entities.MemberOrder.list("delivery_date", 500);
-      setOrders(records || []);
+      if (!isMounted) return;
+      setOrders(sortByDeliveryDateAscNullsLast(records || []));
       setLoading(false);
     };
 
     load();
 
     const unsubscribe = base44.entities.MemberOrder.subscribe((event) => {
-      if (event.type === "create") setOrders((prev) => [...prev, event.data]);
-      if (event.type === "update") setOrders((prev) => prev.map((item) => item.id === event.id ? event.data : item));
-      if (event.type === "delete") setOrders((prev) => prev.filter((item) => item.id !== event.id));
+      if (event.type === "delete") {
+        setOrders((prev) => prev.filter((item) => item.id !== event.id));
+        return;
+      }
+
+      const nextRecord = event.data;
+      setOrders((prev) => sortByDeliveryDateAscNullsLast([
+        ...prev.filter((item) => item.id !== nextRecord.id),
+        nextRecord,
+      ]));
+      setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
   const todayKey = getTodayKey();
