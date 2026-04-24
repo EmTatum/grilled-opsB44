@@ -62,7 +62,7 @@ const inlineInputStyle = {
   outline: "none"
 };
 
-export default function WhatsAppExtractionPanel({ conversation, onConversationChange, onGenerate, generating, preview, onPreviewChange, onSave, saving }) {
+export default function WhatsAppExtractionPanel({ conversation, onConversationChange, onGenerate, generating, preview, onPreviewChange, saving, saveMessage }) {
   const [editingField, setEditingField] = useState(null);
   const [importMessage, setImportMessage] = useState("");
 
@@ -103,7 +103,7 @@ export default function WhatsAppExtractionPanel({ conversation, onConversationCh
     <section style={panelStyle}>
       <div>
         <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase" }}>WhatsApp Extraction Panel</p>
-        <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.5)" }}>Paste a WhatsApp conversation, extract a clean intelligence report, then review it before saving.</p>
+        <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.5)" }}>Paste a WhatsApp conversation, extract a clean intelligence report, and save it immediately.</p>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -143,9 +143,12 @@ export default function WhatsAppExtractionPanel({ conversation, onConversationCh
 
       {preview && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          {saveMessage && (
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#86efac" }}>{saveMessage}</p>
+          )}
           <div>
-            <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "22px", color: "#C9A84C", letterSpacing: "0.06em", textTransform: "uppercase" }}>Preview Before Saving</p>
-            <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.45)" }}>Review the extracted fields below, then save when ready.</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "22px", color: "#C9A84C", letterSpacing: "0.06em", textTransform: "uppercase" }}>Saved Intelligence Preview</p>
+            <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.45)" }}>The extracted data has been saved. Use the pencil icons to correct any field immediately.</p>
           </div>
 
           <div style={previewGridStyle}>
@@ -210,9 +213,6 @@ export default function WhatsAppExtractionPanel({ conversation, onConversationCh
             })}
           </div>
 
-          <button onClick={onSave} disabled={saving} style={{ ...buttonStyle, opacity: saving ? 0.6 : 1, cursor: saving ? "default" : "pointer" }}>
-            {saving ? "Saving..." : "Confirm & Save"}
-          </button>
         </div>
       )}
     </section>

@@ -22,6 +22,8 @@ export default function CustomerNotes() {
   const [loading, setLoading] = useState(true);
   const [conversation, setConversation] = useState("");
   const [preview, setPreview] = useState(null);
+  const [savedPreviewOrderId, setSavedPreviewOrderId] = useState(null);
+  const [saveMessage, setSaveMessage] = useState("");
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedNote, setSelectedNote] = useState(null);
@@ -102,6 +104,9 @@ export default function CustomerNotes() {
   const generatePreview = async () => {
     if (!conversation.trim() || generating || saving) return;
     setGenerating(true);
+    setSaving(true);
+    setSaveMessage("");
+
     const result = await base44.integrations.Core.InvokeLLM({
       prompt: `Extract structured data from this WhatsApp conversation for a private concierge delivery service.
 
@@ -123,68 +128,58 @@ ${conversation}`,
       response_json_schema: EXTRACTION_SCHEMA
     });
 
-    const rawDeliveryValue = String(result.delivery_date || "").trim();
-    const combinedDeliveryDate = rawDeliveryValue.includes("T")
-      ? rawDeliveryValue
-      : buildCombinedDeliveryDate(rawDeliveryValue, null);
-
-    setPreview({
+    const extractedData = {
       ...result,
       cell_number: result.cell_number || null,
-      delivery_date: combinedDeliveryDate,
+      delivery_date: String(result.delivery_date || "").trim().includes("T")
+        ? String(result.delivery_date || "").trim()
+        : buildCombinedDeliveryDate(result.delivery_date, null),
       delivery_address: result.delivery_address || null,
       order_total: parseInt(result.order_total || 0, 10) || 0,
       payment_status: result.payment_status || "PENDING"
-    });
-    setGenerating(false);
-  };
+    };
 
-  const savePreview = async () => {
-    if (!preview || saving) return;
-    setSaving(true);
-
-    const combinedDeliveryDate = buildCombinedDeliveryDate(preview.delivery_date, null);
-    const reportContent = buildCustomerNoteContent(preview);
+    const reportContent = buildCustomerNoteContent(extractedData);
     const notePayload = {
-      client_name: preview.client_name,
+      client_name: extractedData.client_name,
       note_type: "General",
       priority: "Medium",
       content: reportContent,
       tags: [
-        `latest-order-status:${preview.latest_order_status || "Not recorded."}`,
-        `order-frequency:${preview.order_frequency || "Not recorded."}`,
-        `client-notes:${preview.client_notes || "Not recorded."}`
+        `latest-order-status:${extractedData.latest_order_status || "Not recorded."}`,
+        `order-frequency:${extractedData.order_frequency || "Not recorded."}`,
+        `client-notes:${extractedData.client_notes || "Not recorded."}`
       ]
     };
 
-    const existingNotes = await base44.entities.CustomerNote.filter({ client_name: preview.client_name }, "-updated_date", 1);
+    const existingNotes = await base44.entities.CustomerNote.filter({ client_name: extractedData.client_name }, "-updated_date", 1);
     const savedNote = existingNotes?.[0]
       ? await base44.entities.CustomerNote.update(existingNotes[0].id, notePayload)
       : await base44.entities.CustomerNote.create(notePayload);
 
     const orderPayload = {
-      client_name: preview.client_name,
-      cell_number: preview.cell_number || "",
-      delivery_date: combinedDeliveryDate || "",
-      delivery_address: preview.delivery_address || "",
-      order_list: preview.order_list || "",
-      order_total: parseInt(preview.order_total || 0, 10) || 0,
-      payment_status: preview.payment_status,
-      next_action: preview.next_action || "",
-      intelligence_report_id: savedNote.id
+      client_name: extractedData.client_name,
+      cell_number: extractedData.cell_number || "",
+      delivery_date: extractedData.delivery_date || "",
+      delivery_address: extractedData.delivery_address || "",
+      order_list: extractedData.order_list || "",
+      order_total: parseInt(extractedData.order_total || 0, 10) || 0,
+      payment_status: extractedData.payment_status,
+      next_action: extractedData.next_action || "",
+      intelligence_report_id: savedNote.id,
+      fulfilment_status: "Active"
     };
 
-    const existingOrders = await base44.entities.MemberOrder.filter({ client_name: preview.client_name }, "-updated_date", 1);
+    const existingOrders = await base44.entities.MemberOrder.filter({ client_name: extractedData.client_name }, "-updated_date", 1);
+    const savedOrder = existingOrders?.[0]
+      ? await base44.entities.MemberOrder.update(existingOrders[0].id, orderPayload)
+      : await base44.entities.MemberOrder.create(orderPayload);
 
-    if (existingOrders?.[0]) {
-      await base44.entities.MemberOrder.update(existingOrders[0].id, orderPayload);
-    } else {
-      await base44.entities.MemberOrder.create({ ...orderPayload, fulfilment_status: "Active" });
-    }
-
+    setSavedPreviewOrderId(savedOrder.id);
+    setPreview({ ...extractedData, intelligence_report_id: savedNote.id, id: savedOrder.id });
+    setSaveMessage(`Report saved for ${extractedData.client_name}`);
     await Promise.all([loadNotes(), loadOrders()]);
-    setPreview(null);
-    setConversation("");
+    setGenerating(false);
     setSaving(false);
   };
 
@@ -236,9 +231,28 @@ ${conversation}`,
         onGenerate={generatePreview}
         generating={generating}
         preview={preview}
-        onPreviewChange={setPreview}
-        onSave={savePreview}
+        onPreviewChange={async (updater) => {
+          const nextPreview = typeof updater === "function" ? updater(preview) : updater;
+          setPreview(nextPreview);
+
+          if (!savedPreviewOrderId) return;
+
+          const payload = {
+            client_name: nextPreview.client_name || "",
+            cell_number: nextPreview.cell_number || "",
+            delivery_date: buildCombinedDeliveryDate(nextPreview.delivery_date, null) || "",
+            delivery_address: nextPreview.delivery_address || "",
+            order_list: nextPreview.order_list || "",
+            order_total: parseInt(nextPreview.order_total || 0, 10) || 0,
+            payment_status: nextPreview.payment_status || "PENDING",
+            next_action: nextPreview.next_action || ""
+          };
+
+          await base44.entities.MemberOrder.update(savedPreviewOrderId, payload);
+          await loadOrders();
+        }}
         saving={saving}
+        saveMessage={saveMessage}
       />
 
       <section style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
