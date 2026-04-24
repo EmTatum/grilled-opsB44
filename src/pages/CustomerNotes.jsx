@@ -137,8 +137,17 @@ export default function CustomerNotes() {
       last_order_date: today,
     };
 
-    if (editNote) await base44.entities.CustomerNote.update(editNote.id, payload);
-    else await base44.entities.CustomerNote.create(payload);
+    if (editNote) {
+      await base44.entities.CustomerNote.update(editNote.id, payload);
+    } else {
+      const normalizedClientName = String(data.client_name || "").trim().toLowerCase();
+      const existingNote = notes.find(
+        (note) => String(note.client_name || "").trim().toLowerCase() === normalizedClientName
+      );
+
+      if (existingNote) await base44.entities.CustomerNote.update(existingNote.id, payload);
+      else await base44.entities.CustomerNote.create(payload);
+    }
     setEditNote(null); load();
   };
 
