@@ -199,6 +199,14 @@ export default function CustomerNotes() {
                 onCancelled={handleCancelled}
                 onViewReport={setSelectedNote}
                 onSaveEdit={handleSaveEdit}
+                onSaveFollowUp={async (order, nextAction) => {
+                  setMemberOrders((prev) => prev.map((item) => item.id === order.id ? { ...item, next_action: nextAction } : item));
+                  await base44.entities.MemberOrder.update(order.id, { next_action: nextAction });
+                }}
+                onConfirmStatus={async (order, paymentStatus) => {
+                  setMemberOrders((prev) => prev.map((item) => item.id === order.id ? { ...item, payment_status: paymentStatus, order_confirmed: true } : item));
+                  await base44.entities.MemberOrder.update(order.id, { payment_status: paymentStatus, order_confirmed: true });
+                }}
               />
             ))}
           </div>

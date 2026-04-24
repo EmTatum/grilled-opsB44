@@ -45,6 +45,11 @@
       "type": "string",
       "title": "Next Action"
     },
+    "order_confirmed": {
+      "type": "boolean",
+      "title": "Order Confirmed",
+      "default": false
+    },
     "fulfilment_status": {
       "type": "string",
       "enum": [
