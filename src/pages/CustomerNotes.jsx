@@ -116,7 +116,11 @@ export default function CustomerNotes() {
     return matchSearch && matchType;
   }), [deduped, search, typeFilter]);
 
-  const reportNotes = useMemo(() => filtered.filter(isIntelligenceReportNote), [filtered]);
+  const reportNotes = useMemo(() => filtered.filter((note) => {
+    if (!isIntelligenceReportNote(note)) return false;
+    const linkedOrder = memberOrderMap[note.id];
+    return !linkedOrder || linkedOrder.fulfilment_status === "Active";
+  }), [filtered, memberOrderMap]);
   const standardNotes = useMemo(() => filtered.filter((note) => !isIntelligenceReportNote(note)), [filtered]);
   const memberOrderMap = useMemo(() => memberOrders.reduce((acc, order) => {
     if (order.intelligence_report_id) acc[order.intelligence_report_id] = order;
@@ -298,8 +302,9 @@ export default function CustomerNotes() {
                   onDelete={setDeleteId}
                   onMarkFulfilled={async (memberOrderId) => {
                     if (!memberOrderId) return;
-                    const memberOrder = memberOrders.find((order) => order.id === memberOrderId);
-                    if (!memberOrder) return;
+                    setMemberOrders((prev) => prev.map((order) => (
+                      order.id === memberOrderId ? { ...order, fulfilment_status: "Fulfilled" } : order
+                    )));
                     await base44.entities.MemberOrder.update(memberOrderId, { fulfilment_status: "Fulfilled" });
                   }}
                 />
