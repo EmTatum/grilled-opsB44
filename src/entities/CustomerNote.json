@@ -49,7 +49,6 @@
     },
     "delivery_date": {
       "type": "string",
-      "format": "date",
       "title": "Delivery Date"
     },
     "cell_number": {
