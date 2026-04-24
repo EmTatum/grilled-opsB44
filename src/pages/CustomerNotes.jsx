@@ -264,7 +264,7 @@ ${conversation}`,
         )}
       </section>
 
-      <MemberHistorySection orders={historyOrders} />
+      <MemberHistorySection orders={historyOrders} notesById={notesById} onViewReport={setSelectedNote} />
 
       <ReportContentModal open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)} note={selectedNote} />
     </div>

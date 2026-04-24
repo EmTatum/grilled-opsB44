@@ -76,10 +76,10 @@ export const PAYMENT_STYLES = {
     badgeColor: "#86efac"
   },
   CASH: {
-    accent: "#d29c6c",
-    badgeBackground: "rgba(210,156,108,0.12)",
-    badgeBorder: "rgba(210,156,108,0.45)",
-    badgeColor: "#d29c6c"
+    accent: "#8d201c",
+    badgeBackground: "rgba(141,32,28,0.12)",
+    badgeBorder: "rgba(141,32,28,0.45)",
+    badgeColor: "#f5b4b0"
   },
   PENDING: {
     accent: "#d97706",
