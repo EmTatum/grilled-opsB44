@@ -149,7 +149,6 @@ export default function Inventory() {
   const filteredProducts = useMemo(() => {
     return [...products]
       .map((product) => ({ ...product, display_name: normalizeProductName(product.product_name || "") }))
-      .filter((product) => Object.keys(PRODUCT_RULES).includes(product.display_name))
       .sort((a, b) => (a.display_name || "").localeCompare(b.display_name || ""));
   }, [products]);
 
