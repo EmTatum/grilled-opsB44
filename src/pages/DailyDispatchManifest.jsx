@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import PageHeader from "../components/PageHeader";
 import MemberOrderDispatchCards from "../components/orders/MemberOrderDispatchCards";
+import DispatchIssuePanel from "../components/orders/DispatchIssuePanel";
 import { getDatePart, getTodayKey, sortByDeliveryDateAscNullsLast } from "../components/member-orders/memberOrderUtils";
+import { buildDispatchDiscrepancies } from "../utils/dispatchReconciliation";
 
 const Spinner = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -34,18 +36,23 @@ function DispatchSection({ title, borderColor, orders, onStatusChange }) {
 
 export default function DailyDispatchManifest() {
   const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
-      const records = await base44.entities.MemberOrder.filter({ fulfilment_status: "Active" }, "delivery_date", 500);
+      const [records, stockRecords] = await Promise.all([
+        base44.entities.MemberOrder.filter({ fulfilment_status: "Active" }, "delivery_date", 500),
+        base44.entities.Product.list("product_name", 500)
+      ]);
       setOrders(sortByDeliveryDateAscNullsLast(records || []));
+      setProducts(stockRecords || []);
       setLoading(false);
     };
 
     load();
 
-    const unsubscribe = base44.entities.MemberOrder.subscribe((event) => {
+    const unsubscribeOrders = base44.entities.MemberOrder.subscribe((event) => {
       if (event.type === "delete") {
         setOrders((prev) => prev.filter((item) => item.id !== event.id));
         return;
@@ -58,7 +65,22 @@ export default function DailyDispatchManifest() {
       ]));
     });
 
-    return unsubscribe;
+    const unsubscribeProducts = base44.entities.Product.subscribe((event) => {
+      if (event.type === "delete") {
+        setProducts((prev) => prev.filter((item) => item.id !== event.id));
+        return;
+      }
+
+      setProducts((prev) => {
+        const next = event.data;
+        return [...prev.filter((item) => item.id !== next.id), next].sort((a, b) => String(a.product_name || '').localeCompare(String(b.product_name || '')));
+      });
+    });
+
+    return () => {
+      unsubscribeOrders();
+      unsubscribeProducts();
+    };
   }, []);
 
   const grouped = useMemo(() => {
@@ -77,6 +99,8 @@ export default function DailyDispatchManifest() {
     };
   }, [orders]);
 
+  const discrepancies = useMemo(() => buildDispatchDiscrepancies(orders, products), [orders, products]);
+
   const handleStatusChange = async (id, fulfilment_status) => {
     setOrders((prev) => prev.filter((item) => item.id !== id));
     await base44.entities.MemberOrder.update(id, { fulfilment_status });
@@ -87,6 +111,8 @@ export default function DailyDispatchManifest() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
       <PageHeader title="Dispatch Manifest" subtitle="Live active dispatches from MemberOrder" />
+
+      <DispatchIssuePanel discrepancies={discrepancies} />
 
       {orders.length === 0 ? (
         <div style={{ textAlign: "center", padding: "72px 20px", border: "1px dashed rgba(201,168,76,0.15)", background: "#111111" }}>
