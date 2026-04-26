@@ -20,6 +20,32 @@ const sectionConfigs = {
   unscheduled: { title: "Unscheduled", borderColor: "rgba(255,255,255,0.22)" },
 };
 
+const confirmationPriority = {
+  PAID: 0,
+  CASH: 1,
+  PENDING: 2,
+};
+
+function getDeliveryTimeValue(deliveryDate) {
+  const raw = String(deliveryDate || "").trim();
+  if (!raw.includes("T")) return Number.POSITIVE_INFINITY;
+  const [, timePart = ""] = raw.split("T");
+  const [hours = "99", minutes = "99"] = timePart.slice(0, 5).split(":");
+  return (Number(hours) * 60) + Number(minutes);
+}
+
+function sortDispatchOrders(orders) {
+  return [...orders].sort((a, b) => {
+    const timeDifference = getDeliveryTimeValue(a.delivery_date) - getDeliveryTimeValue(b.delivery_date);
+    if (timeDifference !== 0) return timeDifference;
+
+    const priorityDifference = (confirmationPriority[a.payment_status] ?? 99) - (confirmationPriority[b.payment_status] ?? 99);
+    if (priorityDifference !== 0) return priorityDifference;
+
+    return String(a.client_name || "").localeCompare(String(b.client_name || ""));
+  });
+}
+
 function DispatchSection({ title, borderColor, orders, onStatusChange }) {
   if (!orders.length) return null;
 
@@ -86,16 +112,16 @@ export default function DailyDispatchManifest() {
   const grouped = useMemo(() => {
     const todayKey = getTodayKey();
     return {
-      overdue: orders.filter((order) => {
+      overdue: sortDispatchOrders(orders.filter((order) => {
         const date = getDatePart(order.delivery_date);
         return date && date < todayKey;
-      }),
-      today: orders.filter((order) => getDatePart(order.delivery_date) === todayKey),
-      upcoming: orders.filter((order) => {
+      })),
+      today: sortDispatchOrders(orders.filter((order) => getDatePart(order.delivery_date) === todayKey)),
+      upcoming: sortDispatchOrders(orders.filter((order) => {
         const date = getDatePart(order.delivery_date);
         return date && date > todayKey;
-      }),
-      unscheduled: orders.filter((order) => !String(order.delivery_date || "").trim()),
+      })),
+      unscheduled: sortDispatchOrders(orders.filter((order) => !String(order.delivery_date || "").trim())),
     };
   }, [orders]);
 

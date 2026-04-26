@@ -1,0 +1,90 @@
+{
+  "name": "MemberOrder",
+  "type": "object",
+  "properties": {
+    "client_name": {
+      "type": "string",
+      "title": "Client Name"
+    },
+    "cell_number": {
+      "type": "string",
+      "title": "Cell Number"
+    },
+    "delivery_date": {
+      "type": "string",
+      "title": "Delivery Date (YYYY-MM-DD)"
+    },
+    "delivery_address": {
+      "type": "string",
+      "title": "Delivery Address"
+    },
+    "order_list": {
+      "type": "string",
+      "title": "Order List"
+    },
+    "order_total": {
+      "type": "number",
+      "title": "Order Total (ZAR)",
+      "default": 0
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "PAID",
+        "CASH",
+        "PENDING"
+      ],
+      "title": "Payment Status",
+      "default": "PENDING"
+    },
+    "fulfilment_status": {
+      "type": "string",
+      "enum": [
+        "Active",
+        "Fulfilled",
+        "Cancelled"
+      ],
+      "title": "Fulfilment Status",
+      "default": "Active"
+    },
+    "next_action": {
+      "type": "string",
+      "title": "Next Action"
+    },
+    "intelligence_report_id": {
+      "type": "string",
+      "title": "Intelligence Report ID"
+    }
+  },
+  "required": [
+    "client_name"
+  ],
+  "rls": {
+    "create": null,
+    "read": null,
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
