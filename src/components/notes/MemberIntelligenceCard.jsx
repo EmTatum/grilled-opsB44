@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { PAYMENT_STYLES } from "./member-intelligence-config";
 import { formatDeliveryDateTime, formatRand } from "./memberIntelligenceUtils";
+import { extractQuantity, splitManifestItems } from "@/utils/dispatchReconciliation";
 
 const inputStyle = {
   width: "100%",
@@ -31,26 +32,26 @@ const confirmedChipConfig = {
   PAID: {
     icon: "✓",
     text: "PAID CONFIRMED",
-    background: "#16a34a",
-    border: "1px solid #16a34a",
-    color: "#ffffff",
-    accent: "#16a34a"
+    background: "rgba(57,255,20,0.14)",
+    border: "1px solid rgba(57,255,20,0.65)",
+    color: "#39ff14",
+    accent: "#39ff14"
   },
   CASH: {
     icon: "💵",
     text: "CASH CONFIRMED",
-    background: "#8d201c",
-    border: "1px solid #8d201c",
-    color: "#ffffff",
-    accent: "#8d201c"
+    background: "rgba(57,255,20,0.14)",
+    border: "1px solid rgba(57,255,20,0.65)",
+    color: "#39ff14",
+    accent: "#39ff14"
   },
   PENDING: {
     icon: "⏳",
     text: "PENDING",
-    background: "#d97706",
-    border: "1px solid #d97706",
-    color: "#ffffff",
-    accent: "#d97706"
+    background: "rgba(201,168,76,0.1)",
+    border: "1px solid rgba(201,168,76,0.45)",
+    color: "#C9A84C",
+    accent: "#C9A84C"
   }
 };
 
@@ -72,6 +73,10 @@ export default function MemberIntelligenceCard({ order, note, confirmedPayment, 
   }, [order]);
 
   const lockedPaymentStatus = confirmedPayment || null;
+  const checklistItems = useMemo(() => splitManifestItems(cardOrder.order_list).map((item) => ({
+    label: item,
+    quantity: extractQuantity(item)
+  })), [cardOrder.order_list]);
   const paymentStyle = lockedPaymentStatus ? {
     accent: confirmedChipConfig[lockedPaymentStatus].accent,
     badgeBackground: confirmedChipConfig[lockedPaymentStatus].background,
@@ -102,11 +107,42 @@ export default function MemberIntelligenceCard({ order, note, confirmedPayment, 
       {!editing ? (
         <>
           <div style={{ display: "grid", gap: "10px" }}>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8" }}>{formatDeliveryDateTime(cardOrder.delivery_date)}</p>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: cardOrder.delivery_address ? "#F5F0E8" : "rgba(245,240,232,0.45)", whiteSpace: "pre-wrap", fontStyle: cardOrder.delivery_address ? "normal" : "italic" }}>📍 {cardOrder.delivery_address || "Address TBC"}</p>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: cardOrder.cell_number ? "#F5F0E8" : "rgba(245,240,232,0.45)" }}>📞 {cardOrder.cell_number || "No number"}</p>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#d29c6c" }}>💰 {formatRand(cardOrder.order_total)}</p>
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.58)", fontStyle: "italic" }}>⚡ {cardOrder.next_action || "No next action set"}</p>
+            <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: "12px" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "10px", color: "rgba(201,168,76,0.65)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Name</p>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8" }}>{cardOrder.client_name || "Unknown Client"}</p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: "12px" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "10px", color: "rgba(201,168,76,0.65)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Delivery Time</p>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8" }}>{formatDeliveryDateTime(cardOrder.delivery_date)}</p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: "12px" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "10px", color: "rgba(201,168,76,0.65)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Delivery Address</p>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: cardOrder.delivery_address ? "#F5F0E8" : "rgba(245,240,232,0.45)", whiteSpace: "pre-wrap", fontStyle: cardOrder.delivery_address ? "normal" : "italic" }}>{cardOrder.delivery_address || "Address TBC"}</p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: "12px" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "10px", color: "rgba(201,168,76,0.65)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Cell</p>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: cardOrder.cell_number ? "#F5F0E8" : "rgba(245,240,232,0.45)" }}>{cardOrder.cell_number || "No number"}</p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: "12px" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "10px", color: "rgba(201,168,76,0.65)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Order Total</p>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#d29c6c" }}>{formatRand(cardOrder.order_total)}</p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: "12px" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "10px", color: "rgba(201,168,76,0.65)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Next Action</p>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.58)", fontStyle: "italic" }}>{cardOrder.next_action || "No next action set"}</p>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: "10px", padding: "14px", background: "#111111", border: "1px solid rgba(201,168,76,0.16)" }}>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(201,168,76,0.68)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Full Drop Checklist</p>
+            {checklistItems.length ? checklistItems.map((item, index) => (
+              <div key={`${item.label}-${index}`} style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+                <span style={{ color: "#C9A84C", fontFamily: "var(--font-body)", fontSize: "12px", fontWeight: 600 }}>{item.quantity}×</span>
+                <span style={{ color: "#F5F0E8", fontFamily: "var(--font-body)", fontSize: "13px", lineHeight: 1.5 }}>{item.label}</span>
+              </div>
+            )) : (
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.45)" }}>No order listed</p>
+            )}
           </div>
 
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>

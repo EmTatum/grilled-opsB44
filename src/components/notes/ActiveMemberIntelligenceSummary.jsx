@@ -32,7 +32,7 @@ export default function ActiveMemberIntelligenceSummary({ notesById, refreshKey,
     <section style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       <div>
         <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase" }}>Active Member Intelligence Summary</p>
-        <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.45)" }}>{orders.length} active orders sorted by delivery date</p>
+        <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.45)" }}>{orders.length} active orders with dispatch-critical details, checklist order lines, and report access.</p>
       </div>
 
       {!loading && orders.length === 0 ? (
