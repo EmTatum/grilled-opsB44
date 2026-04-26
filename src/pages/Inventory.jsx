@@ -35,13 +35,32 @@ const PRODUCT_RULES = {
   "Xannie Pots": { warn: 4, critical: 2 }
 };
 
+const PRODUCT_CATEGORIES = {
+  "Zolpidiem": "Pharms",
+  "Xannie Pots": "Pharms",
+  "Dougies": "Pharms",
+  "Mushrooms": "Psychs",
+  "Acid": "Psychs",
+  "Changa": "Psychs",
+  "Cola": "Party",
+  "MD": "Party",
+  "Ecstasy": "Party",
+  "Bud": "Chills",
+  "Ketamine": "Chills"
+};
+
 const PRODUCT_NAME_MAP = {
   "Changaland": "Changa",
+  "Changa": "Changa",
   "Cola": "Cola",
   "Dougies": "Dougies",
   "Love MD": "MD",
+  "MD": "MD",
+  "MDMA": "MD",
   "Mary Jane": "Bud",
+  "Bud": "Bud",
   "Mushie Nuggets": "Mushrooms",
+  "Mushrooms": "Mushrooms",
   "Special K": "Ketamine",
   "Special k": "Ketamine",
   "Ketamine": "Ketamine",
@@ -49,6 +68,7 @@ const PRODUCT_NAME_MAP = {
   "Sweets (CBD Edibles)": "Ecstasy",
   "Ecstasy": "Ecstasy",
   "Zol-Pies": "Zolpidiem",
+  "Zolpediem": "Zolpidiem",
   "Zolpidiem": "Zolpidiem",
   "Acid": "Acid",
   "Xannie pots": "Xannie Pots",
@@ -66,20 +86,23 @@ function ProcurementStatus({ productName, latestStockCount }) {
   const rule = PRODUCT_RULES[normalizedName];
 
   let label = "Good";
-  let color = "#F5F0E8";
-  let background = "#2E8B57";
+  let color = "rgba(245,240,232,0.7)";
+  let background = "rgba(255,255,255,0.05)";
+  let border = "1px solid rgba(255,255,255,0.2)";
 
   if (rule && latest < rule.critical) {
     label = "NB ORDER";
     color = "#F5F0E8";
     background = "#8d201c";
+    border = "1px solid rgba(194,24,91,0.45)";
   } else if (rule && latest < rule.warn) {
     label = "Need to Order";
     color = "#0a0a0a";
     background = "#d29c6c";
+    border = "1px solid rgba(201,168,76,0.55)";
   }
 
-  return <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap", color, background, fontWeight: 600, borderRadius: "2px" }}>{label}</span>;
+  return <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap", color, background, border, fontWeight: 600, borderRadius: "2px" }}>{label}</span>;
 }
 
 export default function Inventory() {
@@ -171,7 +194,7 @@ export default function Inventory() {
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "860px" }}>
               <thead>
                 <tr style={{ background: "#0b0e11", borderBottom: "1px solid rgba(210,156,108,0.28)" }}>
-                  {["Product Name", "Last Stock Count", "Latest Stock Count", "Status"].map((header) => (
+                  {["Product Name", "Category", "Last Stock Count", "Latest Stock Count", "Status"].map((header) => (
                     <th key={header} style={{ padding: "14px 16px", textAlign: "left", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, color: "#eee3b4", letterSpacing: "0.14em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{header}</th>
                   ))}
                 </tr>
@@ -182,6 +205,7 @@ export default function Inventory() {
                   return (
                     <tr key={product.id} style={{ background: "#111111", borderBottom: "1px solid rgba(255,255,255,0.04)" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(201,168,76,0.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "#111111"; }}>
                       <td style={{ padding: "12px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "#f0ede8", fontWeight: 700, whiteSpace: "nowrap" }}>{product.display_name}</td>
+                      <td style={{ padding: "12px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(240,237,232,0.72)", whiteSpace: "nowrap" }}>{PRODUCT_CATEGORIES[product.display_name] || product.category || "Unassigned"}</td>
                       <td style={{ padding: "12px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(240,237,232,0.72)" }}>{Number(product.last_stock_count || 0)}</td>
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
