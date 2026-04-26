@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import DispatchOrderEditDialog from "./DispatchOrderEditDialog";
 
 const sectionTitleStyle = {
   margin: 0,
@@ -43,6 +44,20 @@ const bodyCellStyle = {
   color: "#F5F0E8",
   borderBottom: "1px solid rgba(255,255,255,0.04)",
   verticalAlign: "top"
+};
+
+const editButtonStyle = {
+  background: "transparent",
+  border: "1px solid #C9A84C",
+  color: "#C9A84C",
+  fontFamily: "var(--font-body)",
+  fontSize: "11px",
+  fontWeight: 500,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  padding: "8px 14px",
+  borderRadius: "2px",
+  cursor: "pointer"
 };
 
 function getDeliveryTime(order) {
@@ -91,7 +106,7 @@ function OrderChecklist({ orderList }) {
   );
 }
 
-function OrdersTable({ title, status, orders }) {
+function OrdersTable({ title, status, orders, onEdit }) {
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
@@ -110,12 +125,13 @@ function OrdersTable({ title, status, orders }) {
                 <th style={headerCellStyle}>Delivery Time</th>
                 <th style={headerCellStyle}>Delivery Address</th>
                 <th style={headerCellStyle}>Full Order</th>
+                <th style={headerCellStyle}>Edit</th>
               </tr>
             </thead>
             <tbody>
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ ...bodyCellStyle, color: "rgba(245,240,232,0.5)", textAlign: "center", padding: "28px 16px" }}>
+                  <td colSpan={5} style={{ ...bodyCellStyle, color: "rgba(245,240,232,0.5)", textAlign: "center", padding: "28px 16px" }}>
                     No {title.toLowerCase()} for today.
                   </td>
                 </tr>
@@ -130,6 +146,11 @@ function OrdersTable({ title, status, orders }) {
                   <td style={bodyCellStyle}>{getDeliveryTime(order)}</td>
                   <td style={bodyCellStyle}>{order.delivery_address || "Address TBC"}</td>
                   <td style={bodyCellStyle}><OrderChecklist orderList={order.order_list} /></td>
+                  <td style={bodyCellStyle}>
+                    <button onClick={() => onEdit(order)} style={editButtonStyle}>
+                      Edit
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -140,7 +161,9 @@ function OrdersTable({ title, status, orders }) {
   );
 }
 
-export default function TodaysOrdersWidget({ paidOrders, cashOrders }) {
+export default function TodaysOrdersWidget({ paidOrders, cashOrders, onSaveEdit }) {
+  const [editingOrder, setEditingOrder] = useState(null);
+
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       <div>
@@ -148,8 +171,15 @@ export default function TodaysOrdersWidget({ paidOrders, cashOrders }) {
         <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.5)" }}>Today’s confirmed dispatch list from Member Intelligence, split by paid and cash confirmed orders.</p>
       </div>
 
-      <OrdersTable title="Paid" status="PAID" orders={paidOrders} />
-      <OrdersTable title="Cash Confirmed" status="CASH" orders={cashOrders} />
+      <OrdersTable title="Paid" status="PAID" orders={paidOrders} onEdit={setEditingOrder} />
+      <OrdersTable title="Cash Confirmed" status="CASH" orders={cashOrders} onEdit={setEditingOrder} />
+
+      <DispatchOrderEditDialog
+        open={!!editingOrder}
+        onOpenChange={(open) => !open && setEditingOrder(null)}
+        order={editingOrder}
+        onSave={onSaveEdit}
+      />
     </section>
   );
 }

@@ -79,7 +79,22 @@ export default function DailyDispatchManifest() {
     <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
       <PageHeader title="Dispatch Manifest" subtitle="Today’s paid and cash-confirmed orders from Member Intelligence." />
 
-      <TodaysOrdersWidget paidOrders={paidOrders} cashOrders={cashOrders} />
+      <TodaysOrdersWidget
+        paidOrders={paidOrders}
+        cashOrders={cashOrders}
+        onSaveEdit={async (draft) => {
+          const deliveryDatePart = getDatePart(draft.delivery_date);
+          const nextDeliveryDate = draft.delivery_time && deliveryDatePart
+            ? `${deliveryDatePart}T${draft.delivery_time}`
+            : draft.delivery_date;
+
+          await base44.entities.MemberOrder.update(draft.id, {
+            delivery_time: draft.delivery_time || "",
+            delivery_date: nextDeliveryDate || "",
+            delivery_address: draft.delivery_address || ""
+          });
+        }}
+      />
 
       <DispatchIssuePanel discrepancies={discrepancies} />
     </div>
