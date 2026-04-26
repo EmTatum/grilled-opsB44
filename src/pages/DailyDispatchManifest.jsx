@@ -82,6 +82,7 @@ export default function DailyDispatchManifest() {
       <TodaysOrdersWidget
         paidOrders={paidOrders}
         cashOrders={cashOrders}
+        products={products}
         onSaveEdit={async (draft) => {
           const deliveryDatePart = getDatePart(draft.delivery_date);
           const nextDeliveryDate = draft.delivery_time && deliveryDatePart

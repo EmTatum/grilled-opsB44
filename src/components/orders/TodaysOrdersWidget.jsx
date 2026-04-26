@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import DispatchOrderEditDialog from "./DispatchOrderEditDialog";
+import { extractQuantity, matchProductFromItem, splitManifestItems } from "@/utils/dispatchReconciliation";
 
 const sectionTitleStyle = {
   margin: 0,
@@ -71,19 +72,28 @@ function getDeliveryTime(order) {
   return timePart ? timePart.slice(0, 5) : "Time TBC";
 }
 
-function splitOrderItems(orderList) {
-  return String(orderList || "")
-    .split(/\n|,/)
-    .map((item) => item.trim())
-    .filter(Boolean);
+function formatOrderItem(item, products) {
+  const quantity = extractQuantity(item);
+  const matchedProduct = matchProductFromItem(item, products || []);
+  const cleanLabel = String(item || "")
+    .replace(/\s+/g, " ")
+    .replace(/^[-–—•*]+\s*/, "")
+    .trim();
+
+  return {
+    id: `${matchedProduct?.id || cleanLabel}-${quantity}`,
+    quantity,
+    label: cleanLabel,
+    matchedName: matchedProduct?.product_name || null
+  };
 }
 
 function sortByTime(orders) {
   return [...orders].sort((a, b) => getDeliveryTime(a).localeCompare(getDeliveryTime(b)));
 }
 
-function OrderChecklist({ orderList }) {
-  const items = useMemo(() => splitOrderItems(orderList), [orderList]);
+function OrderChecklist({ orderList, products }) {
+  const items = useMemo(() => splitManifestItems(orderList).map((item) => formatOrderItem(item, products)), [orderList, products]);
 
   if (!items.length) {
     return <p style={{ margin: 0, color: "rgba(245,240,232,0.45)" }}>No order listed</p>;
@@ -95,10 +105,13 @@ function OrderChecklist({ orderList }) {
         View Order Checklist
       </summary>
       <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
-        {items.map((item, index) => (
-          <label key={`${item}-${index}`} style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13px", lineHeight: 1.5 }}>
+        {items.map((item) => (
+          <label key={item.id} style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13px", lineHeight: 1.5 }}>
             <input type="checkbox" style={{ marginTop: "2px", accentColor: "#C9A84C" }} />
-            <span>{item}</span>
+            <span>
+              <span style={{ color: "#C9A84C", fontWeight: 600, marginRight: "6px" }}>{item.quantity}×</span>
+              {item.matchedName || item.label}
+            </span>
           </label>
         ))}
       </div>
@@ -106,7 +119,7 @@ function OrderChecklist({ orderList }) {
   );
 }
 
-function OrdersTable({ title, status, orders, onEdit }) {
+function OrdersTable({ title, status, orders, onEdit, products }) {
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
@@ -145,7 +158,7 @@ function OrdersTable({ title, status, orders, onEdit }) {
                   <td style={{ ...bodyCellStyle, fontWeight: 600 }}>{order.client_name || "Not recorded"}</td>
                   <td style={bodyCellStyle}>{getDeliveryTime(order)}</td>
                   <td style={bodyCellStyle}>{order.delivery_address || "Address TBC"}</td>
-                  <td style={bodyCellStyle}><OrderChecklist orderList={order.order_list} /></td>
+                  <td style={bodyCellStyle}><OrderChecklist orderList={order.order_list} products={products} /></td>
                   <td style={bodyCellStyle}>
                     <button onClick={() => onEdit(order)} style={editButtonStyle}>
                       Edit
@@ -161,7 +174,7 @@ function OrdersTable({ title, status, orders, onEdit }) {
   );
 }
 
-export default function TodaysOrdersWidget({ paidOrders, cashOrders, onSaveEdit }) {
+export default function TodaysOrdersWidget({ paidOrders, cashOrders, onSaveEdit, products = [] }) {
   const [editingOrder, setEditingOrder] = useState(null);
 
   return (
@@ -171,8 +184,8 @@ export default function TodaysOrdersWidget({ paidOrders, cashOrders, onSaveEdit 
         <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.5)" }}>Today’s confirmed dispatch list from Member Intelligence, split by paid and cash confirmed orders.</p>
       </div>
 
-      <OrdersTable title="Paid" status="PAID" orders={paidOrders} onEdit={setEditingOrder} />
-      <OrdersTable title="Cash Confirmed" status="CASH" orders={cashOrders} onEdit={setEditingOrder} />
+      <OrdersTable title="Paid" status="PAID" orders={paidOrders} onEdit={setEditingOrder} products={products} />
+      <OrdersTable title="Cash Confirmed" status="CASH" orders={cashOrders} onEdit={setEditingOrder} products={products} />
 
       <DispatchOrderEditDialog
         open={!!editingOrder}
