@@ -11,14 +11,14 @@ const sectionTitleStyle = {
 
 const badgeStyles = {
   PAID: {
-    border: "1px solid rgba(255,255,255,0.2)",
-    color: "rgba(245,240,232,0.78)",
-    background: "rgba(255,255,255,0.05)"
+    border: "1px solid rgba(57,255,20,0.65)",
+    color: "#39ff14",
+    background: "rgba(57,255,20,0.14)"
   },
   CASH: {
-    border: "1px solid rgba(201,168,76,0.5)",
-    color: "#C9A84C",
-    background: "rgba(201,168,76,0.1)"
+    border: "1px solid rgba(57,255,20,0.65)",
+    color: "#39ff14",
+    background: "rgba(57,255,20,0.14)"
   }
 };
 
