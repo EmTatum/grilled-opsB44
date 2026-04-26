@@ -179,7 +179,7 @@ export default function Inventory() {
 
   return (
     <div>
-      <PageHeader title="The Catalogue" subtitle="Product list + Inventory levels">
+      <PageHeader title="Catalogue" subtitle="Full catalog display with product list and inventory levels">
         <GoldBtn onClick={() => { setEditProduct(null); setFormOpen(true); }}><Plus size={12} /> Add Product</GoldBtn>
       </PageHeader>
 
