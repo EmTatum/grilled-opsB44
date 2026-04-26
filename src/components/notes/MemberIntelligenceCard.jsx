@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { PAYMENT_STYLES } from "./member-intelligence-config";
-import { formatDeliveryDateTime, formatRand } from "./memberIntelligenceUtils";
+import { formatRand } from "./memberIntelligenceUtils";
 import { extractQuantity, splitManifestItems } from "@/utils/dispatchReconciliation";
 
 const inputStyle = {
@@ -27,6 +27,17 @@ const buttonBase = {
   padding: "10px 14px",
   cursor: "pointer"
 };
+
+function getDeliveryTimeDisplay(order) {
+  const explicit = String(order?.delivery_time || "").trim();
+  if (explicit) return explicit.slice(0, 5);
+
+  const rawDate = String(order?.delivery_date || "").trim();
+  if (!rawDate.includes("T")) return "Time TBC";
+
+  const [, timePart = ""] = rawDate.split("T");
+  return timePart ? timePart.slice(0, 5) : "Time TBC";
+}
 
 const confirmedChipConfig = {
   PAID: {
@@ -113,7 +124,7 @@ export default function MemberIntelligenceCard({ order, note, confirmedPayment, 
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: "12px" }}>
               <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "10px", color: "rgba(201,168,76,0.65)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Delivery Time</p>
-              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8" }}>{formatDeliveryDateTime(cardOrder.delivery_date)}</p>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8" }}>{getDeliveryTimeDisplay(cardOrder)}</p>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: "12px" }}>
               <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "10px", color: "rgba(201,168,76,0.65)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Delivery Address</p>
