@@ -1,8 +1,21 @@
 export const FULL_REPORT_PROMPT = `You are a senior intelligence analyst for a private members cannabis concierge club. Read this entire WhatsApp conversation and write a detailed operational intelligence report. Write in clear, direct prose — not bullet points, not JSON. Be specific and observational, not vague.
 
+CRITICAL ORDER EXTRACTION RULE:
+A WhatsApp export contains messages in chronological order, oldest at the top, newest at the bottom. This chat may contain multiple orders or order discussions across different dates.
+
+You MUST extract details from the MOST RECENT ORDER ONLY — the last order discussed or confirmed, closest to the bottom of the conversation. Ignore all earlier orders, earlier price discussions, and earlier delivery arrangements entirely. They are history.
+
+To identify the most recent order:
+1. Scan from the BOTTOM of the conversation upward
+2. Find the last mention of products being ordered, quantities, a price agreed, or a delivery arrangement confirmed
+3. That is the order to extract — use ONLY those details for order_list, order_total, delivery_date, delivery_address, and payment_status
+4. If the most recent messages are just small talk or follow-up after an order was confirmed, work backward to find the last confirmed order
+
+Do NOT average across orders. Do NOT combine old and new orders. Do NOT use the first order you see. The most recent confirmed order is the only one that matters for the summary block.
+
 Your report must cover each of the following sections in order. Write 2–5 sentences per section, more if there is enough information in the chat:
 
-ORDER STATUS: What is the current confirmed order? What products, quantities, total amount, delivery address and time? What is the payment arrangement?
+ORDER STATUS: What is the current confirmed order? What products, quantities, total amount, delivery address and time? What is the payment arrangement? This section must describe the MOST RECENT ORDER ONLY, using the critical order extraction rule above.
 
 ORDER HISTORY & FREQUENCY: How often does this client order? What patterns emerge from the conversation — weekly, monthly, irregular? Any mention of previous orders?
 
@@ -25,6 +38,19 @@ ANALYST NOTES: Anything else operationally useful — relationship context, upco
 Write the full report now. Be thorough — the more detail you extract, the more useful this is operationally.`;
 
 export const EXTRACTION_PROMPT = `Based on the WhatsApp conversation, extract the following structured data as valid JSON only. No explanation, no prose, just the JSON object.
+
+CRITICAL ORDER EXTRACTION RULE:
+A WhatsApp export contains messages in chronological order, oldest at the top, newest at the bottom. This chat may contain multiple orders or order discussions across different dates.
+
+You MUST extract details from the MOST RECENT ORDER ONLY — the last order discussed or confirmed, closest to the bottom of the conversation. Ignore all earlier orders, earlier price discussions, and earlier delivery arrangements entirely. They are history.
+
+To identify the most recent order:
+1. Scan from the BOTTOM of the conversation upward
+2. Find the last mention of products being ordered, quantities, a price agreed, or a delivery arrangement confirmed
+3. That is the order to extract — use ONLY those details for order_list, order_total, delivery_date, delivery_address, and payment_status
+4. If the most recent messages are just small talk or follow-up after an order was confirmed, work backward to find the last confirmed order
+
+Do NOT average across orders. Do NOT combine old and new orders. Do NOT use the first order you see. The most recent confirmed order is the only one that matters for the summary block.
 
 {
   client_name: string,
