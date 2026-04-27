@@ -80,6 +80,10 @@ function normalizeProductName(name) {
   return PRODUCT_NAME_MAP[name] || name;
 }
 
+function isBelowLowStockThreshold(product) {
+  return Number(product.current_stock || 0) < Number(product.low_stock_threshold || 0);
+}
+
 function ProcurementStatus({ productName, latestStockCount }) {
   const normalizedName = normalizeProductName(productName);
   const latest = Number(latestStockCount || 0);
@@ -205,8 +209,11 @@ export default function Inventory() {
               <tbody>
                 {filteredProducts.map((product) => {
                   const latestCount = Number(product.latest_stock_count ?? product.current_stock ?? product.last_stock_count ?? 0);
+                  const isLowStock = isBelowLowStockThreshold(product);
+                  const baseRowBackground = isLowStock ? "rgba(194,24,91,0.08)" : "#111111";
+                  const hoverRowBackground = isLowStock ? "rgba(194,24,91,0.14)" : "rgba(201,168,76,0.05)";
                   return (
-                    <tr key={product.id} style={{ background: "#111111", borderBottom: "1px solid rgba(255,255,255,0.04)" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(201,168,76,0.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "#111111"; }}>
+                    <tr key={product.id} style={{ background: baseRowBackground, borderBottom: "1px solid rgba(255,255,255,0.04)" }} onMouseEnter={(e) => { e.currentTarget.style.background = hoverRowBackground; }} onMouseLeave={(e) => { e.currentTarget.style.background = baseRowBackground; }}>
                       <td style={{ padding: "12px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "#f0ede8", fontWeight: 700, whiteSpace: "nowrap" }}>{product.display_name}</td>
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>

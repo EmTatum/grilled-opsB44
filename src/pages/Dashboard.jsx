@@ -128,6 +128,39 @@ function RecentActivity({ orders }) {
   );
 }
 
+function InventoryAlerts({ products }) {
+  const lowStockProducts = products.filter((product) => Number(product.current_stock || 0) < Number(product.low_stock_threshold || 0));
+
+  return (
+    <section style={{ ...sectionCardStyle, border: lowStockProducts.length ? "1px solid rgba(194,24,91,0.35)" : sectionCardStyle.border }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "baseline" }}>
+        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase" }}>Inventory Alerts</p>
+        <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", border: lowStockProducts.length ? "1px solid rgba(194,24,91,0.4)" : "1px solid rgba(255,255,255,0.2)", background: lowStockProducts.length ? "rgba(194,24,91,0.08)" : "rgba(255,255,255,0.05)", color: lowStockProducts.length ? "#C2185B" : "rgba(245,240,232,0.7)", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: "2px" }}>
+          {lowStockProducts.length} Low Stock
+        </span>
+      </div>
+
+      {lowStockProducts.length === 0 ? (
+        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "rgba(245,240,232,0.6)" }}>All catalogue items are above their stock thresholds.</p>
+      ) : (
+        <div style={{ display: "grid", gap: "10px" }}>
+          {lowStockProducts.map((product) => (
+            <div key={product.id} style={{ background: "rgba(194,24,91,0.08)", border: "1px solid rgba(194,24,91,0.28)", padding: "14px", display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ display: "grid", gap: "4px" }}>
+                <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#F5F0E8" }}>{product.product_name || "Unnamed Product"}</p>
+                <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.55)" }}>Threshold: {Number(product.low_stock_threshold || 0)} units</p>
+              </div>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#C2185B", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
+                {Number(product.current_stock || 0)} remaining
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function Dashboard() {
   const { data: orders, loading: loadingOrders } = useEntityList("MemberOrder", "-updated_date", 1000);
   const { data: products, loading: loadingProducts } = useEntityList("Product", "product_name", 1000);
@@ -207,6 +240,7 @@ export default function Dashboard() {
         <StatCard label="Pending Payment" value={metrics.paymentCounts.PENDING} />
       </div>
 
+      <InventoryAlerts products={products} />
       <UpcomingDeliveries orders={metrics.upcoming} />
       <RecentActivity orders={metrics.recent} />
     </div>
