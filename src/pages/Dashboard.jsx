@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import moment from "moment";
 import PageHeader from "../components/PageHeader";
+import DailyPerformanceCharts from "../components/dashboard/DailyPerformanceCharts";
 
 const Spinner = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -176,12 +177,26 @@ export default function Dashboard() {
       .sort((a, b) => String(b.updated_date || "").localeCompare(String(a.updated_date || "")))
       .slice(0, 5);
 
+    const dailyPerformance = Array.from({ length: 7 }, (_, index) => {
+      const date = moment(today).subtract(6 - index, "days");
+      const dateKey = date.format("YYYY-MM-DD");
+      const dayOrders = orders.filter((order) => getDatePart(order.delivery_date) === dateKey);
+
+      return {
+        date: dateKey,
+        label: date.format("DD MMM"),
+        revenue: dayOrders.reduce((sum, order) => sum + Number(order.order_total || 0), 0),
+        orders: dayOrders.length
+      };
+    });
+
     return {
       activeCount: activeOrders.length,
       todaysDeliveries: todaysDeliveries.length,
       totalFulfilled: fulfilledOrders.length,
       totalRevenue: fulfilledOrders.reduce((sum, order) => sum + Number(order.order_total || 0), 0),
       paymentCounts,
+      dailyPerformance,
       upcoming,
       recent
     };
@@ -192,6 +207,8 @@ export default function Dashboard() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
       <PageHeader title="Dashboard" subtitle="Live MemberOrder operations overview with delivery, payment, and fulfilment activity." />
+
+      <DailyPerformanceCharts data={metrics.dailyPerformance} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
         <StatCard label="Active Orders" value={metrics.activeCount} />
