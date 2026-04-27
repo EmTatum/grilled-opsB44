@@ -1,37 +1,37 @@
-export const EXTRACTION_PROMPT = `You are extracting structured operational intelligence from a WhatsApp conversation for a private concierge delivery service. Your output is used by two different views — a full intelligence report and a summary dispatch block. You must extract everything possible.
+export const EXTRACTION_PROMPT = `You are an intelligence extraction engine for a private cannabis concierge club. Analyse the entire WhatsApp conversation and extract ALL of the following. Return ONLY valid JSON, no explanation.
 
-HARD RULES:
-- NEVER write 'pick up', 'pickup', or 'collect'. Always write 'delivery'.
-- delivery_date uses a single combined field.
-- If a date AND time are found, write delivery_date as YYYY-MM-DDTHH:MM. Example: 2026-04-24T18:00.
-- If only a date is found, write delivery_date as YYYY-MM-DD.
-- If only a time is found with no date, write delivery_date as null and write that time context into next_action.
-- If neither date nor time is found, write delivery_date as null.
-- NEVER write time into next_action if a proper delivery_date value can be constructed.
-- Time must be in 24-hour HH:MM format. Convert '6pm' → '18:00', '2pm' → '14:00', 'midday' → '12:00'.
-- payment_status must be exactly: PAID (if already paid/EFT done), CASH (if paying cash on delivery), or PENDING (if not yet confirmed).
-- order_total must be a plain integer. Strip R and commas. R17,950 → 17950. If unknown, return 0.
-- ORDER EXTRACTION RULE: WhatsApp conversations often contain multiple orders or order revisions over time. You must extract ONLY the most recent, final confirmed order — the last version of what the client wants, based on the chronological order of messages. If a client first orders item A, then later adds item B, or changes their order entirely, use only the final order as it stands at the end of the conversation. Do not combine old and new orders. Do not use the first order mentioned if it was subsequently changed or added to. The order_list must reflect what was confirmed in the LAST order discussion in the chat.
-- cell_number must include country code. If not in the conversation, return null.
-- delivery_address: full address as stated. If not confirmed, return null.
+EXTRACTION RULES:
+- Extract the FINAL confirmed order only (not earlier drafts or mentions)
+- delivery_date: format as YYYY-MM-DDTHH:MM if time is known, YYYY-MM-DD if date only, null if not discussed
+- payment_status: PAID, CASH, or PENDING only
+- order_total: integer (rands, no R symbol, no commas). 0 if not mentioned
+- Never use 'pick up' — always 'delivery'
+- order_list: list only stock items as a clean comma-separated string. Exclude delivery fees, tips, or charges
+- cell_number: extract from chat metadata or any number mentioned in conversation. null if not found
 
-Return a JSON object with these fields:
-{
-  client_name: string,
-  cell_number: string or null,
-  delivery_date: YYYY-MM-DDTHH:MM string, YYYY-MM-DD string, or null,
-  delivery_address: string or null,
-  order_list: string (one item per line, include quantities),
-  order_total: integer,
-  payment_status: PAID | CASH | PENDING,
-  next_action: string (most urgent single action needed),
-  latest_order_status: string (is the order confirmed, pending items, awaiting payment — based on last messages in the conversation),
-  order_frequency: string (any indication of how often client orders — weekly, monthly, first time, etc. Infer from conversation tone and history references),
-  sentiment_analysis: string,
-  red_flags: string (anything concerning — late payment, aggression, unusual requests),
-  green_flags: string (positive signals — prompt payment, referred client, repeat customer),
-  client_notes: string (any other useful context about this client)
-}`;
+FULL REPORT fields (prose, 1–3 sentences each):
+- latest_order_status: current status of this order in plain English
+- order_frequency: how often does this client order? Daily, weekly, monthly, irregular? Note any patterns
+- preferred_products: which products does this client consistently order or ask about across the chat history
+- preferred_delivery_time: what time of day or days of week do they typically request delivery
+- sentiment_analysis: overall tone — are they happy, impatient, loyal, price-sensitive, demanding? Be specific
+- red_flags: anything concerning — payment issues, repeated complaints, aggressive tone, ghost history, suspicious requests. 'None' if clean
+- green_flags: positive signals — loyalty, referrals given, easy to deal with, prompt payment history, high value
+- special_instructions: any recurring delivery notes, access codes, gate instructions, preferred contact method, or personal preferences mentioned
+- outstanding_balance: any unpaid amounts from previous orders mentioned in the chat. 'None' if not mentioned
+- client_notes: anything else operationally useful that doesn't fit above — relationship context, inside references, upcoming needs they mentioned
+
+SUMMARY BLOCK fields (structured data only):
+- client_name: full name as used in conversation
+- cell_number: string or null
+- delivery_date: string or null
+- delivery_address: full address as stated, or null
+- order_list: comma-separated stock items only, no fees
+- order_total: integer or 0
+- payment_status: PAID | CASH | PENDING
+- next_action: one short sentence — what needs to happen next for this order to be fulfilled
+
+Return JSON with ALL fields above. Never omit a field — use null or 'None' for unknowns.`;
 
 export const EXTRACTION_SCHEMA = {
   type: "object",
@@ -46,9 +46,13 @@ export const EXTRACTION_SCHEMA = {
     next_action: { type: "string" },
     latest_order_status: { type: "string" },
     order_frequency: { type: "string" },
+    preferred_products: { type: "string" },
+    preferred_delivery_time: { type: "string" },
     sentiment_analysis: { type: "string" },
     red_flags: { type: "string" },
     green_flags: { type: "string" },
+    special_instructions: { type: "string" },
+    outstanding_balance: { type: "string" },
     client_notes: { type: "string" }
   },
   required: [
@@ -62,9 +66,13 @@ export const EXTRACTION_SCHEMA = {
     "next_action",
     "latest_order_status",
     "order_frequency",
+    "preferred_products",
+    "preferred_delivery_time",
     "sentiment_analysis",
     "red_flags",
     "green_flags",
+    "special_instructions",
+    "outstanding_balance",
     "client_notes"
   ]
 };

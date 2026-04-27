@@ -6,7 +6,7 @@ import WhatsAppExtractionPanel from "../components/notes/WhatsAppExtractionPanel
 import ActiveMemberIntelligenceSummary from "../components/notes/ActiveMemberIntelligenceSummary";
 import MemberHistorySection from "../components/notes/MemberHistorySection";
 import ReportContentModal from "../components/notes/ReportContentModal";
-import { EXTRACTION_SCHEMA } from "../components/notes/member-intelligence-config";
+import { EXTRACTION_PROMPT, EXTRACTION_SCHEMA } from "../components/notes/member-intelligence-config";
 import { buildCustomerNoteContent, sortByDeliveryDate } from "../components/notes/memberIntelligenceUtils";
 
 const Spinner = () => (
@@ -39,6 +39,10 @@ export default function CustomerNotes() {
     tags: [
       `latest-order-status:${report.latest_order_status || "Not recorded."}`,
       `order-frequency:${report.order_frequency || "Not recorded."}`,
+      `preferred-products:${report.preferred_products || "Not recorded."}`,
+      `preferred-delivery-time:${report.preferred_delivery_time || "Not recorded."}`,
+      `special-instructions:${report.special_instructions || "Not recorded."}`,
+      `outstanding-balance:${report.outstanding_balance || "Not recorded."}`,
       `client-notes:${report.client_notes || "Not recorded."}`
     ]
   });
@@ -123,21 +127,7 @@ export default function CustomerNotes() {
 
     try {
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Extract structured data from this WhatsApp conversation for a private concierge delivery service.
-
-RULES:
-1. Never use pick up, pickup or collect — always use delivery
-2. delivery_date: if date+time found, return 'YYYY-MM-DDTHH:MM'. If date only, return 'YYYY-MM-DD'. If only time with no date, return null. Today is 2026-04-24.
-3. payment_status: PAID (already paid/EFT confirmed), CASH (paying cash on delivery), PENDING (not confirmed). No other values.
-4. order_total: integer only, no currency symbols. R5,600 → 5600
-5. ORDER EXTRACTION RULE: WhatsApp conversations often contain multiple orders or order revisions over time. You must extract ONLY the most recent, final confirmed order — the last version of what the client wants, based on the chronological order of messages. If a client first orders item A, then later adds item B, or changes their order entirely, use only the final order as it stands at the end of the conversation. Do not combine old and new orders. Do not use the first order mentioned if it was subsequently changed or added to. The order_list must reflect what was confirmed in the LAST order discussion in the chat.
-6. cell_number: include country code. If not found, return null.
-6. delivery_address: as stated in conversation. If not confirmed, return null.
-7. order_list: one item per line with quantities and prices where mentioned.
-8. latest_order_status: summarise whether order is confirmed, pending items, awaiting payment — based on the most recent messages.
-9. order_frequency: infer from conversation — first time, repeat, referred, regular, etc.
-
-Return JSON: { client_name, cell_number, delivery_date, delivery_address, order_list, order_total, payment_status, next_action, latest_order_status, order_frequency, sentiment_analysis, red_flags, green_flags, client_notes }
+        prompt: `${EXTRACTION_PROMPT}
 
 WhatsApp conversation:
 ${conversation}`,
@@ -215,28 +205,58 @@ ${conversation}`,
   };
 
   const handleSaveEdit = async (draft) => {
-    const updatedOrder = await base44.entities.MemberOrder.update(draft.id, {
-      delivery_date: buildCombinedDeliveryDate(draft.delivery_date, null) || "",
-      delivery_address: draft.delivery_address || "",
-      payment_status: draft.payment_status || "PENDING",
-      order_total: parseInt(draft.order_total || 0, 10) || 0,
-      cell_number: draft.cell_number || "",
-      next_action: draft.next_action || ""
+    toast.loading("Updating...", { id: `summary-update-${draft.id}` });
+
+    const draftReportText = draft.content || selectedNote?.content || "";
+    const extraction = await base44.integrations.Core.InvokeLLM({
+      prompt: `${EXTRACTION_PROMPT}
+
+WhatsApp conversation:
+${draftReportText}`,
+      response_json_schema: EXTRACTION_SCHEMA
     });
+
+    const reExtractedFields = {
+      client_name: extraction.client_name || draft.client_name || "",
+      cell_number: extraction.cell_number || "",
+      delivery_date: String(extraction.delivery_date || "").trim().includes("T")
+        ? String(extraction.delivery_date || "").trim()
+        : buildCombinedDeliveryDate(extraction.delivery_date, null) || "",
+      delivery_address: extraction.delivery_address || "",
+      order_list: extraction.order_list || "",
+      order_total: parseInt(extraction.order_total || 0, 10) || 0,
+      payment_status: extraction.payment_status || "PENDING",
+      next_action: extraction.next_action || ""
+    };
+
+    const updatedOrder = await base44.entities.MemberOrder.update(draft.id, reExtractedFields);
 
     if (updatedOrder.intelligence_report_id) {
       await base44.entities.CustomerNote.update(updatedOrder.intelligence_report_id, buildNotePayload({
-        ...preview,
-        ...draft,
-        delivery_date: buildCombinedDeliveryDate(draft.delivery_date, null) || "",
-        payment_status: draft.payment_status || "PENDING",
-        order_total: parseInt(draft.order_total || 0, 10) || 0,
-        cell_number: draft.cell_number || "",
-        next_action: draft.next_action || ""
+        ...extraction,
+        ...reExtractedFields,
+        client_name: reExtractedFields.client_name || updatedOrder.client_name
       }));
     }
 
-    return updatedOrder;
+    setPreview((current) => current && current.id === updatedOrder.id ? ({
+      ...current,
+      ...updatedOrder,
+      ...reExtractedFields
+    }) : current);
+    setSelectedNote((current) => current ? ({
+      ...current,
+      client_name: reExtractedFields.client_name || current.client_name,
+      content: buildCustomerNoteContent({ ...extraction, ...reExtractedFields })
+    }) : current);
+    setActiveSummaryRefreshKey((current) => current + 1);
+    await Promise.all([loadOrders(), loadNotes()]);
+    toast.success("Summary updated.", { id: `summary-update-${draft.id}` });
+
+    return {
+      ...updatedOrder,
+      ...reExtractedFields
+    };
   };
 
   const handleViewReport = async (order) => {
