@@ -197,7 +197,7 @@ export default function Inventory() {
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "860px" }}>
               <thead>
                 <tr style={{ background: "#0b0e11", borderBottom: "1px solid rgba(210,156,108,0.28)" }}>
-                  {["Product Name", "Category", "Live Running Stock Count", "Latest Stock Count", "Status"].map((header) => (
+                  {["Product Name", "Live Running Stock Count", "Status"].map((header) => (
                     <th key={header} style={{ padding: "14px 16px", textAlign: "left", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, color: "#eee3b4", letterSpacing: "0.14em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{header}</th>
                   ))}
                 </tr>
@@ -208,20 +208,24 @@ export default function Inventory() {
                   return (
                     <tr key={product.id} style={{ background: "#111111", borderBottom: "1px solid rgba(255,255,255,0.04)" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(201,168,76,0.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "#111111"; }}>
                       <td style={{ padding: "12px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "#f0ede8", fontWeight: 700, whiteSpace: "nowrap" }}>{product.display_name}</td>
-                      <td style={{ padding: "12px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(240,237,232,0.72)", whiteSpace: "nowrap" }}>{PRODUCT_CATEGORIES[product.display_name] || product.category || "Unassigned"}</td>
-                      <td style={{ padding: "12px 16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(240,237,232,0.72)" }}>{Number(product.last_stock_count || 0)}</td>
                       <td style={{ padding: "12px 16px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <input
-                            type="number"
-                            min="0"
-                            value={draftCounts[product.id] ?? latestCount}
-                            onChange={(e) => handleInlineLatestCountChange(product.id, e.target.value)}
-                            onBlur={() => handleInlineLatestCountSave(product)}
-                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
-                            style={{ width: "96px", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.14)", color: "#F5F0E8", padding: "8px 10px", fontFamily: "var(--font-body)", fontSize: "13px", borderRadius: "2px", outline: "none" }}
-                          />
-                          <button onClick={() => { setEditProduct(product); setFormOpen(true); }} style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.16)", color: "rgba(240,237,232,0.52)", width: "34px", height: "34px", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Pencil size={13} /></button>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                          <div style={{ display: "grid", gap: "4px" }}>
+                            <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", lineHeight: 1, color: "#C9A84C" }}>{Number(product.current_stock || 0)}</p>
+                            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(245,240,232,0.45)", letterSpacing: "0.03em" }}>Last count: {Number(product.last_stock_count || 0)}</p>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <input
+                              type="number"
+                              min="0"
+                              value={draftCounts[product.id] ?? latestCount}
+                              onChange={(e) => handleInlineLatestCountChange(product.id, e.target.value)}
+                              onBlur={() => handleInlineLatestCountSave(product)}
+                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+                              style={{ width: "96px", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.14)", color: "#F5F0E8", padding: "8px 10px", fontFamily: "var(--font-body)", fontSize: "13px", borderRadius: "2px", outline: "none" }}
+                            />
+                            <button onClick={() => { setEditProduct(product); setFormOpen(true); }} style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.16)", color: "rgba(240,237,232,0.52)", width: "34px", height: "34px", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Pencil size={13} /></button>
+                          </div>
                         </div>
                       </td>
                       <td style={{ padding: "12px 16px" }}><ProcurementStatus productName={product.display_name} latestStockCount={latestCount} /></td>

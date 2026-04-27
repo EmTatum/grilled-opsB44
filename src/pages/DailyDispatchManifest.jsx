@@ -318,8 +318,7 @@ export default function DailyDispatchManifest() {
 
       try {
         await base44.entities.Product.update(matchedProduct.id, {
-          current_stock: nextStock,
-          last_stock_count: nextStock
+          current_stock: nextStock
         });
       } catch {
         toast.error(`Stock update failed for ${matchedProduct.product_name || productName} — please adjust manually in Catalogue`);
