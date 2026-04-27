@@ -1,66 +1,48 @@
 export const FULL_REPORT_PROMPT = `You are a senior intelligence analyst for a private members cannabis concierge club. Read this entire WhatsApp conversation and write a detailed operational intelligence report. Write in clear, direct prose — not bullet points, not JSON. Be specific and observational, not vague.
 
-CRITICAL ORDER EXTRACTION RULE:
-A WhatsApp export contains messages in chronological order, oldest at the top, newest at the bottom. This chat may contain multiple orders or order discussions across different dates.
+Write 2–5 sentences per section, more if enough information exists:
 
-You MUST extract details from the MOST RECENT ORDER ONLY — the last order discussed or confirmed, closest to the bottom of the conversation. Ignore all earlier orders, earlier price discussions, and earlier delivery arrangements entirely. They are history.
+**ORDER STATUS:** What is the current confirmed order? Products, quantities, total, delivery address and time, payment arrangement?
 
-To identify the most recent order:
-1. Scan from the BOTTOM of the conversation upward
-2. Find the last mention of products being ordered, quantities, a price agreed, or a delivery arrangement confirmed
-3. That is the order to extract — use ONLY those details for order_list, order_total, delivery_date, delivery_address, and payment_status
-4. If the most recent messages are just small talk or follow-up after an order was confirmed, work backward to find the last confirmed order
+**ORDER HISTORY & FREQUENCY:** How often does this client order? What patterns emerge?
 
-Do NOT average across orders. Do NOT combine old and new orders. Do NOT use the first order you see. The most recent confirmed order is the only one that matters for the summary block.
+**PREFERRED PRODUCTS:** Which products does this client consistently favour?
 
-Your report must cover each of the following sections in order. Write 2–5 sentences per section, more if there is enough information in the chat:
+**PREFERRED DELIVERY WINDOWS:** What time of day or days of the week do they typically request?
 
-ORDER STATUS: What is the current confirmed order? What products, quantities, total amount, delivery address and time? What is the payment arrangement? This section must describe the MOST RECENT ORDER ONLY, using the critical order extraction rule above.
+**CLIENT SENTIMENT:** Overall tone — loyal, price-sensitive, impatient, easy-going? Give specific examples.
 
-ORDER HISTORY & FREQUENCY: How often does this client order? What patterns emerge from the conversation — weekly, monthly, irregular? Any mention of previous orders?
+**GREEN FLAGS:** Loyalty, referrals, prompt payment, high order value, pleasant communication?
 
-PREFERRED PRODUCTS: Which products does this client gravitate toward consistently? Any specific strains, formats or brands they ask about or always include?
+**RED FLAGS:** Payment delays, complaints, aggressive tone, inconsistent requests, ghosting? Write 'None noted.' if clean.
 
-PREFERRED DELIVERY WINDOWS: What time of day or days of the week do they typically request? Any patterns in when they reach out vs when they want delivery?
+**SPECIAL INSTRUCTIONS:** Gate codes, access notes, preferred contact methods, drop-off preferences, personal details?
 
-CLIENT SENTIMENT: What is the overall tone of this client? Are they loyal, price-sensitive, impatient, easy-going, demanding, enthusiastic? Give specific examples from the chat to support this.
+**OUTSTANDING BALANCE:** Any unpaid amounts from previous orders? Write 'None mentioned.' if not.
 
-GREEN FLAGS: What positive signals stand out — loyalty indicators, referrals made, prompt payment, high order value, pleasant communication?
+**ANALYST NOTES:** Anything else operationally useful — relationship context, upcoming needs, upsell opportunities, referrals pending.
 
-RED FLAGS: Any concerns — payment delays, complaints, aggressive tone, inconsistent requests, ghosting history, anything unusual? Write 'None noted.' if the chat is clean.
+Be thorough. The more detail extracted, the more operationally useful this report is.`;
 
-SPECIAL INSTRUCTIONS: Any gate codes, access notes, preferred contact methods, drop-off preferences, allergies or personal details mentioned anywhere in the chat?
+export const EXTRACTION_PROMPT = `CRITICAL ORDER EXTRACTION RULE:
+WhatsApp exports are chronological — oldest messages at the top, newest at the bottom. This chat may contain multiple orders across different dates.
 
-OUTSTANDING BALANCE: Any mention of unpaid amounts from previous orders? Write 'None mentioned.' if not.
+You MUST extract the MOST RECENT ORDER ONLY — the last order discussed or confirmed, closest to the bottom of the conversation. Ignore all earlier orders entirely.
 
-ANALYST NOTES: Anything else operationally useful — relationship context, upcoming needs they hinted at, upsell opportunities, referrals pending, anything the team should know.
+To identify the most recent order: scan from the BOTTOM upward. Find the last mention of products being ordered, quantities confirmed, a price agreed, or a delivery arrangement made. That is the only order to extract. If recent messages are small talk after an order was confirmed, work backward to find that last confirmed order.
 
-Write the full report now. Be thorough — the more detail you extract, the more useful this is operationally.`;
+Do NOT combine old and new orders. Do NOT use the first order you see. Most recent confirmed order only.
 
-export const EXTRACTION_PROMPT = `Based on the WhatsApp conversation, extract the following structured data as valid JSON only. No explanation, no prose, just the JSON object.
-
-CRITICAL ORDER EXTRACTION RULE:
-A WhatsApp export contains messages in chronological order, oldest at the top, newest at the bottom. This chat may contain multiple orders or order discussions across different dates.
-
-You MUST extract details from the MOST RECENT ORDER ONLY — the last order discussed or confirmed, closest to the bottom of the conversation. Ignore all earlier orders, earlier price discussions, and earlier delivery arrangements entirely. They are history.
-
-To identify the most recent order:
-1. Scan from the BOTTOM of the conversation upward
-2. Find the last mention of products being ordered, quantities, a price agreed, or a delivery arrangement confirmed
-3. That is the order to extract — use ONLY those details for order_list, order_total, delivery_date, delivery_address, and payment_status
-4. If the most recent messages are just small talk or follow-up after an order was confirmed, work backward to find the last confirmed order
-
-Do NOT average across orders. Do NOT combine old and new orders. Do NOT use the first order you see. The most recent confirmed order is the only one that matters for the summary block.
-
+Extract and return ONLY valid JSON, no explanation:
 {
-  client_name: string,
+  client_name: string (strip anything in parentheses, after a dash or pipe — clean name only, e.g. 'Jon' not 'Jon (hate Kate Bro)'),
   cell_number: string or null,
-  delivery_date: string (YYYY-MM-DDTHH:MM if time known, YYYY-MM-DD if date only, null if unknown),
+  delivery_date: 'YYYY-MM-DDTHH:MM' if time known | 'YYYY-MM-DD' if date only | null if unknown,
   delivery_address: string or null,
-  order_list: string (comma-separated stock items only, no fees or charges),
-  order_total: integer (rands, no symbol, 0 if unknown),
+  order_list: string (comma-separated stock items only — NO delivery fees, NO charges, NO tips. Consolidate duplicates: if same item appears N times write 'Nx Item' e.g. '3x Medalonian 1g'),
+  order_total: integer in rands, no R symbol, no commas. 0 if unknown,
   payment_status: 'PAID' | 'CASH' | 'PENDING',
-  next_action: string (one sentence — what needs to happen next)
+  next_action: one sentence — what needs to happen next
 }`;
 
 export const EXTRACTION_SCHEMA = {
@@ -73,17 +55,7 @@ export const EXTRACTION_SCHEMA = {
     order_list: { type: "string" },
     order_total: { type: "number" },
     payment_status: { type: "string", enum: ["PAID", "CASH", "PENDING"] },
-    next_action: { type: "string" },
-    latest_order_status: { type: "string" },
-    order_frequency: { type: "string" },
-    preferred_products: { type: "string" },
-    preferred_delivery_time: { type: "string" },
-    sentiment_analysis: { type: "string" },
-    red_flags: { type: "string" },
-    green_flags: { type: "string" },
-    special_instructions: { type: "string" },
-    outstanding_balance: { type: "string" },
-    client_notes: { type: "string" }
+    next_action: { type: "string" }
   },
   required: [
     "client_name",
@@ -93,37 +65,24 @@ export const EXTRACTION_SCHEMA = {
     "order_list",
     "order_total",
     "payment_status",
-    "next_action",
-    "latest_order_status",
-    "order_frequency",
-    "preferred_products",
-    "preferred_delivery_time",
-    "sentiment_analysis",
-    "red_flags",
-    "green_flags",
-    "special_instructions",
-    "outstanding_balance",
-    "client_notes"
+    "next_action"
   ]
 };
 
 export const PAYMENT_STYLES = {
   PAID: {
-    accent: "#16a34a",
     badgeBackground: "rgba(22,163,74,0.12)",
     badgeBorder: "rgba(22,163,74,0.45)",
     badgeColor: "#86efac"
   },
   CASH: {
-    accent: "#8d201c",
-    badgeBackground: "rgba(141,32,28,0.12)",
-    badgeBorder: "rgba(141,32,28,0.45)",
-    badgeColor: "#f5b4b0"
-  },
-  PENDING: {
-    accent: "#d97706",
     badgeBackground: "rgba(217,119,6,0.12)",
     badgeBorder: "rgba(217,119,6,0.45)",
     badgeColor: "#fbbf24"
+  },
+  PENDING: {
+    badgeBackground: "rgba(255,255,255,0.05)",
+    badgeBorder: "rgba(255,255,255,0.18)",
+    badgeColor: "rgba(245,240,232,0.7)"
   }
 };

@@ -1,13 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import PageHeader from "../components/PageHeader";
-import WhatsAppExtractionPanel from "../components/notes/WhatsAppExtractionPanel";
-import ActiveMemberIntelligenceSummary from "../components/notes/ActiveMemberIntelligenceSummary";
-import MemberHistorySection from "../components/notes/MemberHistorySection";
-import ReportContentModal from "../components/notes/ReportContentModal";
+import MemberIntelligenceInput from "../components/notes/MemberIntelligenceInput";
+import MemberOrderSummaryCard from "../components/notes/MemberOrderSummaryCard";
+import FullIntelligenceReportPanel from "../components/notes/FullIntelligenceReportPanel";
+import { useEntityList } from "@/hooks/useEntityList";
 import { EXTRACTION_PROMPT, EXTRACTION_SCHEMA, FULL_REPORT_PROMPT } from "../components/notes/member-intelligence-config";
-import { buildCustomerNoteContent, cleanClientName, consolidateOrderList, sortByDeliveryDate } from "../components/notes/memberIntelligenceUtils";
+import { cleanClientName, consolidateOrderList, normalizeClientName, normalizeDeliveryDate } from "../components/notes/memberIntelligenceUtils";
+
+const sectionStyle = {
+  display: "grid",
+  gap: "16px"
+};
 
 const Spinner = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -17,331 +22,135 @@ const Spinner = () => (
 );
 
 export default function CustomerNotes() {
-  const [notes, setNotes] = useState([]);
-  const [historyOrders, setHistoryOrders] = useState([]);
-  const [activeSummaryRefreshKey, setActiveSummaryRefreshKey] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const { data: memberOrders, loading } = useEntityList("MemberOrder", "-updated_date", 500);
   const [conversation, setConversation] = useState("");
-  const [preview, setPreview] = useState(null);
-  const [savedPreviewOrderId, setSavedPreviewOrderId] = useState(null);
-  const [saveMessage, setSaveMessage] = useState("");
+  const [importMessage, setImportMessage] = useState("");
   const [generating, setGenerating] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [selectedNote, setSelectedNote] = useState(null);
+  const [updatingReport, setUpdatingReport] = useState(false);
+  const [confirmedPayments, setConfirmedPayments] = useState({});
+  const [followUpFlags, setFollowUpFlags] = useState({});
+  const [selectedReportId, setSelectedReportId] = useState(null);
 
-  const normalizeClientName = (value) => String(value || "").trim().toLowerCase();
+  const activeOrders = useMemo(() => memberOrders.filter((record) => record.fulfilment_status !== "Fulfilled" && record.fulfilment_status !== "Cancelled"), [memberOrders]);
+  const selectedOrder = useMemo(() => activeOrders.find((order) => order.id === selectedReportId) || activeOrders[0] || null, [activeOrders, selectedReportId]);
 
-  const buildNotePayload = (report) => ({
-    client_name: report.client_name,
-    note_type: "General",
-    priority: "Medium",
-    content: buildCustomerNoteContent(report),
-    tags: [
-      `latest-order-status:${report.latest_order_status || "Not recorded."}`,
-      `order-frequency:${report.order_frequency || "Not recorded."}`,
-      `preferred-products:${report.preferred_products || "Not recorded."}`,
-      `preferred-delivery-time:${report.preferred_delivery_time || "Not recorded."}`,
-      `special-instructions:${report.special_instructions || "Not recorded."}`,
-      `outstanding-balance:${report.outstanding_balance || "Not recorded."}`,
-      `client-notes:${report.client_notes || "Not recorded."}`
-    ]
-  });
-
-  const normalizeTimeValue = (value) => {
-    const raw = String(value || "").trim().toLowerCase();
-    if (!raw) return null;
-    if (raw === "midday") return "12:00";
-    const hhmmMatch = raw.match(/^(\d{1,2}):(\d{2})$/);
-    if (hhmmMatch) return `${hhmmMatch[1].padStart(2, "0")}:${hhmmMatch[2]}`;
-    const ampmMatch = raw.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
-    if (ampmMatch) {
-      let hours = Number(ampmMatch[1]);
-      const minutes = ampmMatch[2] || "00";
-      const meridiem = ampmMatch[3];
-      if (meridiem === "pm" && hours !== 12) hours += 12;
-      if (meridiem === "am" && hours === 12) hours = 0;
-      return `${String(hours).padStart(2, "0")}:${minutes}`;
-    }
-    return null;
-  };
-
-  const buildCombinedDeliveryDate = (dateValue, timeValue) => {
-    const dateRaw = String(dateValue || "").trim();
-    const dateMatch = dateRaw.match(/\d{4}-\d{2}-\d{2}/);
-    const normalizedDate = dateMatch ? dateMatch[0] : null;
-    const normalizedTime = normalizeTimeValue(timeValue);
-    if (normalizedDate && normalizedTime) return `${normalizedDate}T${normalizedTime}`;
-    if (normalizedDate) return normalizedDate;
-    return null;
-  };
-
-  const loadNotes = async () => {
-    const noteRecords = await base44.entities.CustomerNote.list("-updated_date", 200);
-    setNotes(noteRecords || []);
-  };
-
-  const loadOrders = async () => {
-    const allOrders = await base44.entities.MemberOrder.list("delivery_date", 500);
-    const liveOrders = allOrders || [];
-
-    setHistoryOrders(sortByDeliveryDate(liveOrders.filter((order) => order.fulfilment_status === "Fulfilled" || order.fulfilment_status === "Cancelled")));
-  };
-
-  const load = async () => {
-    await Promise.all([loadNotes(), loadOrders()]);
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); }, []);
-
-  useEffect(() => {
-    const unsubscribeNotes = base44.entities.CustomerNote.subscribe(() => {
-      loadNotes();
-    });
-
-    const unsubscribeOrders = base44.entities.MemberOrder.subscribe(() => {
-      loadOrders();
-    });
-
-    return () => {
-      unsubscribeNotes();
-      unsubscribeOrders();
-    };
-  }, []);
-
-  const notesById = useMemo(() => notes.reduce((acc, note) => {
-    acc[note.id] = note;
-    return acc;
-  }, {}), [notes]);
-
-  const findExistingByClientName = async (entityName, clientName) => {
-    const records = await base44.entities[entityName].list("-updated_date", 500);
+  const findExistingByClientName = async (clientName) => {
+    const records = await base44.entities.MemberOrder.list("-updated_date", 500);
     return (records || []).find((item) => normalizeClientName(item.client_name) === normalizeClientName(clientName)) || null;
   };
 
-  const generatePreview = async () => {
-    if (!conversation.trim() || generating || saving) return;
+  const handleImportFile = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || "");
+      setConversation(text);
+      const lineCount = text ? text.split(/\r?\n/).length : 0;
+      setImportMessage(`Chat imported — ${lineCount} lines loaded.`);
+      event.target.value = "";
+    };
+    reader.readAsText(file);
+  };
+
+  const buildStructuredFields = (result) => ({
+    client_name: cleanClientName(result.client_name || ""),
+    cell_number: result.cell_number || "",
+    delivery_date: normalizeDeliveryDate(result.delivery_date || ""),
+    delivery_address: result.delivery_address || "",
+    order_list: consolidateOrderList(result.order_list || ""),
+    order_total: parseInt(result.order_total || 0, 10) || 0,
+    payment_status: result.payment_status || "PENDING",
+    next_action: result.next_action || ""
+  });
+
+  const handleGenerate = async () => {
+    if (!conversation.trim() || generating) return;
     setGenerating(true);
-    setSaving(true);
-    setSaveMessage("");
 
     try {
-      const fullReport = await base44.integrations.Core.InvokeLLM({
-        prompt: `${FULL_REPORT_PROMPT}
-
-WhatsApp conversation:
-${conversation}`
+      const fullReportText = await base44.integrations.Core.InvokeLLM({
+        prompt: `${FULL_REPORT_PROMPT}\n\nWhatsApp conversation:\n${conversation}`
       });
 
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `${EXTRACTION_PROMPT}
-
-WhatsApp conversation:
-${conversation}
-
-Full intelligence report:
-${fullReport}`,
+      const extraction = await base44.integrations.Core.InvokeLLM({
+        prompt: `${EXTRACTION_PROMPT}\n\nWhatsApp conversation:\n${conversation}`,
         response_json_schema: EXTRACTION_SCHEMA
       });
 
-      const extractedData = {
-        ...result,
-        client_name: cleanClientName(result.client_name || ""),
-        latest_order_status: result.next_action || "",
-        full_intelligence_report: fullReport,
-        cell_number: result.cell_number || "",
-        delivery_date: String(result.delivery_date || "").trim().includes("T")
-          ? String(result.delivery_date || "").trim()
-          : buildCombinedDeliveryDate(result.delivery_date, null) || "",
-        delivery_address: result.delivery_address || "",
-        order_list: consolidateOrderList(result.order_list || ""),
-        order_total: parseInt(result.order_total || 0, 10) || 0,
-        payment_status: result.payment_status || "PENDING",
-        next_action: result.next_action || ""
+      const jsonFields = buildStructuredFields(extraction);
+      const existingRecord = await findExistingByClientName(jsonFields.client_name);
+      const payload = {
+        ...jsonFields,
+        intelligence_report: fullReportText
       };
 
-      const notePayload = buildNotePayload(extractedData);
-      const existingOrder = await findExistingByClientName("MemberOrder", extractedData.client_name);
-      const existingNote = await findExistingByClientName("CustomerNote", extractedData.client_name);
+      const savedRecord = existingRecord
+        ? await base44.entities.MemberOrder.update(existingRecord.id, payload)
+        : await base44.entities.MemberOrder.create({ ...payload, fulfilment_status: "Active" });
 
-      const savedNote = existingNote
-        ? await base44.entities.CustomerNote.update(existingNote.id, notePayload)
-        : await base44.entities.CustomerNote.create(notePayload);
-
-      const orderPayload = {
-        client_name: cleanClientName(extractedData.client_name),
-        cell_number: extractedData.cell_number,
-        delivery_date: extractedData.delivery_date,
-        delivery_address: extractedData.delivery_address,
-        order_list: consolidateOrderList(extractedData.order_list),
-        order_total: Number(extractedData.order_total || 0),
-        payment_status: extractedData.payment_status,
-        next_action: extractedData.next_action,
-        intelligence_report_id: savedNote.id,
-        fulfilment_status: existingOrder?.fulfilment_status || "Active"
-      };
-
-      const savedOrder = existingOrder
-        ? await base44.entities.MemberOrder.update(existingOrder.id, orderPayload)
-        : await base44.entities.MemberOrder.create({ ...orderPayload, fulfilment_status: "Active" });
-
-      setActiveSummaryRefreshKey((current) => current + 1);
-      setSavedPreviewOrderId(savedOrder.id);
-      setPreview({
-        ...extractedData,
-        ...savedOrder,
-        intelligence_report_id: savedNote.id,
-        id: savedOrder.id
-      });
-      setSaveMessage(`Saved for ${savedOrder.client_name}`);
-      toast.success(`Saved for ${savedOrder.client_name}`);
-      await Promise.all([loadOrders(), loadNotes()]);
+      setSelectedReportId(savedRecord.id);
+      toast.success(`Saved for ${savedRecord.client_name}`);
     } catch {
-      setSaveMessage("");
       toast.error("Save failed — please try again");
     } finally {
       setGenerating(false);
-      setSaving(false);
     }
+  };
+
+  const handleInlineSave = async (order, field, value) => {
+    const nextValue = field === "client_name"
+      ? cleanClientName(value)
+      : field === "order_list"
+        ? consolidateOrderList(value)
+        : field === "order_total"
+          ? Number(value || 0)
+          : value;
+
+    await base44.entities.MemberOrder.update(order.id, { [field]: nextValue });
+  };
+
+  const handleConfirmPayment = async (order, status) => {
+    const updated = await base44.entities.MemberOrder.update(order.id, { payment_status: status });
+    if (updated) {
+      setConfirmedPayments((prev) => ({ ...prev, [order.id]: status }));
+    }
+  };
+
+  const handleFollowUp = async (order) => {
+    setFollowUpFlags((prev) => ({ ...prev, [order.id]: !prev[order.id] }));
   };
 
   const handleFulfilled = async (order) => {
-    const updatedOrder = await base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Fulfilled" });
-    setHistoryOrders((current) => sortByDeliveryDate([updatedOrder, ...current.filter((item) => item.id !== order.id)]));
-    return updatedOrder;
+    await base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Fulfilled" });
   };
 
   const handleCancelled = async (order) => {
-    const updatedOrder = await base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Cancelled" });
-    setHistoryOrders((current) => sortByDeliveryDate([updatedOrder, ...current.filter((item) => item.id !== order.id)]));
-    return updatedOrder;
+    await base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Cancelled" });
   };
 
-  const handleSaveEdit = async (draft) => {
-    toast.loading("Updating...", { id: `summary-update-${draft.id}` });
-
-    const draftReportText = draft.content || selectedNote?.content || "";
-    const fullReport = draftReportText;
-    const extraction = await base44.integrations.Core.InvokeLLM({
-      prompt: `${EXTRACTION_PROMPT}
-
-WhatsApp conversation:
-${draftReportText}
-
-Full intelligence report:
-${fullReport}`,
-      response_json_schema: EXTRACTION_SCHEMA
-    });
-
-    const reExtractedFields = {
-      client_name: cleanClientName(extraction.client_name || draft.client_name || ""),
-      cell_number: extraction.cell_number || "",
-      delivery_date: String(extraction.delivery_date || "").trim().includes("T")
-        ? String(extraction.delivery_date || "").trim()
-        : buildCombinedDeliveryDate(extraction.delivery_date, null) || "",
-      delivery_address: extraction.delivery_address || "",
-      order_list: consolidateOrderList(extraction.order_list || ""),
-      order_total: parseInt(extraction.order_total || 0, 10) || 0,
-      payment_status: extraction.payment_status || "PENDING",
-      next_action: extraction.next_action || "",
-      latest_order_status: extraction.next_action || "",
-      full_intelligence_report: draftReportText
-    };
-
-    const updatedOrder = await base44.entities.MemberOrder.update(draft.id, reExtractedFields);
-
-    if (updatedOrder.intelligence_report_id) {
-      await base44.entities.CustomerNote.update(updatedOrder.intelligence_report_id, buildNotePayload({
-        ...extraction,
-        ...reExtractedFields,
-        client_name: reExtractedFields.client_name || updatedOrder.client_name
-      }));
-    }
-
-    setPreview((current) => current && current.id === updatedOrder.id ? ({
-      ...current,
-      ...updatedOrder,
-      ...reExtractedFields
-    }) : current);
-    setSelectedNote((current) => current ? ({
-      ...current,
-      client_name: reExtractedFields.client_name || current.client_name,
-      content: buildCustomerNoteContent({ ...extraction, ...reExtractedFields })
-    }) : current);
-    setActiveSummaryRefreshKey((current) => current + 1);
-    await Promise.all([loadOrders(), loadNotes()]);
-    toast.success("Summary updated.", { id: `summary-update-${draft.id}` });
-
-    return {
-      ...updatedOrder,
-      ...reExtractedFields
-    };
-  };
-
-  const handleViewReport = async (order) => {
-    if (order.intelligence_report_id) {
-      const linked = await base44.entities.CustomerNote.filter({ id: order.intelligence_report_id }, "-updated_date", 1);
-      if (linked?.[0]) {
-        setSelectedNote({ ...linked[0], memberOrderId: order.id });
-        return;
-      }
-    }
-
-    const matched = await base44.entities.CustomerNote.list("-updated_date", 200);
-    const note = (matched || []).find((item) => normalizeClientName(item.client_name) === normalizeClientName(order.client_name));
-    setSelectedNote(note ? { ...note, memberOrderId: order.id } : { client_name: order.client_name, content: "No report content found.", memberOrderId: order.id });
-  };
-
-  const handleUpdateReport = async (memberOrderId, editedReportText) => {
+  const handleUpdateReport = async (order, editedText) => {
+    setUpdatingReport(true);
     try {
       const extraction = await base44.integrations.Core.InvokeLLM({
-        prompt: `${EXTRACTION_PROMPT}
-
-WhatsApp conversation:
-${editedReportText}
-
-Full intelligence report:
-${editedReportText}`,
+        prompt: `${EXTRACTION_PROMPT}\n\nWhatsApp conversation:\n${editedText}`,
         response_json_schema: EXTRACTION_SCHEMA
       });
 
       const reExtractedFields = {
-        client_name: cleanClientName(extraction.client_name || ""),
-        cell_number: extraction.cell_number || "",
-        delivery_date: String(extraction.delivery_date || "").trim().includes("T")
-          ? String(extraction.delivery_date || "").trim()
-          : buildCombinedDeliveryDate(extraction.delivery_date, null) || "",
-        delivery_address: extraction.delivery_address || "",
-        order_list: consolidateOrderList(extraction.order_list || ""),
-        order_total: parseInt(extraction.order_total || 0, 10) || 0,
-        payment_status: extraction.payment_status || "PENDING",
-        next_action: extraction.next_action || "",
-        intelligence_report: editedReportText
+        ...buildStructuredFields(extraction),
+        intelligence_report: editedText
       };
 
-      const updatedOrder = await base44.entities.MemberOrder.update(memberOrderId, reExtractedFields);
-
-      if (updatedOrder.intelligence_report_id) {
-        await base44.entities.CustomerNote.update(updatedOrder.intelligence_report_id, {
-          client_name: reExtractedFields.client_name || selectedNote?.client_name || "",
-          content: editedReportText
-        });
-      }
-
-      setSelectedNote((current) => current ? { ...current, client_name: reExtractedFields.client_name || current.client_name, content: editedReportText, memberOrderId } : current);
-      if (memberOrderId === savedPreviewOrderId) {
-        setPreview((current) => current ? ({
-          ...current,
-          ...reExtractedFields,
-          full_intelligence_report: editedReportText
-        }) : current);
-      }
-      setActiveSummaryRefreshKey((current) => current + 1);
+      await base44.entities.MemberOrder.update(order.id, reExtractedFields);
       toast.success("Report and summary updated.");
-      return { content: editedReportText };
+      return true;
     } catch {
       toast.error("Update failed — please try again.");
-      return null;
+      return false;
+    } finally {
+      setUpdatingReport(false);
     }
   };
 
@@ -349,67 +158,52 @@ ${editedReportText}`,
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      <PageHeader title="Member Intelligence" subtitle="Extract, review, manage active member orders, and track archived delivery history." />
+      <PageHeader title="Member Intelligence" subtitle="Generate reports from WhatsApp chats and manage live MemberOrder intelligence records." />
 
-      <WhatsAppExtractionPanel
+      <MemberIntelligenceInput
         conversation={conversation}
         onConversationChange={setConversation}
-        onGenerate={generatePreview}
+        onImportFile={handleImportFile}
+        importMessage={importMessage}
+        onGenerate={handleGenerate}
         generating={generating}
-        preview={preview}
-        onPreviewChange={(updater) => {
-          const nextPreview = typeof updater === "function" ? updater(preview) : updater;
-          setPreview(nextPreview);
-        }}
-        saving={saving}
-        saveMessage={saveMessage}
       />
 
-      <ActiveMemberIntelligenceSummary
-        notesById={notesById}
-        refreshKey={activeSummaryRefreshKey}
-        onFulfilled={async (order) => {
-          const updatedOrder = await handleFulfilled(order);
-          setActiveSummaryRefreshKey((current) => current + 1);
-          return updatedOrder;
-        }}
-        onCancelled={async (order) => {
-          const updatedOrder = await handleCancelled(order);
-          setActiveSummaryRefreshKey((current) => current + 1);
-          return updatedOrder;
-        }}
-        onViewReport={handleViewReport}
-        onSaveEdit={async (draft) => {
-          const updatedOrder = await handleSaveEdit(draft);
-          if (updatedOrder.id === savedPreviewOrderId) {
-            setPreview((current) => current ? ({
-              ...current,
-              delivery_date: updatedOrder.delivery_date || current.delivery_date,
-              delivery_address: updatedOrder.delivery_address || "",
-              payment_status: updatedOrder.payment_status || "PENDING",
-              order_total: updatedOrder.order_total || 0,
-              cell_number: updatedOrder.cell_number || "",
-              next_action: updatedOrder.next_action || ""
-            }) : current);
-          }
-          setActiveSummaryRefreshKey((current) => current + 1);
-          return updatedOrder;
-        }}
-        onSaveFollowUp={async (order, nextAction) => {
-          const updatedOrder = await base44.entities.MemberOrder.update(order.id, { next_action: nextAction });
-          setActiveSummaryRefreshKey((current) => current + 1);
-          return updatedOrder;
-        }}
-        onConfirmStatus={async (order, paymentStatus) => {
-          const updatedOrder = await base44.entities.MemberOrder.update(order.id, { payment_status: paymentStatus, order_confirmed: true });
-          setActiveSummaryRefreshKey((current) => current + 1);
-          return updatedOrder;
-        }}
+      <section style={sectionStyle}>
+        <div>
+          <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase" }}>Live MemberOrder Summary Cards</p>
+          <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.45)" }}>{activeOrders.length} live records from MemberOrder.</p>
+        </div>
+
+        {activeOrders.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "56px 20px", border: "1px dashed rgba(201,168,76,0.15)", background: "#111111" }}>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "rgba(245,240,232,0.7)" }}>No live MemberOrder records yet.</p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "16px" }}>
+            {activeOrders.map((order) => (
+              <MemberOrderSummaryCard
+                key={order.id}
+                order={order}
+                confirmedPayment={confirmedPayments[order.id]}
+                followUpFlags={followUpFlags}
+                onInlineSave={async (field, value) => handleInlineSave(order, field, value)}
+                onConfirmPayment={handleConfirmPayment}
+                onFollowUp={handleFollowUp}
+                onFulfilled={handleFulfilled}
+                onCancelled={handleCancelled}
+                onSelectReport={(record) => setSelectedReportId(record.id)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <FullIntelligenceReportPanel
+        selectedOrder={selectedOrder}
+        onUpdateReport={handleUpdateReport}
+        updating={updatingReport}
       />
-
-      <MemberHistorySection orders={historyOrders} notesById={notesById} onViewReport={handleViewReport} />
-
-      <ReportContentModal open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)} note={selectedNote} onUpdateReport={handleUpdateReport} />
     </div>
   );
 }
