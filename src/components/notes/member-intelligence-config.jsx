@@ -1,37 +1,41 @@
-export const EXTRACTION_PROMPT = `You are an intelligence extraction engine for a private cannabis concierge club. Analyse the entire WhatsApp conversation and extract ALL of the following. Return ONLY valid JSON, no explanation.
+export const FULL_REPORT_PROMPT = `You are a senior intelligence analyst for a private members cannabis concierge club. Read this entire WhatsApp conversation and write a detailed operational intelligence report. Write in clear, direct prose — not bullet points, not JSON. Be specific and observational, not vague.
 
-EXTRACTION RULES:
-- Extract the FINAL confirmed order only (not earlier drafts or mentions)
-- delivery_date: format as YYYY-MM-DDTHH:MM if time is known, YYYY-MM-DD if date only, null if not discussed
-- payment_status: PAID, CASH, or PENDING only
-- order_total: integer (rands, no R symbol, no commas). 0 if not mentioned
-- Never use 'pick up' — always 'delivery'
-- order_list: list only stock items as a clean comma-separated string. Exclude delivery fees, tips, or charges
-- cell_number: extract from chat metadata or any number mentioned in conversation. null if not found
+Your report must cover each of the following sections in order. Write 2–5 sentences per section, more if there is enough information in the chat:
 
-FULL REPORT fields (prose, 1–3 sentences each):
-- latest_order_status: current status of this order in plain English
-- order_frequency: how often does this client order? Daily, weekly, monthly, irregular? Note any patterns
-- preferred_products: which products does this client consistently order or ask about across the chat history
-- preferred_delivery_time: what time of day or days of week do they typically request delivery
-- sentiment_analysis: overall tone — are they happy, impatient, loyal, price-sensitive, demanding? Be specific
-- red_flags: anything concerning — payment issues, repeated complaints, aggressive tone, ghost history, suspicious requests. 'None' if clean
-- green_flags: positive signals — loyalty, referrals given, easy to deal with, prompt payment history, high value
-- special_instructions: any recurring delivery notes, access codes, gate instructions, preferred contact method, or personal preferences mentioned
-- outstanding_balance: any unpaid amounts from previous orders mentioned in the chat. 'None' if not mentioned
-- client_notes: anything else operationally useful that doesn't fit above — relationship context, inside references, upcoming needs they mentioned
+ORDER STATUS: What is the current confirmed order? What products, quantities, total amount, delivery address and time? What is the payment arrangement?
 
-SUMMARY BLOCK fields (structured data only):
-- client_name: full name as used in conversation
-- cell_number: string or null
-- delivery_date: string or null
-- delivery_address: full address as stated, or null
-- order_list: comma-separated stock items only, no fees
-- order_total: integer or 0
-- payment_status: PAID | CASH | PENDING
-- next_action: one short sentence — what needs to happen next for this order to be fulfilled
+ORDER HISTORY & FREQUENCY: How often does this client order? What patterns emerge from the conversation — weekly, monthly, irregular? Any mention of previous orders?
 
-Return JSON with ALL fields above. Never omit a field — use null or 'None' for unknowns.`;
+PREFERRED PRODUCTS: Which products does this client gravitate toward consistently? Any specific strains, formats or brands they ask about or always include?
+
+PREFERRED DELIVERY WINDOWS: What time of day or days of the week do they typically request? Any patterns in when they reach out vs when they want delivery?
+
+CLIENT SENTIMENT: What is the overall tone of this client? Are they loyal, price-sensitive, impatient, easy-going, demanding, enthusiastic? Give specific examples from the chat to support this.
+
+GREEN FLAGS: What positive signals stand out — loyalty indicators, referrals made, prompt payment, high order value, pleasant communication?
+
+RED FLAGS: Any concerns — payment delays, complaints, aggressive tone, inconsistent requests, ghosting history, anything unusual? Write 'None noted.' if the chat is clean.
+
+SPECIAL INSTRUCTIONS: Any gate codes, access notes, preferred contact methods, drop-off preferences, allergies or personal details mentioned anywhere in the chat?
+
+OUTSTANDING BALANCE: Any mention of unpaid amounts from previous orders? Write 'None mentioned.' if not.
+
+ANALYST NOTES: Anything else operationally useful — relationship context, upcoming needs they hinted at, upsell opportunities, referrals pending, anything the team should know.
+
+Write the full report now. Be thorough — the more detail you extract, the more useful this is operationally.`;
+
+export const EXTRACTION_PROMPT = `Based on the WhatsApp conversation, extract the following structured data as valid JSON only. No explanation, no prose, just the JSON object.
+
+{
+  client_name: string,
+  cell_number: string or null,
+  delivery_date: string (YYYY-MM-DDTHH:MM if time known, YYYY-MM-DD if date only, null if unknown),
+  delivery_address: string or null,
+  order_list: string (comma-separated stock items only, no fees or charges),
+  order_total: integer (rands, no symbol, 0 if unknown),
+  payment_status: 'PAID' | 'CASH' | 'PENDING',
+  next_action: string (one sentence — what needs to happen next)
+}`;
 
 export const EXTRACTION_SCHEMA = {
   type: "object",

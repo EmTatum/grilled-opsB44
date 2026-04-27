@@ -6,7 +6,7 @@ import WhatsAppExtractionPanel from "../components/notes/WhatsAppExtractionPanel
 import ActiveMemberIntelligenceSummary from "../components/notes/ActiveMemberIntelligenceSummary";
 import MemberHistorySection from "../components/notes/MemberHistorySection";
 import ReportContentModal from "../components/notes/ReportContentModal";
-import { EXTRACTION_PROMPT, EXTRACTION_SCHEMA } from "../components/notes/member-intelligence-config";
+import { EXTRACTION_PROMPT, EXTRACTION_SCHEMA, FULL_REPORT_PROMPT } from "../components/notes/member-intelligence-config";
 import { buildCustomerNoteContent, sortByDeliveryDate } from "../components/notes/memberIntelligenceUtils";
 
 const Spinner = () => (
@@ -126,16 +126,27 @@ export default function CustomerNotes() {
     setSaveMessage("");
 
     try {
+      const fullReport = await base44.integrations.Core.InvokeLLM({
+        prompt: `${FULL_REPORT_PROMPT}
+
+WhatsApp conversation:
+${conversation}`
+      });
+
       const result = await base44.integrations.Core.InvokeLLM({
         prompt: `${EXTRACTION_PROMPT}
 
 WhatsApp conversation:
-${conversation}`,
+${conversation}
+
+Full intelligence report:
+${fullReport}`,
         response_json_schema: EXTRACTION_SCHEMA
       });
 
       const extractedData = {
         ...result,
+        latest_order_status: fullReport,
         cell_number: result.cell_number || "",
         delivery_date: String(result.delivery_date || "").trim().includes("T")
           ? String(result.delivery_date || "").trim()
@@ -208,11 +219,15 @@ ${conversation}`,
     toast.loading("Updating...", { id: `summary-update-${draft.id}` });
 
     const draftReportText = draft.content || selectedNote?.content || "";
+    const fullReport = draftReportText;
     const extraction = await base44.integrations.Core.InvokeLLM({
       prompt: `${EXTRACTION_PROMPT}
 
 WhatsApp conversation:
-${draftReportText}`,
+${draftReportText}
+
+Full intelligence report:
+${fullReport}`,
       response_json_schema: EXTRACTION_SCHEMA
     });
 
