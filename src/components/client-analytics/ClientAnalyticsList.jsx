@@ -1,4 +1,5 @@
 import moment from "moment";
+import { cleanClientName, formatCurrency } from "../notes/memberIntelligenceUtils";
 
 const tableHeader = {
   padding: "14px 16px",
@@ -49,7 +50,7 @@ export default function ClientAnalyticsList({ clients, selectedClientName, onSel
 
               return (
                 <tr
-                  key={client.client_name}
+                  key={cleanClientName(client.client_name)}
                   onClick={() => onSelectClient(client.client_name)}
                   style={{
                     cursor: "pointer",
@@ -65,13 +66,13 @@ export default function ClientAnalyticsList({ clients, selectedClientName, onSel
                 >
                   <td style={cellBase}>
                     <div>
-                      <p style={{ margin: 0, fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", color: "#F5F0E8", fontWeight: 600 }}>{client.client_name}</p>
+                      <p style={{ margin: 0, fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", color: "#F5F0E8", fontWeight: 600 }}>{cleanClientName(client.client_name)}</p>
                       <p style={{ margin: "4px 0 0", fontSize: "10px", color: "rgba(245,240,232,0.38)", letterSpacing: "0.12em", textTransform: "uppercase" }}>{client.daysSinceLastOrder} days since order</p>
                     </div>
                   </td>
-                  <td style={{ ...cellBase, fontFamily: "'Cormorant Garamond', serif", fontSize: "20px", color: "#C9A84C" }}>R{client.totalSpend.toLocaleString()}</td>
+                  <td style={{ ...cellBase, fontFamily: "'Cormorant Garamond', serif", fontSize: "20px", color: "#C9A84C" }}>{formatCurrency(client.totalSpend)}</td>
                   <td style={cellBase}>{client.orderCount}</td>
-                  <td style={cellBase}>R{client.averageOrderValue.toLocaleString()}</td>
+                  <td style={cellBase}>{formatCurrency(client.averageOrderValue)}</td>
                   <td style={cellBase}>{client.purchaseFrequencyLabel}</td>
                   <td style={cellBase}>{client.lastOrderDate ? moment(client.lastOrderDate).format("D MMM YYYY") : "—"}</td>
                   <td style={cellBase}>{client.lastContactDate ? moment(client.lastContactDate).format("D MMM YYYY") : "—"}</td>

@@ -1,4 +1,5 @@
 import StatusBadge from "../StatusBadge";
+import { cleanClientName, formatCurrency } from "../notes/memberIntelligenceUtils";
 
 const segmentStyles = {
   VIP: { border: "1px solid rgba(201,168,76,0.45)", color: "#C9A84C", background: "rgba(201,168,76,0.08)" },
@@ -30,7 +31,7 @@ export default function ClientAnalyticsCard({ client }) {
     <div style={{ background: "#141414", border: "1px solid rgba(201,168,76,0.18)", padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
         <div>
-          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "24px", fontWeight: 600, color: "#F5F0E8", margin: 0 }}>{client.client_name}</p>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "24px", fontWeight: 600, color: "#F5F0E8", margin: 0 }}>{cleanClientName(client.client_name)}</p>
           <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(245,240,232,0.38)", marginTop: "4px" }}>{client.orderCount} total orders</p>
         </div>
         <span style={{ ...segmentStyle, fontFamily: "'Raleway', sans-serif", fontSize: "10px", fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", padding: "5px 10px", borderRadius: "2px" }}>
@@ -41,7 +42,7 @@ export default function ClientAnalyticsCard({ client }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px" }} className="max-md:!grid-cols-1">
         <div>
           <p style={metricLabel}>Average Order</p>
-          <p style={metricValue}>R{client.averageOrderValue.toLocaleString()}</p>
+          <p style={metricValue}>{formatCurrency(client.averageOrderValue)}</p>
         </div>
         <div>
           <p style={metricLabel}>Purchase Rate</p>
@@ -56,7 +57,7 @@ export default function ClientAnalyticsCard({ client }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", paddingTop: "14px", borderTop: "1px solid rgba(255,255,255,0.05)", flexWrap: "wrap" }}>
         <div>
           <p style={metricLabel}>Lifetime Value</p>
-          <p style={{ ...metricValue, fontSize: "24px" }}>R{client.totalSpend.toLocaleString()}</p>
+          <p style={{ ...metricValue, fontSize: "24px" }}>{formatCurrency(client.totalSpend)}</p>
         </div>
         <StatusBadge status={client.priorityTag} />
       </div>

@@ -4,6 +4,7 @@ import moment from "moment";
 import PageHeader from "../components/PageHeader";
 import ClientAnalyticsList from "../components/client-analytics/ClientAnalyticsList";
 import ClientDetailPanel from "../components/client-analytics/ClientDetailPanel";
+import { cleanClientName, isValidClientName } from "../components/notes/memberIntelligenceUtils";
 
 const Spinner = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -44,10 +45,11 @@ export default function ClientAnalytics() {
 
   const clients = useMemo(() => {
     const grouped = notes.reduce((acc, note) => {
-      const name = (note.client_name || "Unknown Client").trim();
-      if (!name) return acc;
+      const name = cleanClientName(note.client_name || "");
+      if (!isValidClientName(name)) return acc;
+      if (String(note.fulfilment_status || "") === "Cancelled") return acc;
       if (!acc[name]) acc[name] = [];
-      acc[name].push(note);
+      acc[name].push({ ...note, client_name: name });
       return acc;
     }, {});
 

@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import moment from "moment";
 import PageHeader from "../components/PageHeader";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cleanClientName, isVisibleOrderRecord } from "../components/notes/memberIntelligenceUtils";
 
 const Spinner = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -85,7 +86,7 @@ function TodayOrders({ orders, todayDisplay }) {
               <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
                 <div style={{ display: "grid", gap: "8px", flex: 1 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
-                    <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "26px", fontWeight: 700, color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
+                    <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "26px", fontWeight: 700, color: "#F5F0E8" }}>{cleanClientName(order.client_name)}</p>
                     <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 700, color: "#F5F0E8" }}>{getTimePart(order.delivery_date)}</p>
                   </div>
                   <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: order.delivery_address ? "rgba(245,240,232,0.62)" : "rgba(245,240,232,0.4)" }}>{order.delivery_address || "Address TBC"}</p>
@@ -132,7 +133,7 @@ function WeeklyView({ orders, today }) {
               ) : day.orders.map((order) => (
                 <div key={order.id} style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.16)", padding: "16px", display: "grid", gap: "12px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "center" }}>
-                    <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "20px", color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
+                    <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "20px", color: "#F5F0E8" }}>{cleanClientName(order.client_name)}</p>
                     <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.75)" }}>{getTimePart(order.delivery_date)}</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
@@ -193,7 +194,7 @@ function MonthlyCalendar({ orders, today }) {
                   <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "22px", color: "#C9A84C" }}>{day.day.format("D MMMM YYYY")}</p>
                   {day.orders.map((order) => (
                     <div key={order.id} style={{ display: "grid", gap: "4px", paddingTop: "6px", borderTop: "1px solid rgba(201,168,76,0.12)" }}>
-                      <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px" }}>{order.client_name || "Unknown Client"}</p>
+                      <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px" }}>{cleanClientName(order.client_name)}</p>
                       <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.58)" }}>{getTimePart(order.delivery_date)}</p>
                     </div>
                   ))}
@@ -231,7 +232,9 @@ export default function Orders() {
   }, []);
 
   const orders = useMemo(() => {
-    return [...liveOrders].sort((a, b) => String(a.delivery_date || "").localeCompare(String(b.delivery_date || "")));
+    return [...liveOrders]
+      .filter(isVisibleOrderRecord)
+      .sort((a, b) => String(a.delivery_date || "").localeCompare(String(b.delivery_date || "")));
   }, [liveOrders]);
 
   const todaysOrders = useMemo(() => orders.filter((order) => getDatePart(order.delivery_date) === today), [orders, today]);

@@ -1,12 +1,24 @@
 export const normalizeClientName = (value) => String(value || "").trim().toLowerCase();
 
 export const cleanClientName = (value) => {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-  return raw
+  if (!value) return "Unknown Client";
+  return String(value)
     .replace(/\s*\([^)]*\)/g, "")
-    .split(/[\-|/|]/)[0]
-    .trim();
+    .replace(/\s*[-|\/].*$/, "")
+    .trim() || "Unknown Client";
+};
+
+export const isValidClientName = (value) => {
+  const cleaned = cleanClientName(value);
+  if (!cleaned) return false;
+  const normalized = cleaned.toLowerCase();
+  return normalized !== "unknown" && normalized !== "unknown client" && normalized !== "unnamed client";
+};
+
+export const isVisibleOrderRecord = (record) => {
+  if (!record) return false;
+  if (record.fulfilment_status === "Cancelled") return false;
+  return isValidClientName(record.client_name);
 };
 
 export const consolidateOrderList = (value) => {

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Pencil } from "lucide-react";
 import { PAYMENT_STYLES } from "./member-intelligence-config";
-import { consolidateOrderList, formatCurrency, formatDeliveryDate } from "./memberIntelligenceUtils";
+import { cleanClientName, consolidateOrderList, formatCurrency, formatDeliveryDate } from "./memberIntelligenceUtils";
 
 const cardStyle = {
   background: "var(--color-bg-secondary)",
@@ -103,7 +103,7 @@ export default function MemberOrderSummaryCard({ order, onInlineSave, onConfirmP
   return (
     <div style={{ ...cardStyle, border: `1px solid ${cardBorderColor}` }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
-        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "26px", color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
+        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "26px", color: "#F5F0E8" }}>{cleanClientName(order.client_name)}</p>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
           {followUpFlags[order.id] && <span style={{ padding: "6px 10px", background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.45)", color: "#C9A84C", fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase" }}>Follow Up</span>}
           <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", background: paymentStyle.badgeBackground, border: `1px solid ${paymentStyle.badgeBorder}`, color: paymentStyle.badgeColor, fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" }}>
@@ -113,7 +113,7 @@ export default function MemberOrderSummaryCard({ order, onInlineSave, onConfirmP
       </div>
 
       <div style={fieldGridStyle}>
-        <EditableField label="Client Name" field="client_name" value={order.client_name || ""} displayValue={order.client_name || "—"} onSave={onInlineSave} />
+        <EditableField label="Client Name" field="client_name" value={order.client_name || ""} displayValue={cleanClientName(order.client_name)} onSave={onInlineSave} />
         <EditableField label="Cell Number" field="cell_number" value={order.cell_number || ""} displayValue={order.cell_number || "—"} onSave={onInlineSave} />
         <EditableField label="Delivery Date" field="delivery_date" value={order.delivery_date || ""} displayValue={formatDeliveryDate(order.delivery_date)} onSave={onInlineSave} />
         <EditableField label="Delivery Address" field="delivery_address" value={order.delivery_address || ""} displayValue={order.delivery_address || "—"} type="textarea" onSave={onInlineSave} />

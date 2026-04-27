@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useEntityList } from "@/hooks/useEntityList";
 import PageHeader from "../components/PageHeader";
+import { cleanClientName, isVisibleOrderRecord } from "../components/notes/memberIntelligenceUtils";
 
 const Spinner = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -173,7 +174,7 @@ function OrderDetailCard({ order, products, checkedItems, onToggleItem, onStatus
       <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", alignItems: "flex-start" }}>
         <div style={{ display: "grid", gap: "6px", flex: 1 }}>
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
-            <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", fontWeight: 700, color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", fontWeight: 700, color: "#F5F0E8" }}>{cleanClientName(order.client_name)}</p>
             {isFulfilled && <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", border: "1px solid rgba(22,163,74,0.55)", background: "rgba(22,163,74,0.16)", color: "#86efac", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: "2px" }}>✓ Fulfilled</span>}
           </div>
           <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.52)" }}>{order.delivery_address || "Address TBC"}</p>
@@ -237,6 +238,7 @@ export default function DailyDispatchManifest() {
 
   const todaysOrders = useMemo(() => {
     return (memberOrders || [])
+      .filter(isVisibleOrderRecord)
       .filter((order) => order.delivery_date && order.delivery_date.startsWith(todayStr))
       .filter((order) => order.fulfilment_status === "Active" || order.fulfilment_status === "Fulfilled")
       .filter((order) => order.fulfilment_status !== "Cancelled")
@@ -249,6 +251,7 @@ export default function DailyDispatchManifest() {
 
   const upcomingOrders = useMemo(() => {
     return (memberOrders || [])
+      .filter(isVisibleOrderRecord)
       .filter((order) => order.fulfilment_status !== "Cancelled")
       .filter((order) => {
         const datePart = getDatePart(order.delivery_date);
@@ -259,6 +262,7 @@ export default function DailyDispatchManifest() {
 
   const pastOrders = useMemo(() => {
     return (memberOrders || [])
+      .filter(isVisibleOrderRecord)
       .filter((order) => order.fulfilment_status !== "Cancelled")
       .filter((order) => {
         const datePart = getDatePart(order.delivery_date);
@@ -345,7 +349,7 @@ export default function DailyDispatchManifest() {
                 <div key={order.id} style={{ display: "grid", gap: "14px", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", borderLeft: `4px solid ${accentColor}`, padding: "18px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
                     <div style={{ display: "grid", gap: "4px" }}>
-                      <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
+                      <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#F5F0E8" }}>{cleanClientName(order.client_name)}</p>
                       <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.52)" }}>{formatOtherDate(order.delivery_date)}</p>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
@@ -375,7 +379,7 @@ export default function DailyDispatchManifest() {
             {pastOrders.map((order) => (
               <div key={order.id} style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", padding: "16px" }}>
                 <div style={{ display: "grid", gap: "4px" }}>
-                  <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
+                  <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#F5F0E8" }}>{cleanClientName(order.client_name)}</p>
                   <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.52)" }}>{formatOtherDate(order.delivery_date)}</p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>

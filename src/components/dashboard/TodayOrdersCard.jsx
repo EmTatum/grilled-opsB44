@@ -1,5 +1,6 @@
 import moment from "moment";
 import StatusBadge from "../StatusBadge";
+import { cleanClientName, formatCurrency, isVisibleOrderRecord } from "../notes/memberIntelligenceUtils";
 
 export default function TodayOrdersCard({ selectedDate, orders, onClientClick }) {
   return (
@@ -10,15 +11,15 @@ export default function TodayOrdersCard({ selectedDate, orders, onClientClick })
         </p>
       </div>
       <div style={{ padding: "8px 18px 16px" }}>
-        {orders.length === 0 ? (
+        {orders.filter(isVisibleOrderRecord).length === 0 ? (
           <p style={{ margin: "10px 0 0", fontFamily: "'Raleway', sans-serif", fontSize: "13px", color: "rgba(245,240,232,0.35)" }}>No orders for this day.</p>
         ) : (
           <div style={{ display: "grid", gap: "10px" }}>
-            {orders.map((order) => (
+            {orders.filter(isVisibleOrderRecord).map((order) => (
               <div key={order.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", padding: "14px 0" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
                   <button onClick={() => onClientClick(order.client_name)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "#C9A84C", fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", textAlign: "left" }}>
-                    {order.client_name}
+                    {cleanClientName(order.client_name)}
                   </button>
                   <StatusBadge status={order.status} />
                 </div>
@@ -30,7 +31,7 @@ export default function TodayOrdersCard({ selectedDate, orders, onClientClick })
                   <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.55)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Notes: {order.notesCount}</span>
                   <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.55)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Payment: {order.payment_method || "—"}</span>
                   <span style={{ fontFamily: "'Raleway', sans-serif", fontSize: "11px", color: "rgba(245,240,232,0.55)", textTransform: "uppercase", letterSpacing: "0.12em" }}>Scheduled: {moment(order.order_date).format("ddd D MMM · h:mm A")}</span>
-                  {order.order_value > 0 && <span style={{ fontFamily: "'Cinzel', serif", fontSize: "14px", color: "#C9A84C" }}>Value: R{Number(order.order_value).toLocaleString()}</span>}
+                  {order.order_value > 0 && <span style={{ fontFamily: "'Cinzel', serif", fontSize: "14px", color: "#C9A84C" }}>Value: {formatCurrency(order.order_value)}</span>}
                 </div>
 
                 {order.order_details && (

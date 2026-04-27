@@ -5,6 +5,7 @@ import { CalendarDays, AlertTriangle, Package, Banknote, TrendingUp, TrendingDow
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import PageHeader from "../components/PageHeader";
 import DailyPerformanceCharts from "../components/dashboard/DailyPerformanceCharts";
+import { cleanClientName, isVisibleOrderRecord } from "../components/notes/memberIntelligenceUtils";
 
 const Spinner = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -94,7 +95,7 @@ function NextDeliveriesWidget({ orders }) {
           {orders.map((order) => (
             <div key={order.id} style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.16)", padding: "14px", display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
               <div style={{ display: "grid", gap: "4px" }}>
-                <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: 700, color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
+                <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: 700, color: "#F5F0E8" }}>{cleanClientName(order.client_name)}</p>
                 <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.55)" }}>{formatDeliveryDate(order.delivery_date)}</p>
               </div>
               <Badge value={order.payment_status || "PENDING"} styles={paymentBadgeStyles} />
@@ -121,7 +122,7 @@ function ActionRequiredWidget({ items }) {
         <div style={{ display: "grid", gap: "10px" }}>
           {items.map((order) => (
             <div key={order.id} style={{ background: "rgba(194,24,91,0.08)", border: "1px solid rgba(194,24,91,0.22)", padding: "14px", display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
-              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: 700, color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: 700, color: "#F5F0E8" }}>{cleanClientName(order.client_name)}</p>
               <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", border: "1px solid rgba(201,168,76,0.45)", background: "rgba(201,168,76,0.1)", color: "#C9A84C", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: "2px" }}>
                 {order.actionReason}
               </span>
@@ -241,11 +242,12 @@ export default function Dashboard() {
   const today = moment().format("YYYY-MM-DD");
 
   const metrics = useMemo(() => {
-    const activeOrders = orders.filter((order) => order.fulfilment_status === "Active");
-    const fulfilledOrders = orders.filter((order) => order.fulfilment_status === "Fulfilled");
-    const cancelledOrders = orders.filter((order) => order.fulfilment_status === "Cancelled");
+    const visibleOrders = orders.filter(isVisibleOrderRecord);
+    const activeOrders = visibleOrders.filter((order) => order.fulfilment_status === "Active");
+    const fulfilledOrders = visibleOrders.filter((order) => order.fulfilment_status === "Fulfilled");
+    const cancelledOrders = visibleOrders.filter((order) => order.fulfilment_status === "Cancelled");
 
-    const nextDeliveries = [...orders]
+    const nextDeliveries = [...visibleOrders]
       .filter((order) => {
         const datePart = getDatePart(order.delivery_date);
         return datePart && datePart >= today;
@@ -253,7 +255,7 @@ export default function Dashboard() {
       .sort((a, b) => String(a.delivery_date || "").localeCompare(String(b.delivery_date || "")))
       .slice(0, 5);
 
-    const actionRequired = [...orders]
+    const actionRequired = [...visibleOrders]
       .filter((order) => order.payment_status === "PENDING" || !String(order.delivery_date || "").trim())
       .map((order) => ({
         ...order,
@@ -271,7 +273,7 @@ export default function Dashboard() {
     const weeklyPerformance = Array.from({ length: 7 }, (_, index) => {
       const date = weekStart.clone().add(index, "days");
       const dateKey = date.format("YYYY-MM-DD");
-      const dayOrders = orders.filter((order) => String(order.delivery_date || "").startsWith(dateKey));
+      const dayOrders = visibleOrders.filter((order) => String(order.delivery_date || "").startsWith(dateKey));
       const revenue = dayOrders.reduce((sum, order) => sum + Number(order.order_total || 0), 0);
 
       return {
@@ -283,21 +285,21 @@ export default function Dashboard() {
       };
     });
 
-    const thisWeekRevenue = orders
+    const thisWeekRevenue = visibleOrders
       .filter((order) => {
         const datePart = getDatePart(order.delivery_date);
         return datePart && moment(datePart).isBetween(weekStart, weekStart.clone().endOf("isoWeek"), "day", "[]");
       })
       .reduce((sum, order) => sum + Number(order.order_total || 0), 0);
 
-    const lastWeekRevenue = orders
+    const lastWeekRevenue = visibleOrders
       .filter((order) => {
         const datePart = getDatePart(order.delivery_date);
         return datePart && moment(datePart).isBetween(lastWeekStart, lastWeekEnd, "day", "[]");
       })
       .reduce((sum, order) => sum + Number(order.order_total || 0), 0);
 
-    const outstandingCashOrders = orders.filter((order) => order.payment_status === "CASH" && order.fulfilment_status === "Active");
+    const outstandingCashOrders = visibleOrders.filter((order) => order.payment_status === "CASH" && order.fulfilment_status === "Active");
     const outstandingCashTotal = outstandingCashOrders.reduce((sum, order) => sum + Number(order.order_total || 0), 0);
 
     const orderBreakdown = [
