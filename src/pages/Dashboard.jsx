@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { useMemo } from "react";
+import { useEntityList } from "@/hooks/useEntityList";
 import moment from "moment";
 import PageHeader from "../components/PageHeader";
 import DailyPerformanceCharts from "../components/dashboard/DailyPerformanceCharts";
@@ -129,37 +129,15 @@ function RecentActivity({ orders }) {
 }
 
 export default function Dashboard() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      const records = await base44.entities.MemberOrder.list("-updated_date", 1000);
-      setOrders(records || []);
-      setLoading(false);
-    };
-
-    load();
-
-    const unsubscribe = base44.entities.MemberOrder.subscribe((event) => {
-      if (event.type === "delete") {
-        setOrders((prev) => prev.filter((item) => item.id !== event.id));
-        return;
-      }
-
-      const next = event.data;
-      setOrders((prev) => [next, ...prev.filter((item) => item.id !== next.id)]);
-    });
-
-    return unsubscribe;
-  }, []);
+  const { data: orders, loading: loadingOrders } = useEntityList("MemberOrder", "-updated_date", 1000);
+  const { data: products, loading: loadingProducts } = useEntityList("Product", "product_name", 1000);
 
   const today = moment().format("YYYY-MM-DD");
 
   const metrics = useMemo(() => {
     const activeOrders = orders.filter((order) => order.fulfilment_status === "Active");
     const fulfilledOrders = orders.filter((order) => order.fulfilment_status === "Fulfilled");
-    const todaysDeliveries = orders.filter((order) => getDatePart(order.delivery_date) === today);
+    const todaysDeliveries = orders.filter((order) => String(order.delivery_date || "").startsWith(today));
     const paymentCounts = {
       PAID: orders.filter((order) => order.payment_status === "PAID").length,
       CASH: orders.filter((order) => order.payment_status === "CASH").length,
@@ -177,47 +155,53 @@ export default function Dashboard() {
       .sort((a, b) => String(b.updated_date || "").localeCompare(String(a.updated_date || "")))
       .slice(0, 5);
 
-    const dailyPerformance = Array.from({ length: 7 }, (_, index) => {
-      const date = moment(today).subtract(6 - index, "days");
+    const weekStart = moment(today).startOf("isoWeek");
+    const weeklyPerformance = Array.from({ length: 7 }, (_, index) => {
+      const date = weekStart.clone().add(index, "days");
       const dateKey = date.format("YYYY-MM-DD");
-      const dayOrders = orders.filter((order) => getDatePart(order.delivery_date) === dateKey);
+      const dayOrders = orders.filter((order) => String(order.delivery_date || "").startsWith(dateKey));
+      const revenue = dayOrders.reduce((sum, order) => sum + Number(order.order_total || 0), 0);
 
       return {
         date: dateKey,
-        label: date.format("DD MMM"),
-        revenue: dayOrders.reduce((sum, order) => sum + Number(order.order_total || 0), 0),
-        orders: dayOrders.length
+        label: date.format("ddd"),
+        orders: dayOrders.length,
+        revenue,
+        revenueLabel: `R${Number(revenue || 0).toLocaleString("en-ZA")}`
       };
     });
 
     return {
+      totalOrders: orders.length,
+      totalProducts: products.length,
       activeCount: activeOrders.length,
       todaysDeliveries: todaysDeliveries.length,
       totalFulfilled: fulfilledOrders.length,
-      totalRevenue: fulfilledOrders.reduce((sum, order) => sum + Number(order.order_total || 0), 0),
+      totalRevenue: orders.reduce((sum, order) => sum + Number(order.order_total || 0), 0),
       paymentCounts,
-      dailyPerformance,
+      weeklyPerformance,
       upcoming,
       recent
     };
-  }, [orders, today]);
+  }, [orders, products, today]);
 
-  if (loading) return <Spinner />;
+  if (loadingOrders || loadingProducts) return <Spinner />;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
       <PageHeader title="Dashboard" subtitle="Live MemberOrder operations overview with delivery, payment, and fulfilment activity." />
 
-      <DailyPerformanceCharts data={metrics.dailyPerformance} />
+      <DailyPerformanceCharts data={metrics.weeklyPerformance} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-        <StatCard label="Active Orders" value={metrics.activeCount} />
-        <StatCard label="Today&apos;s Deliveries" value={metrics.todaysDeliveries} />
+        <StatCard label="Total Orders" value={metrics.totalOrders} />
+        <StatCard label="Today&apos;s Orders" value={metrics.todaysDeliveries} />
         <StatCard label="Total Fulfilled" value={metrics.totalFulfilled} />
         <StatCard label="Total Revenue" value={formatCurrency(metrics.totalRevenue)} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+        <StatCard label="Active Orders" value={metrics.activeCount} />
         <StatCard label="Paid Orders" value={metrics.paymentCounts.PAID} />
         <StatCard label="Cash Orders" value={metrics.paymentCounts.CASH} />
         <StatCard label="Pending Payment" value={metrics.paymentCounts.PENDING} />
