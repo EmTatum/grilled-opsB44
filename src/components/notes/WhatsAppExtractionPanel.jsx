@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Pencil } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { EXTRACTION_PROMPT } from "./member-intelligence-config";
 
 const panelStyle = {
@@ -91,8 +92,6 @@ export default function WhatsAppExtractionPanel({ conversation, onConversationCh
     { key: "order_list", label: "Order List", value: preview.order_list || "", type: "textarea" },
     { key: "next_action", label: "Next Action", value: preview.next_action || "", type: "text" },
     { key: "latest_order_status", label: "Latest Order Status", value: preview.latest_order_status || "", type: "text" },
-    { key: "red_flags", label: "Red Flags", value: preview.red_flags || "", type: "text" },
-    { key: "green_flags", label: "Green Flags", value: preview.green_flags || "", type: "text" },
   ] : [], [preview]);
 
   const updatePreviewField = (key, value) => {
@@ -211,6 +210,18 @@ export default function WhatsAppExtractionPanel({ conversation, onConversationCh
                 </div>
               );
             })}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", background: "#111111", border: "1px solid rgba(201,168,76,0.16)", padding: "14px", maxHeight: "360px", overflow: "auto" }}>
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(201,168,76,0.6)" }}>Full Intelligence Report</p>
+            <ReactMarkdown
+              components={{
+                p: ({ children }) => <p style={{ margin: "0 0 12px", fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8", lineHeight: 1.7 }}>{children}</p>,
+                strong: ({ children }) => <strong style={{ fontWeight: 700, color: "#F5F0E8" }}>{children}</strong>
+              }}
+            >
+              {preview.full_intelligence_report || "No report content found."}
+            </ReactMarkdown>
           </div>
 
         </div>

@@ -7,7 +7,7 @@ import ActiveMemberIntelligenceSummary from "../components/notes/ActiveMemberInt
 import MemberHistorySection from "../components/notes/MemberHistorySection";
 import ReportContentModal from "../components/notes/ReportContentModal";
 import { EXTRACTION_PROMPT, EXTRACTION_SCHEMA, FULL_REPORT_PROMPT } from "../components/notes/member-intelligence-config";
-import { buildCustomerNoteContent, sortByDeliveryDate } from "../components/notes/memberIntelligenceUtils";
+import { buildCustomerNoteContent, cleanClientName, consolidateOrderList, sortByDeliveryDate } from "../components/notes/memberIntelligenceUtils";
 
 const Spinner = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -146,13 +146,15 @@ ${fullReport}`,
 
       const extractedData = {
         ...result,
-        latest_order_status: fullReport,
+        client_name: cleanClientName(result.client_name || ""),
+        latest_order_status: result.next_action || "",
+        full_intelligence_report: fullReport,
         cell_number: result.cell_number || "",
         delivery_date: String(result.delivery_date || "").trim().includes("T")
           ? String(result.delivery_date || "").trim()
           : buildCombinedDeliveryDate(result.delivery_date, null) || "",
         delivery_address: result.delivery_address || "",
-        order_list: result.order_list || "",
+        order_list: consolidateOrderList(result.order_list || ""),
         order_total: parseInt(result.order_total || 0, 10) || 0,
         payment_status: result.payment_status || "PENDING",
         next_action: result.next_action || ""
@@ -167,11 +169,11 @@ ${fullReport}`,
         : await base44.entities.CustomerNote.create(notePayload);
 
       const orderPayload = {
-        client_name: extractedData.client_name,
+        client_name: cleanClientName(extractedData.client_name),
         cell_number: extractedData.cell_number,
         delivery_date: extractedData.delivery_date,
         delivery_address: extractedData.delivery_address,
-        order_list: extractedData.order_list,
+        order_list: consolidateOrderList(extractedData.order_list),
         order_total: Number(extractedData.order_total || 0),
         payment_status: extractedData.payment_status,
         next_action: extractedData.next_action,
@@ -232,16 +234,18 @@ ${fullReport}`,
     });
 
     const reExtractedFields = {
-      client_name: extraction.client_name || draft.client_name || "",
+      client_name: cleanClientName(extraction.client_name || draft.client_name || ""),
       cell_number: extraction.cell_number || "",
       delivery_date: String(extraction.delivery_date || "").trim().includes("T")
         ? String(extraction.delivery_date || "").trim()
         : buildCombinedDeliveryDate(extraction.delivery_date, null) || "",
       delivery_address: extraction.delivery_address || "",
-      order_list: extraction.order_list || "",
+      order_list: consolidateOrderList(extraction.order_list || ""),
       order_total: parseInt(extraction.order_total || 0, 10) || 0,
       payment_status: extraction.payment_status || "PENDING",
-      next_action: extraction.next_action || ""
+      next_action: extraction.next_action || "",
+      latest_order_status: extraction.next_action || "",
+      full_intelligence_report: draftReportText
     };
 
     const updatedOrder = await base44.entities.MemberOrder.update(draft.id, reExtractedFields);

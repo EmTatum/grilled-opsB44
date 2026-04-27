@@ -23,6 +23,36 @@ export const formatRand = (value) => {
   return amount > 0 ? `R${amount.toLocaleString("en-ZA")}` : "TBC";
 };
 
+export const cleanClientName = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  return raw
+    .replace(/\s*\([^)]*\)/g, "")
+    .split(/\s[-\/|]\s|[-\/|]/)[0]
+    .trim();
+};
+
+export const consolidateOrderList = (value) => {
+  const items = String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const counts = new Map();
+  const labels = new Map();
+
+  items.forEach((item) => {
+    const key = item.toLowerCase();
+    counts.set(key, (counts.get(key) || 0) + 1);
+    if (!labels.has(key)) labels.set(key, item);
+  });
+
+  return Array.from(counts.entries()).map(([key, count]) => (
+    count > 1 ? `${count}x ${labels.get(key)}` : labels.get(key)
+  )).join(", ");
+};
+
 export const buildCustomerNoteContent = (report) => {
   const richReport = String(report.latest_order_status || "").trim();
   if (richReport) return richReport;
