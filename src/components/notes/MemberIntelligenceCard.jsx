@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
+import { toast } from "sonner";
 import { PAYMENT_STYLES } from "./member-intelligence-config";
 import { formatRand } from "./memberIntelligenceUtils";
 import { extractQuantity, splitManifestItems } from "@/utils/dispatchReconciliation";
@@ -187,9 +188,45 @@ export default function MemberIntelligenceCard({ order, note, confirmedPayment, 
             <div style={{ display: "grid", gap: "10px", padding: "14px", background: "#111111", border: "1px solid rgba(201,168,76,0.16)" }}>
               <label style={{ fontFamily: "var(--font-body)", fontSize: "11px", color: "rgba(201,168,76,0.68)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Confirm payment status</label>
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                <button onClick={async () => { const selectedValue = "PAID"; const updatedOrder = await onConfirmStatus(cardOrder, selectedValue); if (updatedOrder) setCardOrder(updatedOrder); setConfirmedPayments((prev) => ({ ...prev, [order.id]: selectedValue })); setShowConfirmOptions(false); }} style={buttonBase}>PAID</button>
-                <button onClick={async () => { const selectedValue = "CASH"; const updatedOrder = await onConfirmStatus(cardOrder, selectedValue); if (updatedOrder) setCardOrder(updatedOrder); setConfirmedPayments((prev) => ({ ...prev, [order.id]: selectedValue })); setShowConfirmOptions(false); }} style={buttonBase}>CASH</button>
-                <button onClick={async () => { const selectedValue = "PENDING"; const updatedOrder = await onConfirmStatus(cardOrder, selectedValue); if (updatedOrder) setCardOrder(updatedOrder); setConfirmedPayments((prev) => ({ ...prev, [order.id]: selectedValue })); setShowConfirmOptions(false); }} style={buttonBase}>PENDING</button>
+                <button onClick={async () => {
+                  const selectedValue = "PAID";
+                  try {
+                    const updatedOrder = await onConfirmStatus(cardOrder, selectedValue);
+                    if (updatedOrder) {
+                      setCardOrder(updatedOrder);
+                      setConfirmedPayments((prev) => ({ ...prev, [updatedOrder.id]: selectedValue }));
+                      setShowConfirmOptions(false);
+                    }
+                  } catch {
+                    toast.error("Update failed");
+                  }
+                }} style={buttonBase}>PAID</button>
+                <button onClick={async () => {
+                  const selectedValue = "CASH";
+                  try {
+                    const updatedOrder = await onConfirmStatus(cardOrder, selectedValue);
+                    if (updatedOrder) {
+                      setCardOrder(updatedOrder);
+                      setConfirmedPayments((prev) => ({ ...prev, [updatedOrder.id]: selectedValue }));
+                      setShowConfirmOptions(false);
+                    }
+                  } catch {
+                    toast.error("Update failed");
+                  }
+                }} style={buttonBase}>CASH</button>
+                <button onClick={async () => {
+                  const selectedValue = "PENDING";
+                  try {
+                    const updatedOrder = await onConfirmStatus(cardOrder, selectedValue);
+                    if (updatedOrder) {
+                      setCardOrder(updatedOrder);
+                      setConfirmedPayments((prev) => ({ ...prev, [updatedOrder.id]: selectedValue }));
+                      setShowConfirmOptions(false);
+                    }
+                  } catch {
+                    toast.error("Update failed");
+                  }
+                }} style={buttonBase}>PENDING</button>
                 <button onClick={() => setShowConfirmOptions(false)} style={{ ...buttonBase, border: "1px solid rgba(245,240,232,0.18)", color: "rgba(245,240,232,0.7)", display: "inline-flex", alignItems: "center", gap: "6px" }}><X size={14} /> Close</button>
               </div>
             </div>

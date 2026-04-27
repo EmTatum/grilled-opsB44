@@ -190,12 +190,12 @@ ${conversation}`,
         intelligence_report_id: savedNote.id,
         id: savedOrder.id
       });
-      setSaveMessage(`Report saved for ${savedOrder.client_name}`);
-      toast.success(`Report saved for ${savedOrder.client_name}`);
+      setSaveMessage(`Saved for ${savedOrder.client_name}`);
+      toast.success(`Saved for ${savedOrder.client_name}`);
       await Promise.all([loadOrders(), loadNotes()]);
     } catch {
       setSaveMessage("");
-      toast.error("Save failed — please try again.");
+      toast.error("Save failed — please try again");
     } finally {
       setGenerating(false);
       setSaving(false);
