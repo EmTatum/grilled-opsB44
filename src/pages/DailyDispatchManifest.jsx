@@ -166,12 +166,16 @@ function OrderDetailCard({ order, products, checkedItems, onToggleItem, onStatus
   const items = parseLineItems(order.order_list);
   const checkedMap = checkedItems[order.id] || {};
   const allPacked = items.length > 0 && items.every((item) => checkedMap[item]);
+  const isFulfilled = order.fulfilment_status === "Fulfilled";
 
   return (
-    <div style={{ background: allPacked ? "rgba(57,255,20,0.08)" : "#1a1a1a", border: `1px solid ${allPacked ? "rgba(57,255,20,0.25)" : "rgba(201,168,76,0.18)"}`, borderLeft: accentBorderColor ? `4px solid ${accentBorderColor}` : undefined, padding: "18px", display: "grid", gap: "16px" }}>
+    <div style={{ background: isFulfilled ? "rgba(22, 101, 52, 0.3)" : allPacked ? "rgba(57,255,20,0.08)" : "#1a1a1a", border: `1px solid ${isFulfilled ? "rgba(22,163,74,0.35)" : allPacked ? "rgba(57,255,20,0.25)" : "rgba(201,168,76,0.18)"}`, borderLeft: `4px solid ${isFulfilled ? "#16a34a" : accentBorderColor || "rgba(201,168,76,0.18)"}`, padding: "18px", display: "grid", gap: "16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", alignItems: "flex-start" }}>
         <div style={{ display: "grid", gap: "6px", flex: 1 }}>
-          <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", fontWeight: 700, color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+            <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", fontWeight: 700, color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
+            {isFulfilled && <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", border: "1px solid rgba(22,163,74,0.55)", background: "rgba(22,163,74,0.16)", color: "#86efac", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: "2px" }}>✓ Fulfilled</span>}
+          </div>
           <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.52)" }}>{order.delivery_address || "Address TBC"}</p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
@@ -183,38 +187,40 @@ function OrderDetailCard({ order, products, checkedItems, onToggleItem, onStatus
         </div>
       </div>
 
-      <div style={{ display: "grid", gap: "10px", padding: "14px", background: "#111111", border: "1px solid rgba(201,168,76,0.14)" }}>
-        {items.length === 0 ? (
-          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.45)" }}>No stock items listed.</p>
-        ) : items.map((item) => (
-          readOnly ? (
-            <div key={`${order.id}-${item}`} style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center", color: "#F5F0E8", fontFamily: "var(--font-body)", fontSize: "13px", lineHeight: 1.5 }}>
-              <span>{item}</span>
-              <StockBadge product={findMatchedProduct(item, products)} />
-            </div>
-          ) : (
-            <ChecklistRow key={`${order.id}-${item}`} orderId={order.id} item={item} products={products} checked={!!checkedMap[item]} onToggle={onToggleItem} />
-          )
-        ))}
-      </div>
-
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", alignItems: "center", paddingTop: "4px" }}>
-        <div>
-          {order.payment_status === "CASH" ? (
-            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#C9A84C" }}>{formatCurrency(order.order_total)} — Collect cash on delivery</p>
-          ) : <div />}
+      <div style={{ opacity: isFulfilled ? 0.6 : 1, display: "grid", gap: "16px" }}>
+        <div style={{ display: "grid", gap: "10px", padding: "14px", background: "#111111", border: "1px solid rgba(201,168,76,0.14)" }}>
+          {items.length === 0 ? (
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.45)" }}>No stock items listed.</p>
+          ) : items.map((item) => (
+            readOnly ? (
+              <div key={`${order.id}-${item}`} style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center", color: "#F5F0E8", fontFamily: "var(--font-body)", fontSize: "13px", lineHeight: 1.5 }}>
+                <span>{item}</span>
+                <StockBadge product={findMatchedProduct(item, products)} />
+              </div>
+            ) : (
+              <ChecklistRow key={`${order.id}-${item}`} orderId={order.id} item={item} products={products} checked={!!checkedMap[item]} onToggle={onToggleItem} />
+            )
+          ))}
         </div>
-        {!readOnly && (
-          <select
-            value={order.fulfilment_status || "Active"}
-            onChange={(e) => onStatusChange(order.id, e.target.value)}
-            style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.2)", color: "#F5F0E8", padding: "10px 12px", fontFamily: "var(--font-body)", fontSize: "13px", minWidth: "180px", outline: "none" }}
-          >
-            <option value="Active">Active</option>
-            <option value="Fulfilled">Fulfilled</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
-        )}
+
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", alignItems: "center", paddingTop: "4px" }}>
+          <div>
+            {order.payment_status === "CASH" ? (
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#C9A84C" }}>{formatCurrency(order.order_total)} — Collect cash on delivery</p>
+            ) : <div />}
+          </div>
+          {!readOnly && (
+            <select
+              value={order.fulfilment_status || "Active"}
+              onChange={(e) => onStatusChange(order.id, e.target.value)}
+              style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.2)", color: "#F5F0E8", padding: "10px 12px", fontFamily: "var(--font-body)", fontSize: "13px", minWidth: "180px", outline: "none" }}
+            >
+              <option value="Active">Active</option>
+              <option value="Fulfilled">Fulfilled</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -231,9 +237,14 @@ export default function DailyDispatchManifest() {
 
   const todaysOrders = useMemo(() => {
     return (memberOrders || [])
-      .filter((order) => order.fulfilment_status !== "Cancelled")
       .filter((order) => order.delivery_date && order.delivery_date.startsWith(todayStr))
-      .sort((a, b) => getTimePart(a.delivery_date).localeCompare(getTimePart(b.delivery_date)));
+      .filter((order) => order.fulfilment_status === "Active" || order.fulfilment_status === "Fulfilled")
+      .filter((order) => order.fulfilment_status !== "Cancelled")
+      .sort((a, b) => {
+        if (a.fulfilment_status === "Fulfilled" && b.fulfilment_status !== "Fulfilled") return 1;
+        if (a.fulfilment_status !== "Fulfilled" && b.fulfilment_status === "Fulfilled") return -1;
+        return (a.delivery_date || "").localeCompare(b.delivery_date || "");
+      });
   }, [memberOrders, todayStr]);
 
   const upcomingOrders = useMemo(() => {
