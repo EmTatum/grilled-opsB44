@@ -197,7 +197,7 @@ function OrderDetailCard({ order, products, checkedItems, onToggleItem, onStatus
         ))}
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", alignItems: "center", paddingTop: "4px" }}>
         <div>
           {order.payment_status === "CASH" ? (
             <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#C9A84C" }}>{formatCurrency(order.order_total)} — Collect cash on delivery</p>
@@ -357,7 +357,7 @@ export default function DailyDispatchManifest() {
               const isExpanded = !!expandedOrders[order.id];
               const accentColor = order.payment_status === "PENDING" || order.payment_status === "CASH" ? "#C9A84C" : "#39ff14";
               return (
-                <div key={order.id} style={{ display: "grid", gap: "10px", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", borderLeft: `4px solid ${accentColor}`, padding: "16px" }}>
+                <div key={order.id} style={{ display: "grid", gap: "14px", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", borderLeft: `4px solid ${accentColor}`, padding: "18px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
                     <div style={{ display: "grid", gap: "4px" }}>
                       <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>

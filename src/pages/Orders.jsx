@@ -79,7 +79,7 @@ function TodayOrders({ orders, todayDisplay }) {
       ) : (
         <div style={{ display: "grid", gap: "12px" }}>
           {orders.map((order) => (
-            <div key={order.id} style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", padding: "16px", display: "grid", gap: "10px" }}>
+            <div key={order.id} style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", padding: "18px", display: "grid", gap: "14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
                 <div style={{ display: "grid", gap: "8px", flex: 1 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
@@ -128,7 +128,7 @@ function WeeklyView({ orders, today }) {
               {day.orders.length === 0 ? (
                 <p style={emptyTextStyle}>No orders.</p>
               ) : day.orders.map((order) => (
-                <div key={order.id} style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.16)", padding: "14px", display: "grid", gap: "8px" }}>
+                <div key={order.id} style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.16)", padding: "16px", display: "grid", gap: "12px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "center" }}>
                     <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "20px", color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
                     <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.75)" }}>{getTimePart(order.delivery_date)}</p>
