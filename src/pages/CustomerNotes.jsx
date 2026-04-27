@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 import PageHeader from "../components/PageHeader";
 import WhatsAppExtractionPanel from "../components/notes/WhatsAppExtractionPanel";
 import ActiveMemberIntelligenceSummary from "../components/notes/ActiveMemberIntelligenceSummary";
@@ -109,14 +110,20 @@ export default function CustomerNotes() {
     return acc;
   }, {}), [notes]);
 
+  const findExistingByClientName = async (entityName, clientName) => {
+    const records = await base44.entities[entityName].list("-updated_date", 500);
+    return (records || []).find((item) => normalizeClientName(item.client_name) === normalizeClientName(clientName)) || null;
+  };
+
   const generatePreview = async () => {
     if (!conversation.trim() || generating || saving) return;
     setGenerating(true);
     setSaving(true);
     setSaveMessage("");
 
-    const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `Extract structured data from this WhatsApp conversation for a private concierge delivery service.
+    try {
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Extract structured data from this WhatsApp conversation for a private concierge delivery service.
 
 RULES:
 1. Never use pick up, pickup or collect — always use delivery
@@ -134,55 +141,65 @@ Return JSON: { client_name, cell_number, delivery_date, delivery_address, order_
 
 WhatsApp conversation:
 ${conversation}`,
-      response_json_schema: EXTRACTION_SCHEMA
-    });
+        response_json_schema: EXTRACTION_SCHEMA
+      });
 
-    const extractedData = {
-      ...result,
-      cell_number: result.cell_number || null,
-      delivery_date: String(result.delivery_date || "").trim().includes("T")
-        ? String(result.delivery_date || "").trim()
-        : buildCombinedDeliveryDate(result.delivery_date, null),
-      delivery_address: result.delivery_address || null,
-      order_total: parseInt(result.order_total || 0, 10) || 0,
-      payment_status: result.payment_status || "PENDING"
-    };
+      const extractedData = {
+        ...result,
+        cell_number: result.cell_number || "",
+        delivery_date: String(result.delivery_date || "").trim().includes("T")
+          ? String(result.delivery_date || "").trim()
+          : buildCombinedDeliveryDate(result.delivery_date, null) || "",
+        delivery_address: result.delivery_address || "",
+        order_list: result.order_list || "",
+        order_total: parseInt(result.order_total || 0, 10) || 0,
+        payment_status: result.payment_status || "PENDING",
+        next_action: result.next_action || ""
+      };
 
-    const notePayload = buildNotePayload(extractedData);
+      const notePayload = buildNotePayload(extractedData);
+      const existingOrder = await findExistingByClientName("MemberOrder", extractedData.client_name);
+      const existingNote = await findExistingByClientName("CustomerNote", extractedData.client_name);
 
-    const existingOrders = await base44.entities.MemberOrder.filter({ client_name: extractedData.client_name }, "-updated_date", 1);
-    const linkedNoteId = existingOrders?.[0]?.intelligence_report_id || null;
-    const savedNote = linkedNoteId
-      ? await base44.entities.CustomerNote.update(linkedNoteId, notePayload)
-      : (await base44.entities.CustomerNote.filter({ client_name: extractedData.client_name }, "-updated_date", 1))?.[0]
-        ? await base44.entities.CustomerNote.update((await base44.entities.CustomerNote.filter({ client_name: extractedData.client_name }, "-updated_date", 1))[0].id, notePayload)
+      const savedNote = existingNote
+        ? await base44.entities.CustomerNote.update(existingNote.id, notePayload)
         : await base44.entities.CustomerNote.create(notePayload);
 
-    const orderPayload = {
-      client_name: extractedData.client_name,
-      cell_number: extractedData.cell_number || "",
-      delivery_date: extractedData.delivery_date || "",
-      delivery_address: extractedData.delivery_address || "",
-      order_list: extractedData.order_list || "",
-      order_total: parseInt(extractedData.order_total || 0, 10) || 0,
-      payment_status: extractedData.payment_status,
-      next_action: extractedData.next_action || "",
-      intelligence_report_id: savedNote.id,
-      fulfilment_status: "Active"
-    };
+      const orderPayload = {
+        client_name: extractedData.client_name,
+        cell_number: extractedData.cell_number,
+        delivery_date: extractedData.delivery_date,
+        delivery_address: extractedData.delivery_address,
+        order_list: extractedData.order_list,
+        order_total: Number(extractedData.order_total || 0),
+        payment_status: extractedData.payment_status,
+        next_action: extractedData.next_action,
+        intelligence_report_id: savedNote.id,
+        fulfilment_status: existingOrder?.fulfilment_status || "Active"
+      };
 
-    const savedOrder = existingOrders?.[0]
-      ? await base44.entities.MemberOrder.update(existingOrders[0].id, orderPayload)
-      : await base44.entities.MemberOrder.create(orderPayload);
+      const savedOrder = existingOrder
+        ? await base44.entities.MemberOrder.update(existingOrder.id, orderPayload)
+        : await base44.entities.MemberOrder.create({ ...orderPayload, fulfilment_status: "Active" });
 
-    setActiveSummaryRefreshKey((current) => current + 1);
-    await loadOrders();
-    setSavedPreviewOrderId(savedOrder.id);
-    setPreview({ ...extractedData, intelligence_report_id: savedNote.id, id: savedOrder.id });
-    setSaveMessage(`Report saved for ${extractedData.client_name}`);
-    await loadNotes();
-    setGenerating(false);
-    setSaving(false);
+      setActiveSummaryRefreshKey((current) => current + 1);
+      setSavedPreviewOrderId(savedOrder.id);
+      setPreview({
+        ...extractedData,
+        ...savedOrder,
+        intelligence_report_id: savedNote.id,
+        id: savedOrder.id
+      });
+      setSaveMessage(`Report saved for ${savedOrder.client_name}`);
+      toast.success(`Report saved for ${savedOrder.client_name}`);
+      await Promise.all([loadOrders(), loadNotes()]);
+    } catch {
+      setSaveMessage("");
+      toast.error("Save failed — please try again.");
+    } finally {
+      setGenerating(false);
+      setSaving(false);
+    }
   };
 
   const handleFulfilled = async (order) => {
