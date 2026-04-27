@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useEntityList } from "@/hooks/useEntityList";
@@ -221,42 +221,37 @@ function OrderDetailCard({ order, products, checkedItems, onToggleItem, onStatus
 }
 
 export default function DailyDispatchManifest() {
-  const { data: liveOrders, loading: loadingOrders } = useEntityList("MemberOrder", "delivery_date", 1000);
+  const { data: memberOrders, loading: loadingOrders } = useEntityList("MemberOrder", "delivery_date", 1000);
   const { data: products, loading: loadingProducts } = useEntityList("Product", "product_name", 1000);
-  const [orders, setOrders] = useState([]);
   const [expandedOrders, setExpandedOrders] = useState({});
   const [checkedItems, setCheckedItems] = useState({});
 
-  useEffect(() => {
-    setOrders((liveOrders || []).sort((a, b) => String(a.delivery_date || "").localeCompare(String(b.delivery_date || ""))));
-  }, [liveOrders]);
-
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayStr = new Date().toISOString().slice(0, 10);
   const todayLabel = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   const todaysOrders = useMemo(() => {
-    return orders
-      .filter((order) => String(order.delivery_date || "").startsWith(todayKey))
+    return (memberOrders || [])
+      .filter((order) => order.delivery_date && order.delivery_date.startsWith(todayStr))
       .sort((a, b) => getTimePart(a.delivery_date).localeCompare(getTimePart(b.delivery_date)));
-  }, [orders, todayKey]);
+  }, [memberOrders, todayStr]);
 
   const upcomingOrders = useMemo(() => {
-    return orders
+    return (memberOrders || [])
       .filter((order) => {
         const datePart = getDatePart(order.delivery_date);
-        return datePart && datePart > todayKey;
+        return datePart && datePart > todayStr;
       })
       .sort((a, b) => String(a.delivery_date || "").localeCompare(String(b.delivery_date || "")));
-  }, [orders, todayKey]);
+  }, [memberOrders, todayStr]);
 
   const pastOrders = useMemo(() => {
-    return orders
+    return (memberOrders || [])
       .filter((order) => {
         const datePart = getDatePart(order.delivery_date);
-        return datePart && datePart < todayKey;
+        return datePart && datePart < todayStr;
       })
       .sort((a, b) => String(b.delivery_date || "").localeCompare(String(a.delivery_date || "")));
-  }, [orders, todayKey]);
+  }, [memberOrders, todayStr]);
 
   const toggleExpanded = (orderId) => {
     setExpandedOrders((current) => ({ ...current, [orderId]: !current[orderId] }));
@@ -273,9 +268,8 @@ export default function DailyDispatchManifest() {
   };
 
   const handleStatusChange = async (orderId, newValue) => {
-    const targetOrder = orders.find((order) => order.id === orderId);
+    const targetOrder = (memberOrders || []).find((order) => order.id === orderId);
     await base44.entities.MemberOrder.update(orderId, { fulfilment_status: newValue });
-    setOrders((current) => current.map((order) => order.id === orderId ? { ...order, fulfilment_status: newValue } : order));
 
     if (newValue !== "Fulfilled" || !targetOrder) {
       return;
