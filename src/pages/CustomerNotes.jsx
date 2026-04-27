@@ -282,14 +282,67 @@ ${fullReport}`,
     if (order.intelligence_report_id) {
       const linked = await base44.entities.CustomerNote.filter({ id: order.intelligence_report_id }, "-updated_date", 1);
       if (linked?.[0]) {
-        setSelectedNote(linked[0]);
+        setSelectedNote({ ...linked[0], memberOrderId: order.id });
         return;
       }
     }
 
     const matched = await base44.entities.CustomerNote.list("-updated_date", 200);
     const note = (matched || []).find((item) => normalizeClientName(item.client_name) === normalizeClientName(order.client_name));
-    setSelectedNote(note || { client_name: order.client_name, content: "No report content found." });
+    setSelectedNote(note ? { ...note, memberOrderId: order.id } : { client_name: order.client_name, content: "No report content found.", memberOrderId: order.id });
+  };
+
+  const handleUpdateReport = async (memberOrderId, editedReportText) => {
+    try {
+      const extraction = await base44.integrations.Core.InvokeLLM({
+        prompt: `${EXTRACTION_PROMPT}
+
+WhatsApp conversation:
+${editedReportText}
+
+Full intelligence report:
+${editedReportText}`,
+        response_json_schema: EXTRACTION_SCHEMA
+      });
+
+      const reExtractedFields = {
+        client_name: cleanClientName(extraction.client_name || ""),
+        cell_number: extraction.cell_number || "",
+        delivery_date: String(extraction.delivery_date || "").trim().includes("T")
+          ? String(extraction.delivery_date || "").trim()
+          : buildCombinedDeliveryDate(extraction.delivery_date, null) || "",
+        delivery_address: extraction.delivery_address || "",
+        order_list: consolidateOrderList(extraction.order_list || ""),
+        order_total: parseInt(extraction.order_total || 0, 10) || 0,
+        payment_status: extraction.payment_status || "PENDING",
+        next_action: extraction.next_action || "",
+        intelligence_report: editedReportText
+      };
+
+      const updatedOrder = await base44.entities.MemberOrder.update(memberOrderId, reExtractedFields);
+
+      if (updatedOrder.intelligence_report_id) {
+        await base44.entities.CustomerNote.update(updatedOrder.intelligence_report_id, {
+          client_name: reExtractedFields.client_name || selectedNote?.client_name || "",
+          content: editedReportText
+        });
+      }
+
+      setSelectedNote((current) => current ? { ...current, client_name: reExtractedFields.client_name || current.client_name, content: editedReportText, memberOrderId } : current);
+      if (memberOrderId === savedPreviewOrderId) {
+        setPreview((current) => current ? ({
+          ...current,
+          ...reExtractedFields,
+          full_intelligence_report: editedReportText
+        }) : current);
+      }
+      setActiveSummaryRefreshKey((current) => current + 1);
+      toast.success("Report and summary updated.");
+      return { content: editedReportText };
+    } catch {
+      toast.error("Update failed — please try again.");
+      return null;
+    }
   };
 
   if (loading) return <Spinner />;
@@ -356,7 +409,7 @@ ${fullReport}`,
 
       <MemberHistorySection orders={historyOrders} notesById={notesById} onViewReport={handleViewReport} />
 
-      <ReportContentModal open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)} note={selectedNote} />
+      <ReportContentModal open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)} note={selectedNote} onUpdateReport={handleUpdateReport} />
     </div>
   );
 }
