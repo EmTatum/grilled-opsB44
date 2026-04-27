@@ -38,6 +38,12 @@ const paymentStyles = {
   PENDING: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.18)", color: "rgba(245,240,232,0.7)" }
 };
 
+const fulfilmentStyles = {
+  Fulfilled: { background: "rgba(57,255,20,0.14)", border: "1px solid rgba(57,255,20,0.65)", color: "#39ff14" },
+  Cancelled: { background: "rgba(194,24,91,0.08)", border: "1px solid rgba(194,24,91,0.4)", color: "#C2185B" },
+  Active: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.18)", color: "rgba(245,240,232,0.7)" }
+};
+
 function getDatePart(value) {
   return String(value || "").trim().split("T")[0] || "";
 }
@@ -92,6 +98,15 @@ function PaymentPill({ value }) {
   );
 }
 
+function FulfilmentPill({ value }) {
+  const style = fulfilmentStyles[value] || fulfilmentStyles.Active;
+  return (
+    <span style={{ ...style, display: "inline-flex", alignItems: "center", padding: "6px 10px", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: "2px" }}>
+      {value || "Active"}
+    </span>
+  );
+}
+
 function StockBadge({ product }) {
   if (!product) return null;
 
@@ -118,13 +133,13 @@ function ChecklistRow({ orderId, item, products, checked, onToggle }) {
   );
 }
 
-function OrderDetailCard({ order, products, checkedItems, onToggleItem, onStatusChange }) {
+function OrderDetailCard({ order, products, checkedItems, onToggleItem, onStatusChange, readOnly = false, accentBorderColor }) {
   const items = parseLineItems(order.order_list);
   const checkedMap = checkedItems[order.id] || {};
   const allPacked = items.length > 0 && items.every((item) => checkedMap[item]);
 
   return (
-    <div style={{ background: allPacked ? "rgba(57,255,20,0.08)" : "#1a1a1a", border: `1px solid ${allPacked ? "rgba(57,255,20,0.25)" : "rgba(201,168,76,0.18)"}`, padding: "18px", display: "grid", gap: "16px" }}>
+    <div style={{ background: allPacked ? "rgba(57,255,20,0.08)" : "#1a1a1a", border: `1px solid ${allPacked ? "rgba(57,255,20,0.25)" : "rgba(201,168,76,0.18)"}`, borderLeft: accentBorderColor ? `4px solid ${accentBorderColor}` : undefined, padding: "18px", display: "grid", gap: "16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", alignItems: "flex-start" }}>
         <div style={{ display: "grid", gap: "6px", flex: 1 }}>
           <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "28px", fontWeight: 700, color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
@@ -143,7 +158,14 @@ function OrderDetailCard({ order, products, checkedItems, onToggleItem, onStatus
         {items.length === 0 ? (
           <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.45)" }}>No stock items listed.</p>
         ) : items.map((item) => (
-          <ChecklistRow key={`${order.id}-${item}`} orderId={order.id} item={item} products={products} checked={!!checkedMap[item]} onToggle={onToggleItem} />
+          readOnly ? (
+            <div key={`${order.id}-${item}`} style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center", color: "#F5F0E8", fontFamily: "var(--font-body)", fontSize: "13px", lineHeight: 1.5 }}>
+              <span>{item}</span>
+              <StockBadge product={findMatchedProduct(item, products)} />
+            </div>
+          ) : (
+            <ChecklistRow key={`${order.id}-${item}`} orderId={order.id} item={item} products={products} checked={!!checkedMap[item]} onToggle={onToggleItem} />
+          )
         ))}
       </div>
 
@@ -153,15 +175,17 @@ function OrderDetailCard({ order, products, checkedItems, onToggleItem, onStatus
             <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#C9A84C" }}>{formatCurrency(order.order_total)} — Collect cash on delivery</p>
           ) : <div />}
         </div>
-        <select
-          value={order.fulfilment_status || "Active"}
-          onChange={(e) => onStatusChange(order.id, e.target.value)}
-          style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.2)", color: "#F5F0E8", padding: "10px 12px", fontFamily: "var(--font-body)", fontSize: "13px", minWidth: "180px", outline: "none" }}
-        >
-          <option value="Active">Active</option>
-          <option value="Fulfilled">Fulfilled</option>
-          <option value="Cancelled">Cancelled</option>
-        </select>
+        {!readOnly && (
+          <select
+            value={order.fulfilment_status || "Active"}
+            onChange={(e) => onStatusChange(order.id, e.target.value)}
+            style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.2)", color: "#F5F0E8", padding: "10px 12px", fontFamily: "var(--font-body)", fontSize: "13px", minWidth: "180px", outline: "none" }}
+          >
+            <option value="Active">Active</option>
+            <option value="Fulfilled">Fulfilled</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        )}
       </div>
     </div>
   );
@@ -211,10 +235,22 @@ export default function DailyDispatchManifest() {
       .sort((a, b) => getTimePart(a.delivery_date).localeCompare(getTimePart(b.delivery_date)));
   }, [orders, todayKey]);
 
-  const otherOrders = useMemo(() => {
+  const upcomingOrders = useMemo(() => {
     return orders
-      .filter((order) => !String(order.delivery_date || "").startsWith(todayKey))
+      .filter((order) => {
+        const datePart = getDatePart(order.delivery_date);
+        return datePart && datePart > todayKey;
+      })
       .sort((a, b) => String(a.delivery_date || "").localeCompare(String(b.delivery_date || "")));
+  }, [orders, todayKey]);
+
+  const pastOrders = useMemo(() => {
+    return orders
+      .filter((order) => {
+        const datePart = getDatePart(order.delivery_date);
+        return datePart && datePart < todayKey;
+      })
+      .sort((a, b) => String(b.delivery_date || "").localeCompare(String(a.delivery_date || "")));
   }, [orders, todayKey]);
 
   const toggleExpanded = (orderId) => {
@@ -256,15 +292,16 @@ export default function DailyDispatchManifest() {
       </section>
 
       <section style={sectionStyle}>
-        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "26px", fontWeight: 600, color: "#C9A84C", letterSpacing: "0.04em" }}>Upcoming & Recent Orders</p>
-        {otherOrders.length === 0 ? (
-          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "rgba(245,240,232,0.6)" }}>No other orders found.</p>
+        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "26px", fontWeight: 600, color: "#C9A84C", letterSpacing: "0.04em" }}>Upcoming Orders</p>
+        {upcomingOrders.length === 0 ? (
+          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "rgba(245,240,232,0.6)" }}>No upcoming orders scheduled.</p>
         ) : (
           <div style={{ display: "grid", gap: "12px" }}>
-            {otherOrders.map((order) => {
+            {upcomingOrders.map((order) => {
               const isExpanded = !!expandedOrders[order.id];
+              const accentColor = order.payment_status === "PENDING" || order.payment_status === "CASH" ? "#C9A84C" : "#39ff14";
               return (
-                <div key={order.id} style={{ display: "grid", gap: "10px", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", padding: "16px" }}>
+                <div key={order.id} style={{ display: "grid", gap: "10px", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", borderLeft: `4px solid ${accentColor}`, padding: "16px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
                     <div style={{ display: "grid", gap: "4px" }}>
                       <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
@@ -276,11 +313,37 @@ export default function DailyDispatchManifest() {
                     </div>
                   </div>
                   {isExpanded && (
-                    <OrderDetailCard order={order} products={products} checkedItems={checkedItems} onToggleItem={toggleChecklistItem} onStatusChange={handleStatusChange} />
+                    <OrderDetailCard order={order} products={products} checkedItems={checkedItems} onToggleItem={toggleChecklistItem} onStatusChange={handleStatusChange} accentBorderColor={accentColor} />
                   )}
                 </div>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      <section style={sectionStyle}>
+        <div style={{ display: "grid", gap: "4px" }}>
+          <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "26px", fontWeight: 600, color: "#C9A84C", letterSpacing: "0.04em" }}>Past Orders</p>
+          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.5)" }}>Completed deliveries — used for reporting</p>
+        </div>
+        {pastOrders.length === 0 ? (
+          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "rgba(245,240,232,0.6)" }}>No past orders on record yet.</p>
+        ) : (
+          <div style={{ display: "grid", gap: "10px" }}>
+            {pastOrders.map((order) => (
+              <div key={order.id} style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center", background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", padding: "16px" }}>
+                <div style={{ display: "grid", gap: "4px" }}>
+                  <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
+                  <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.52)" }}>{formatOtherDate(order.delivery_date)}</p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                  <FulfilmentPill value={order.fulfilment_status} />
+                  <PaymentPill value={order.payment_status} />
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8" }}>{formatCurrency(order.order_total)}</span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>
