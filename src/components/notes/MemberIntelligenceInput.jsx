@@ -1,11 +1,13 @@
 import React from "react";
 
 const panelStyle = {
-  background: "#1a1a1a",
-  border: "1px solid rgba(201,168,76,0.22)",
+  background: "var(--color-bg-secondary)",
+  border: "1px solid var(--color-border-gold)",
   padding: "24px",
   display: "grid",
-  gap: "16px"
+  gap: "16px",
+  borderRadius: "6px",
+  boxShadow: "0 2px 20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(201,168,76,0.06)"
 };
 
 const textareaStyle = {

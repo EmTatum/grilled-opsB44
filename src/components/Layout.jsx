@@ -15,10 +15,16 @@ const navItems = [
 
 const sidebarStyle = {
   width: "216px",
-  background: "#030101",
-  borderRight: "1px solid rgba(210,156,108,0.3)",
-  display: "flex", flexDirection: "column",
-  position: "fixed", top: 0, left: 0, height: "100vh", zIndex: 100,
+  background: "#050505",
+  borderRight: "1px solid var(--color-gold-dim)",
+  display: "flex",
+  flexDirection: "column",
+  position: "fixed",
+  top: 0,
+  left: 0,
+  height: "100vh",
+  zIndex: 100,
+  boxShadow: "0 2px 20px rgba(0,0,0,0.6)"
 };
 
 export default function Layout() {

@@ -7,10 +7,10 @@ import ProductFormDialog from "../components/ProductFormDialog";
 
 const GoldBtn = ({ onClick, children }) => (
   <button onClick={onClick} style={{
-    background: "transparent", border: "1px solid var(--color-gold)", color: "var(--color-gold)",
-    fontFamily: "var(--font-body)", fontSize: "12px", fontWeight: 500,
-    letterSpacing: "0.12em", textTransform: "uppercase", padding: "10px 24px",
-    borderRadius: "2px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", transition: "all 0.2s ease"
+    background: "var(--color-gold)", border: "1px solid var(--color-gold)", color: "#000",
+    fontFamily: "var(--font-body)", fontSize: "12px", fontWeight: 700,
+    letterSpacing: "0.1em", textTransform: "uppercase", padding: "10px 24px",
+    borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", transition: "all 0.2s ease"
   }}>{children}</button>
 );
 
