@@ -3,7 +3,10 @@ export const normalizeClientName = (value) => String(value || "").trim().toLower
 export const cleanClientName = (value) => {
   const raw = String(value || "").trim();
   if (!raw) return "";
-  return raw.replace(/\s*\([^)]*\)/g, "").split(/\s[-|]\s|[-|]/)[0].trim();
+  return raw
+    .replace(/\s*\([^)]*\)/g, "")
+    .split(/[\-|/|]/)[0]
+    .trim();
 };
 
 export const consolidateOrderList = (value) => {

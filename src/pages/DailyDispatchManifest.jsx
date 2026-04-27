@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { useEntityList } from "@/hooks/useEntityList";
 import PageHeader from "../components/PageHeader";
 
 const Spinner = () => (
@@ -220,39 +221,15 @@ function OrderDetailCard({ order, products, checkedItems, onToggleItem, onStatus
 }
 
 export default function DailyDispatchManifest() {
+  const { data: liveOrders, loading: loadingOrders } = useEntityList("MemberOrder", "delivery_date", 1000);
+  const { data: products, loading: loadingProducts } = useEntityList("Product", "product_name", 1000);
   const [orders, setOrders] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [expandedOrders, setExpandedOrders] = useState({});
   const [checkedItems, setCheckedItems] = useState({});
 
   useEffect(() => {
-    const load = async () => {
-      const [memberOrders, productRecords] = await Promise.all([
-        base44.entities.MemberOrder.list("delivery_date", 1000),
-        base44.entities.Product.list("product_name", 1000)
-      ]);
-
-      setOrders((memberOrders || []).sort((a, b) => String(a.delivery_date || "").localeCompare(String(b.delivery_date || ""))));
-      setProducts(productRecords || []);
-      setLoading(false);
-    };
-
-    load();
-
-    const unsubscribeOrders = base44.entities.MemberOrder.subscribe(() => {
-      load();
-    });
-
-    const unsubscribeProducts = base44.entities.Product.subscribe(() => {
-      load();
-    });
-
-    return () => {
-      unsubscribeOrders();
-      unsubscribeProducts();
-    };
-  }, []);
+    setOrders((liveOrders || []).sort((a, b) => String(a.delivery_date || "").localeCompare(String(b.delivery_date || ""))));
+  }, [liveOrders]);
 
   const todayKey = new Date().toISOString().slice(0, 10);
   const todayLabel = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -328,7 +305,7 @@ export default function DailyDispatchManifest() {
     toast.success("Order fulfilled — stock levels updated");
   };
 
-  if (loading) return <Spinner />;
+  if (loadingOrders || loadingProducts) return <Spinner />;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>

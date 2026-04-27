@@ -81,8 +81,9 @@ export default function CustomerNotes() {
         response_json_schema: EXTRACTION_SCHEMA
       });
 
-      const jsonFields = buildStructuredFields(extraction);
-      const existingRecord = await findExistingByClientName(jsonFields.client_name);
+      const cleanedClientName = cleanClientName(extraction.client_name || "");
+      const jsonFields = buildStructuredFields({ ...extraction, client_name: cleanedClientName });
+      const existingRecord = await findExistingByClientName(cleanedClientName);
       const payload = {
         ...jsonFields,
         intelligence_report: fullReportText
