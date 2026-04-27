@@ -180,6 +180,9 @@ export default function Inventory() {
   return (
     <div>
       <PageHeader title="Catalogue" subtitle="Full catalog display with product list and inventory levels">
+        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.45)", fontWeight: 300 }}>
+          Auto-updates when orders are fulfilled
+        </p>
         <GoldBtn onClick={() => { setEditProduct(null); setFormOpen(true); }}><Plus size={12} /> Add Product</GoldBtn>
       </PageHeader>
 
@@ -194,7 +197,7 @@ export default function Inventory() {
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "860px" }}>
               <thead>
                 <tr style={{ background: "#0b0e11", borderBottom: "1px solid rgba(210,156,108,0.28)" }}>
-                  {["Product Name", "Category", "Last Stock Count", "Latest Stock Count", "Status"].map((header) => (
+                  {["Product Name", "Category", "Live Running Stock Count", "Latest Stock Count", "Status"].map((header) => (
                     <th key={header} style={{ padding: "14px 16px", textAlign: "left", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, color: "#eee3b4", letterSpacing: "0.14em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{header}</th>
                   ))}
                 </tr>

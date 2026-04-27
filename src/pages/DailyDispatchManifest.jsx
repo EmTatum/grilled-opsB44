@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 import PageHeader from "../components/PageHeader";
 
 const Spinner = () => (
@@ -87,6 +88,33 @@ function findMatchedProduct(item, products) {
     const name = String(product.product_name || "").toLowerCase().trim();
     return name && (normalizedItem.includes(name) || name.includes(normalizedItem));
   }) || null;
+}
+
+function extractQuantityAndProductName(item) {
+  const raw = String(item || "").trim();
+  if (!raw) return { productName: "", quantity: 1 };
+
+  let quantity = 1;
+  let productName = raw;
+
+  const patterns = [
+    /^\s*(\d+)\s*x\s+/i,
+    /^\s*x\s*(\d+)\s+/i,
+    /^\s*(\d+)\s+/i,
+    /\((\d+)\)/,
+    /\bx\s*(\d+)\b/i,
+    /\b(\d+)x\b/i
+  ];
+
+  patterns.some((pattern) => {
+    const match = raw.match(pattern);
+    if (!match) return false;
+    quantity = Number(match[1]) || 1;
+    productName = raw.replace(match[0], " ").replace(/\s+/g, " ").trim();
+    return true;
+  });
+
+  return { productName, quantity: Math.max(1, quantity) };
 }
 
 function PaymentPill({ value }) {
@@ -268,8 +296,37 @@ export default function DailyDispatchManifest() {
   };
 
   const handleStatusChange = async (orderId, newValue) => {
+    const targetOrder = orders.find((order) => order.id === orderId);
     await base44.entities.MemberOrder.update(orderId, { fulfilment_status: newValue });
     setOrders((current) => current.map((order) => order.id === orderId ? { ...order, fulfilment_status: newValue } : order));
+
+    if (newValue !== "Fulfilled" || !targetOrder) {
+      return;
+    }
+
+    const items = parseLineItems(targetOrder.order_list);
+
+    for (const item of items) {
+      const { productName, quantity } = extractQuantityAndProductName(item);
+      const matchedProduct = findMatchedProduct(productName, products);
+
+      if (!matchedProduct) {
+        continue;
+      }
+
+      const nextStock = Math.max(0, Number(matchedProduct.current_stock || 0) - quantity);
+
+      try {
+        await base44.entities.Product.update(matchedProduct.id, {
+          current_stock: nextStock,
+          last_stock_count: nextStock
+        });
+      } catch {
+        toast.error(`Stock update failed for ${matchedProduct.product_name || productName} — please adjust manually in Catalogue`);
+      }
+    }
+
+    toast.success("Order fulfilled — stock levels updated");
   };
 
   if (loading) return <Spinner />;
