@@ -231,12 +231,14 @@ export default function DailyDispatchManifest() {
 
   const todaysOrders = useMemo(() => {
     return (memberOrders || [])
+      .filter((order) => order.fulfilment_status !== "Cancelled")
       .filter((order) => order.delivery_date && order.delivery_date.startsWith(todayStr))
       .sort((a, b) => getTimePart(a.delivery_date).localeCompare(getTimePart(b.delivery_date)));
   }, [memberOrders, todayStr]);
 
   const upcomingOrders = useMemo(() => {
     return (memberOrders || [])
+      .filter((order) => order.fulfilment_status !== "Cancelled")
       .filter((order) => {
         const datePart = getDatePart(order.delivery_date);
         return datePart && datePart > todayStr;
@@ -246,6 +248,7 @@ export default function DailyDispatchManifest() {
 
   const pastOrders = useMemo(() => {
     return (memberOrders || [])
+      .filter((order) => order.fulfilment_status !== "Cancelled")
       .filter((order) => {
         const datePart = getDatePart(order.delivery_date);
         return datePart && datePart < todayStr;
