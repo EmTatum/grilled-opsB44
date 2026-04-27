@@ -205,7 +205,7 @@ export default function Dashboard() {
   if (loading) return <Spinner />;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
       <PageHeader title="Dashboard" subtitle="Live MemberOrder operations overview with delivery, payment, and fulfilment activity." />
 
       <DailyPerformanceCharts data={metrics.dailyPerformance} />

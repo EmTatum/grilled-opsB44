@@ -275,7 +275,7 @@ export default function DailyDispatchManifest() {
   if (loading) return <Spinner />;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
       <PageHeader title="Dispatch Manifest" subtitle="Live packing checklist with fulfilment updates and stock visibility." />
 
       <section style={sectionStyle}>

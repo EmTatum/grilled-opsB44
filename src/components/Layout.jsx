@@ -14,7 +14,7 @@ const navItems = [
 ];
 
 const sidebarStyle = {
-  width: "220px",
+  width: "216px",
   background: "#030101",
   borderRight: "1px solid rgba(210,156,108,0.3)",
   display: "flex", flexDirection: "column",
@@ -70,14 +70,14 @@ export default function Layout() {
         className={`hidden md:flex flex-col`}
       >
         {/* Header block */}
-        <div style={{ padding: "28px 16px 20px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={{ height: "1px", width: "100%", background: "rgba(210,156,108,0.2)", marginBottom: "16px" }} />
-          <p style={{ fontFamily: "var(--font-heading)", fontSize: "18px", fontWeight: 600, color: "var(--color-gold)", letterSpacing: "0.15em", textAlign: "center", textTransform: "uppercase", margin: 0 }}>GRILLED OPS</p>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: "11px", fontWeight: 300, color: "rgba(210,156,108,0.5)", letterSpacing: "0.12em", textAlign: "center", marginTop: "6px", textTransform: "uppercase" }}>INTERNAL OPERATIONS</p>
-          <div style={{ height: "1px", width: "100%", background: "rgba(210,156,108,0.2)", marginTop: "16px" }} />
+        <div style={{ padding: "24px 14px 18px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ height: "1px", width: "100%", background: "rgba(210,156,108,0.2)", marginBottom: "14px" }} />
+          <p style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: 600, color: "var(--color-gold)", letterSpacing: "0.14em", textAlign: "center", textTransform: "uppercase", margin: 0 }}>GRILLED OPS</p>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 300, color: "rgba(210,156,108,0.5)", letterSpacing: "0.11em", textAlign: "center", marginTop: "5px", textTransform: "uppercase" }}>INTERNAL OPERATIONS</p>
+          <div style={{ height: "1px", width: "100%", background: "rgba(210,156,108,0.2)", marginTop: "14px" }} />
         </div>
 
-        <div style={{ padding: "0 16px 12px", position: "relative" }}>
+        <div style={{ padding: "0 14px 10px", position: "relative" }}>
           <div style={{ position: "relative" }}>
             <Search size={12} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "rgba(245,240,232,0.3)" }} />
             <input
@@ -109,15 +109,15 @@ export default function Layout() {
             return (
               <div key={item.path}>
                 {i === 1 && (
-                  <div style={{ height: "1px", background: "rgba(210,156,108,0.2)", margin: "8px 16px" }} />
+                  <div style={{ height: "1px", background: "rgba(210,156,108,0.2)", margin: "8px 14px" }} />
                 )}
                 <Link
                   to={item.path}
                   style={{
                     display: "flex", alignItems: "center", gap: "10px",
-                    padding: "13px 20px",
+                    padding: "12px 18px",
                     fontFamily: "var(--font-body)",
-                    fontSize: "13px", fontWeight: 500,
+                    fontSize: "12px", fontWeight: 500,
                     letterSpacing: "0.1em", textTransform: "uppercase",
                     color: isActive ? "var(--color-gold)" : "#eee3b4",
                     background: isActive ? "rgba(10,38,39,0.55)" : "transparent",
@@ -137,17 +137,17 @@ export default function Layout() {
         </nav>
 
         {/* Footer */}
-        <div style={{ marginTop: "auto", padding: "20px 16px", borderTop: "1px solid rgba(201,168,76,0.12)" }}>
+        <div style={{ marginTop: "auto", padding: "18px 14px", borderTop: "1px solid rgba(201,168,76,0.12)" }}>
           <button
             onClick={handleLogout}
-            style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", padding: "6px 0", width: "100%", justifyContent: "center", marginBottom: "10px", color: "rgba(201,168,76,0.3)", fontFamily: "'Raleway', sans-serif", fontSize: "8px", letterSpacing: "0.18em", textTransform: "uppercase", transition: "color 0.2s" }}
+            style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", padding: "6px 0", width: "100%", justifyContent: "center", marginBottom: "10px", color: "rgba(201,168,76,0.3)", fontFamily: "'Raleway', sans-serif", fontSize: "9px", letterSpacing: "0.16em", textTransform: "uppercase", transition: "color 0.2s" }}
             onMouseEnter={e => e.currentTarget.style.color = "rgba(201,168,76,0.7)"}
             onMouseLeave={e => e.currentTarget.style.color = "rgba(201,168,76,0.3)"}
           >
             <LogOut size={10} />
             Lock Session
           </button>
-          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "8px", letterSpacing: "0.18em", color: "rgba(201,168,76,0.25)", textAlign: "center", textTransform: "uppercase", margin: 0 }}>GRILLED.INC © 2026</p>
+          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", letterSpacing: "0.16em", color: "rgba(201,168,76,0.25)", textAlign: "center", textTransform: "uppercase", margin: 0 }}>GRILLED.INC © 2026</p>
         </div>
       </aside>
 
@@ -161,13 +161,13 @@ export default function Layout() {
         }}
         className="flex flex-col md:hidden"
       >
-        <div style={{ padding: "28px 16px 20px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={{ height: "1px", width: "100%", background: "rgba(210,156,108,0.2)", marginBottom: "16px" }} />
-          <p style={{ fontFamily: "var(--font-heading)", fontSize: "18px", fontWeight: 600, color: "var(--color-gold)", letterSpacing: "0.15em", textAlign: "center", textTransform: "uppercase", margin: 0 }}>GRILLED OPS</p>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: "11px", fontWeight: 300, color: "rgba(210,156,108,0.5)", letterSpacing: "0.12em", textAlign: "center", marginTop: "6px", textTransform: "uppercase" }}>INTERNAL OPERATIONS</p>
-          <div style={{ height: "1px", width: "100%", background: "rgba(210,156,108,0.2)", marginTop: "16px" }} />
+        <div style={{ padding: "24px 14px 18px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ height: "1px", width: "100%", background: "rgba(210,156,108,0.2)", marginBottom: "14px" }} />
+          <p style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: 600, color: "var(--color-gold)", letterSpacing: "0.14em", textAlign: "center", textTransform: "uppercase", margin: 0 }}>GRILLED OPS</p>
+          <p style={{ fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 300, color: "rgba(210,156,108,0.5)", letterSpacing: "0.11em", textAlign: "center", marginTop: "5px", textTransform: "uppercase" }}>INTERNAL OPERATIONS</p>
+          <div style={{ height: "1px", width: "100%", background: "rgba(210,156,108,0.2)", marginTop: "14px" }} />
         </div>
-        <div style={{ padding: "0 16px 12px", position: "relative" }}>
+        <div style={{ padding: "0 14px 10px", position: "relative" }}>
           <div style={{ position: "relative" }}>
             <Search size={12} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "rgba(245,240,232,0.3)" }} />
             <input
@@ -196,15 +196,15 @@ export default function Layout() {
             const isActive = location.pathname === item.path;
             return (
               <div key={item.path}>
-                {i === 1 && <div style={{ height: "1px", background: "rgba(201,168,76,0.1)", margin: "8px 16px" }} />}
+                {i === 1 && <div style={{ height: "1px", background: "rgba(201,168,76,0.1)", margin: "8px 14px" }} />}
                 <Link
                   to={item.path}
                   onClick={() => setMobileOpen(false)}
                   style={{
                     display: "flex", alignItems: "center", gap: "10px",
-                    padding: "13px 20px",
+                    padding: "12px 18px",
                     fontFamily: "var(--font-body)",
-                    fontSize: "13px", fontWeight: 500,
+                    fontSize: "12px", fontWeight: 500,
                     letterSpacing: "0.1em", textTransform: "uppercase",
                     color: isActive ? "var(--color-gold)" : "#eee3b4",
                     background: isActive ? "rgba(10,38,39,0.55)" : "transparent",
@@ -220,31 +220,31 @@ export default function Layout() {
             );
           })}
         </nav>
-        <div style={{ marginTop: "auto", padding: "20px 16px", borderTop: "1px solid rgba(201,168,76,0.12)" }}>
+        <div style={{ marginTop: "auto", padding: "18px 14px", borderTop: "1px solid rgba(201,168,76,0.12)" }}>
           <button
             onClick={handleLogout}
-            style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", padding: "6px 0", width: "100%", justifyContent: "center", marginBottom: "10px", color: "rgba(201,168,76,0.3)", fontFamily: "'Raleway', sans-serif", fontSize: "8px", letterSpacing: "0.18em", textTransform: "uppercase", transition: "color 0.2s" }}
+            style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", padding: "6px 0", width: "100%", justifyContent: "center", marginBottom: "10px", color: "rgba(201,168,76,0.3)", fontFamily: "'Raleway', sans-serif", fontSize: "9px", letterSpacing: "0.16em", textTransform: "uppercase", transition: "color 0.2s" }}
             onMouseEnter={e => e.currentTarget.style.color = "rgba(201,168,76,0.7)"}
             onMouseLeave={e => e.currentTarget.style.color = "rgba(201,168,76,0.3)"}
           >
             <LogOut size={10} />
             Lock Session
           </button>
-          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "8px", letterSpacing: "0.18em", color: "rgba(201,168,76,0.25)", textAlign: "center", textTransform: "uppercase", margin: 0 }}>GRILLED.INC © 2026</p>
+          <p style={{ fontFamily: "'Raleway', sans-serif", fontSize: "9px", letterSpacing: "0.16em", color: "rgba(201,168,76,0.25)", textAlign: "center", textTransform: "uppercase", margin: 0 }}>GRILLED.INC © 2026</p>
         </div>
       </aside>
 
       {/* MAIN CONTENT */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }} className="md:ml-[220px]">
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }} className="md:ml-[216px]">
         {/* Mobile top bar */}
-        <header className="flex md:hidden" style={{ alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "#111111", borderBottom: "1px solid rgba(210,156,108,0.2)" }}>
-          <span style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: 600, color: "var(--color-gold)", letterSpacing: "0.15em" }}>GRILLED OPS</span>
+        <header className="flex md:hidden" style={{ alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "#111111", borderBottom: "1px solid rgba(210,156,108,0.2)" }}>
+          <span style={{ fontFamily: "var(--font-heading)", fontSize: "16px", fontWeight: 600, color: "var(--color-gold)", letterSpacing: "0.14em" }}>GRILLED OPS</span>
           <button onClick={() => setMobileOpen(!mobileOpen)} style={{ background: "none", border: "none", cursor: "pointer", color: "#C9A84C" }}>
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </header>
 
-        <main style={{ flex: 1, padding: "40px 48px", overflowY: "auto" }} className="max-md:!p-4">
+        <main style={{ flex: 1, padding: "24px 28px", overflowY: "auto" }} className="max-md:!p-4">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={location.pathname}

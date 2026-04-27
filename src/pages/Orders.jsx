@@ -237,7 +237,7 @@ export default function Orders() {
   if (loading) return <Spinner />;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
       <PageHeader title="Orders" subtitle="Live MemberOrder planning, delivery tracking, and calendar visibility." />
       <TodayOrders orders={todaysOrders} todayDisplay={todayDisplay} />
       <WeeklyView orders={orders} today={today} />

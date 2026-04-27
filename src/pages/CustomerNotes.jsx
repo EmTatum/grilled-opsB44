@@ -256,7 +256,7 @@ ${conversation}`,
   if (loading) return <Spinner />;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       <PageHeader title="Member Intelligence" subtitle="Extract, review, manage active member orders, and track archived delivery history." />
 
       <WhatsAppExtractionPanel
