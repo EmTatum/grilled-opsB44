@@ -83,16 +83,23 @@ function EditableField({ label, value, field, type = "text", displayValue, optio
   );
 }
 
-export default function MemberOrderSummaryCard({ order, onInlineSave, onConfirmPayment, onFollowUp, onFulfilled, onCancelled, confirmedPayment, followUpFlags, onSelectReport }) {
+export default function MemberOrderSummaryCard({ order, onInlineSave, onConfirmPayment, onFollowUp, onFulfilled, onCancelled, confirmedPayments, setConfirmedPayments, pendingSelection, setPendingSelection, cardStatus, followUpFlags, onSelectReport }) {
   const paymentStyle = PAYMENT_STYLES[order.payment_status] || PAYMENT_STYLES.PENDING;
-  const confirmedValue = confirmedPayment || null;
+  const confirmedValue = confirmedPayments[order.id] || null;
   const confirmChip = confirmChipConfig[confirmedValue || order.payment_status] || confirmChipConfig.PENDING;
-  const [showConfirmOptions, setShowConfirmOptions] = useState(false);
 
   const displayOrderList = useMemo(() => consolidateOrderList(order.order_list || ""), [order.order_list]);
+  const record = order;
+  const cardBorderColor = confirmedPayments[record.id] === 'PAID'
+    ? '#166534'
+    : confirmedPayments[record.id] === 'CASH'
+      ? '#991b1b'
+      : confirmedPayments[record.id] === 'PENDING'
+        ? '#374151'
+        : 'rgba(201,168,76,0.22)';
 
   return (
-    <div style={cardStyle}>
+    <div style={{ ...cardStyle, border: `1px solid ${cardBorderColor}` }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
         <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "26px", color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
@@ -115,25 +122,93 @@ export default function MemberOrderSummaryCard({ order, onInlineSave, onConfirmP
       </div>
 
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-        {!confirmedValue ? (
-          <div style={{ position: "relative" }}>
-            <button type="button" onClick={() => setShowConfirmOptions((prev) => !prev)} style={buttonStyle}>Confirm</button>
-            {showConfirmOptions && (
-              <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, background: "#111111", border: "1px solid rgba(201,168,76,0.22)", padding: "8px", display: "grid", gap: "6px", zIndex: 5 }}>
-                {["PAID", "CASH", "PENDING"].map((status) => (
-                  <button key={status} type="button" onClick={async () => { await onConfirmPayment(order, status); setShowConfirmOptions(false); }} style={buttonStyle}>{status}</button>
-                ))}
-              </div>
-            )}
+        {confirmedPayments[record.id] ? (
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '6px 14px',
+            borderRadius: '20px',
+            fontWeight: 'bold',
+            fontSize: '13px',
+            backgroundColor: confirmedPayments[record.id] === 'PAID' ? '#166534' : confirmedPayments[record.id] === 'CASH' ? '#7c2d12' : '#374151',
+            color: '#ffffff',
+            cursor: 'default'
+          }}>
+            {confirmedPayments[record.id] === 'PAID' ? '✓ PAID CONFIRMED' : confirmedPayments[record.id] === 'CASH' ? '💵 CASH CONFIRMED' : '⏳ PENDING'}
           </div>
         ) : (
-          <div style={{ display: "inline-flex", alignItems: "center", padding: "10px 14px", background: confirmChip.background, border: confirmChip.border, color: confirmChip.color, fontFamily: "var(--font-body)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-            {confirmChip.text}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <select
+              value={pendingSelection[record.id] || ''}
+              onChange={(e) => setPendingSelection(prev => ({ ...prev, [record.id]: e.target.value }))}
+              style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #555', background: '#1a1a1a', color: '#fff' }}
+            >
+              <option value="" disabled>Select status</option>
+              <option value="PAID">PAID</option>
+              <option value="CASH">CASH</option>
+              <option value="PENDING">PENDING</option>
+            </select>
+            <button
+              onClick={async () => {
+                const selected = pendingSelection[record.id];
+                if (!selected) return;
+                try {
+                  await onConfirmPayment(record);
+                  setConfirmedPayments(prev => ({ ...prev, [record.id]: selected }));
+                } catch (e) {
+                  alert('Update failed — please try again');
+                }
+              }}
+              disabled={!pendingSelection[record.id]}
+              style={{ padding: '6px 14px', borderRadius: '6px', fontWeight: 'bold', background: '#b45309', color: '#fff', border: 'none', cursor: 'pointer' }}
+            >
+              CONFIRM
+            </button>
           </div>
         )}
         <button type="button" onClick={() => onFollowUp(order)} style={buttonStyle}>Follow Up</button>
-        <button type="button" onClick={() => onFulfilled(order)} style={buttonStyle}>Fulfilled</button>
-        <button type="button" onClick={() => onCancelled(order)} style={{ ...buttonStyle, border: "1px solid rgba(194,24,91,0.6)", color: "#C2185B" }}>Cancelled</button>
+        <button
+          onClick={async () => {
+            try {
+              await onFulfilled(record);
+            } catch (e) {
+              alert('Update failed');
+            }
+          }}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontWeight: 'bold',
+            background: cardStatus[record.id] === 'Fulfilled' ? '#166534' : '#14532d',
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer',
+            opacity: cardStatus[record.id] === 'Cancelled' ? 0.4 : 1
+          }}
+        >
+          {cardStatus[record.id] === 'Fulfilled' ? '✓ Fulfilled' : 'Fulfilled'}
+        </button>
+        <button
+          onClick={async () => {
+            try {
+              await onCancelled(record);
+            } catch (e) {
+              alert('Update failed');
+            }
+          }}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontWeight: 'bold',
+            background: cardStatus[record.id] === 'Cancelled' ? '#991b1b' : '#7f1d1d',
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer',
+            opacity: cardStatus[record.id] === 'Fulfilled' ? 0.4 : 1
+          }}
+        >
+          {cardStatus[record.id] === 'Cancelled' ? '✗ Cancelled' : 'Cancelled'}
+        </button>
         <button type="button" onClick={() => onSelectReport(order)} style={buttonStyle}>Full Report</button>
       </div>
     </div>

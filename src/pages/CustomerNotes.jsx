@@ -28,6 +28,8 @@ export default function CustomerNotes() {
   const [generating, setGenerating] = useState(false);
   const [updatingReport, setUpdatingReport] = useState(false);
   const [confirmedPayments, setConfirmedPayments] = useState({});
+  const [pendingSelection, setPendingSelection] = useState({});
+  const [cardStatus, setCardStatus] = useState({});
   const [followUpFlags, setFollowUpFlags] = useState({});
   const [selectedReportId, setSelectedReportId] = useState(null);
 
@@ -111,10 +113,14 @@ export default function CustomerNotes() {
     await base44.entities.MemberOrder.update(order.id, { [field]: nextValue });
   };
 
-  const handleConfirmPayment = async (order, status) => {
-    const updated = await base44.entities.MemberOrder.update(order.id, { payment_status: status });
-    if (updated) {
-      setConfirmedPayments((prev) => ({ ...prev, [order.id]: status }));
+  const handleConfirmPayment = async (record) => {
+    const selected = pendingSelection[record.id];
+    if (!selected) return;
+    try {
+      await base44.entities.MemberOrder.update(record.id, { payment_status: selected });
+      setConfirmedPayments((prev) => ({ ...prev, [record.id]: selected }));
+    } catch {
+      alert('Update failed — please try again');
     }
   };
 
@@ -122,12 +128,22 @@ export default function CustomerNotes() {
     setFollowUpFlags((prev) => ({ ...prev, [order.id]: !prev[order.id] }));
   };
 
-  const handleFulfilled = async (order) => {
-    await base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Fulfilled" });
+  const handleFulfilled = async (record) => {
+    try {
+      await base44.entities.MemberOrder.update(record.id, { fulfilment_status: 'Fulfilled' });
+      setCardStatus((prev) => ({ ...prev, [record.id]: 'Fulfilled' }));
+    } catch {
+      alert('Update failed');
+    }
   };
 
-  const handleCancelled = async (order) => {
-    await base44.entities.MemberOrder.update(order.id, { fulfilment_status: "Cancelled" });
+  const handleCancelled = async (record) => {
+    try {
+      await base44.entities.MemberOrder.update(record.id, { fulfilment_status: 'Cancelled' });
+      setCardStatus((prev) => ({ ...prev, [record.id]: 'Cancelled' }));
+    } catch {
+      alert('Update failed');
+    }
   };
 
   const handleUpdateReport = async (order, editedText) => {
@@ -185,7 +201,11 @@ export default function CustomerNotes() {
               <MemberOrderSummaryCard
                 key={order.id}
                 order={order}
-                confirmedPayment={confirmedPayments[order.id]}
+                confirmedPayments={confirmedPayments}
+                setConfirmedPayments={setConfirmedPayments}
+                pendingSelection={pendingSelection}
+                setPendingSelection={setPendingSelection}
+                cardStatus={cardStatus}
                 followUpFlags={followUpFlags}
                 onInlineSave={async (field, value) => handleInlineSave(order, field, value)}
                 onConfirmPayment={handleConfirmPayment}
