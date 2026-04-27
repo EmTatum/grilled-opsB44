@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { useEntityList } from "@/hooks/useEntityList";
 import moment from "moment";
+import { CalendarDays, AlertTriangle, Package, Banknote, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import PageHeader from "../components/PageHeader";
 import DailyPerformanceCharts from "../components/dashboard/DailyPerformanceCharts";
 
@@ -11,15 +13,10 @@ const Spinner = () => (
   </div>
 );
 
-const statCardStyle = {
-  background: "#1a1a1a",
-  border: "1px solid rgba(201,168,76,0.3)",
-  padding: "20px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "10px",
-  minHeight: "132px",
-  justifyContent: "space-between"
+const widgetGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+  gap: "16px"
 };
 
 const sectionCardStyle = {
@@ -63,15 +60,6 @@ function formatCurrency(value) {
   return `R${Number(value || 0).toLocaleString("en-ZA")}`;
 }
 
-function StatCard({ label, value }) {
-  return (
-    <div style={statCardStyle}>
-      <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(201,168,76,0.6)" }}>{label}</p>
-      <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "32px", color: "#C9A84C", fontWeight: 600, lineHeight: 1 }}>{value}</p>
-    </div>
-  );
-}
-
 function Badge({ value, styles }) {
   const style = styles[value] || styles.PENDING || styles.Active;
   return (
@@ -81,83 +69,168 @@ function Badge({ value, styles }) {
   );
 }
 
-function UpcomingDeliveries({ orders }) {
+function WidgetShell({ title, icon: IconComponent, accentBorder = sectionCardStyle.border, badge, children, fullWidth = false }) {
   return (
-    <section style={sectionCardStyle}>
-      <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase" }}>Upcoming Deliveries</p>
-      {orders.length === 0 ? (
-        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "rgba(245,240,232,0.6)" }}>No upcoming deliveries scheduled.</p>
-      ) : (
-        <div style={{ display: "grid", gap: "12px" }}>
-          {orders.map((order) => (
-            <div key={order.id} style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", padding: "16px", display: "grid", gap: "10px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
-                <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
-                <Badge value={order.payment_status || "PENDING"} styles={paymentBadgeStyles} />
-              </div>
-              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8" }}>{formatDeliveryDate(order.delivery_date)}</p>
-              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: order.delivery_address ? "#F5F0E8" : "rgba(245,240,232,0.5)" }}>{order.delivery_address || "Address TBC"}</p>
-              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#d29c6c" }}>{formatCurrency(order.order_total)}</p>
-            </div>
-          ))}
+    <section style={{ ...sectionCardStyle, border: accentBorder, gridColumn: fullWidth ? "1 / -1" : undefined }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <IconComponent size={16} color="#C9A84C" />
+          <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase" }}>{title}</p>
         </div>
-      )}
+        {badge}
+      </div>
+      {children}
     </section>
   );
 }
 
-function RecentActivity({ orders }) {
+function NextDeliveriesWidget({ orders }) {
   return (
-    <section style={sectionCardStyle}>
-      <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase" }}>Recent Activity</p>
-      <div style={{ display: "grid", gap: "10px" }}>
-        {orders.map((order) => (
-          <div key={order.id} style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.16)", padding: "14px", display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ display: "grid", gap: "6px" }}>
-              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
-              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.55)" }}>{formatCurrency(order.order_total)}</p>
-            </div>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <Badge value={order.fulfilment_status || "Active"} styles={fulfilmentBadgeStyles} />
+    <WidgetShell title="Next Deliveries" icon={CalendarDays} fullWidth>
+      {orders.length === 0 ? (
+        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "rgba(245,240,232,0.6)" }}>No upcoming deliveries.</p>
+      ) : (
+        <div style={{ display: "grid", gap: "10px" }}>
+          {orders.map((order) => (
+            <div key={order.id} style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.16)", padding: "14px", display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ display: "grid", gap: "4px" }}>
+                <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: 700, color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
+                <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.55)" }}>{formatDeliveryDate(order.delivery_date)}</p>
+              </div>
               <Badge value={order.payment_status || "PENDING"} styles={paymentBadgeStyles} />
             </div>
+          ))}
+        </div>
+      )}
+    </WidgetShell>
+  );
+}
+
+function ActionRequiredWidget({ items }) {
+  const badge = (
+    <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", border: "1px solid rgba(194,24,91,0.4)", background: "rgba(194,24,91,0.08)", color: "#C2185B", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: "2px" }}>
+      {items.length}
+    </span>
+  );
+
+  return (
+    <WidgetShell title="Action Required" icon={AlertTriangle} accentBorder="1px solid rgba(194,24,91,0.35)" badge={badge}>
+      {items.length === 0 ? (
+        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "#16a34a" }}>All clear — nothing needs attention.</p>
+      ) : (
+        <div style={{ display: "grid", gap: "10px" }}>
+          {items.map((order) => (
+            <div key={order.id} style={{ background: "rgba(194,24,91,0.08)", border: "1px solid rgba(194,24,91,0.22)", padding: "14px", display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: 700, color: "#F5F0E8" }}>{order.client_name || "Unknown Client"}</p>
+              <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", border: "1px solid rgba(201,168,76,0.45)", background: "rgba(201,168,76,0.1)", color: "#C9A84C", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: "2px" }}>
+                {order.actionReason}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </WidgetShell>
+  );
+}
+
+function LowStockWidget({ products }) {
+  const badge = (
+    <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", border: "1px solid rgba(201,168,76,0.45)", background: "rgba(201,168,76,0.1)", color: "#C9A84C", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: "2px" }}>
+      {products.length}
+    </span>
+  );
+
+  return (
+    <WidgetShell title="Low Stock" icon={Package} accentBorder="1px solid rgba(201,168,76,0.35)" badge={badge}>
+      {products.length === 0 ? (
+        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "#16a34a" }}>All products well stocked.</p>
+      ) : (
+        <div style={{ display: "grid", gap: "10px" }}>
+          {products.map((product) => (
+            <div key={product.id} style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.16)", padding: "14px", display: "grid", gap: "4px" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: 700, color: "#F5F0E8" }}>{product.product_name || "Unnamed Product"}</p>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "#C2185B" }}>Stock: {Number(product.current_stock || 0)}</p>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.55)" }}>Threshold: {Number(product.low_stock_threshold || 0)}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </WidgetShell>
+  );
+}
+
+function WeeklyRevenueWidget({ thisWeekRevenue, lastWeekRevenue }) {
+  const TrendIcon = thisWeekRevenue > lastWeekRevenue ? TrendingUp : thisWeekRevenue < lastWeekRevenue ? TrendingDown : Minus;
+  const trendColor = thisWeekRevenue > lastWeekRevenue ? "#16a34a" : thisWeekRevenue < lastWeekRevenue ? "#C2185B" : "rgba(245,240,232,0.55)";
+
+  return (
+    <WidgetShell title="Weekly Revenue" icon={CalendarDays}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "center" }}>
+        <div style={{ display: "grid", gap: "8px" }}>
+          <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "36px", fontWeight: 700, color: "#C9A84C", lineHeight: 1 }}>{formatCurrency(thisWeekRevenue)}</p>
+          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.55)" }}>{formatCurrency(lastWeekRevenue)} last week</p>
+        </div>
+        <TrendIcon size={22} color={trendColor} />
+      </div>
+    </WidgetShell>
+  );
+}
+
+function CashToCollectWidget({ total, count }) {
+  return (
+    <WidgetShell title="Cash to Collect" icon={Banknote} accentBorder="1px solid rgba(201,168,76,0.35)">
+      {count === 0 ? (
+        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "rgba(245,240,232,0.6)" }}>No cash outstanding.</p>
+      ) : (
+        <div style={{ display: "grid", gap: "8px" }}>
+          <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "36px", fontWeight: 700, color: "#C9A84C", lineHeight: 1 }}>{formatCurrency(total)}</p>
+          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.55)" }}>{count} cash order(s) outstanding</p>
+        </div>
+      )}
+    </WidgetShell>
+  );
+}
+
+function BreakdownLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, value }) {
+  if (!value) return null;
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.55;
+  const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
+  const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+  return (
+    <text x={x} y={y} fill="#F5F0E8" textAnchor="middle" dominantBaseline="central" style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 600 }}>
+      {`${value} (${Math.round(percent * 100)}%)`}
+    </text>
+  );
+}
+
+function OrderBreakdownWidget({ data }) {
+  const colors = ["#C9A84C", "#16a34a", "#C2185B"];
+  return (
+    <WidgetShell title="Order Breakdown" icon={Package}>
+      <div style={{ width: "100%", height: "220px" }}>
+        <ResponsiveContainer>
+          <PieChart>
+            <Pie data={data} dataKey="value" nameKey="name" innerRadius={52} outerRadius={80} paddingAngle={2} labelLine={false} label={BreakdownLabel}>
+              {data.map((entry, index) => (
+                <Cell key={entry.name} fill={colors[index]} />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={{ background: "#111111", border: "1px solid rgba(201,168,76,0.24)", borderRadius: "2px", color: "#F5F0E8" }}
+              formatter={(value, name) => [`${value}`, name]}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+        {data.map((item, index) => (
+          <div key={item.name} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ width: "10px", height: "10px", background: colors[index], display: "inline-block" }} />
+            <span style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.7)" }}>{item.name}: {item.value}</span>
           </div>
         ))}
       </div>
-    </section>
-  );
-}
-
-function InventoryAlerts({ products }) {
-  const lowStockProducts = products.filter((product) => Number(product.current_stock || 0) < Number(product.low_stock_threshold || 0));
-
-  return (
-    <section style={{ ...sectionCardStyle, border: lowStockProducts.length ? "1px solid rgba(194,24,91,0.35)" : sectionCardStyle.border }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "baseline" }}>
-        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase" }}>Inventory Alerts</p>
-        <span style={{ display: "inline-flex", alignItems: "center", padding: "6px 10px", border: lowStockProducts.length ? "1px solid rgba(194,24,91,0.4)" : "1px solid rgba(255,255,255,0.2)", background: lowStockProducts.length ? "rgba(194,24,91,0.08)" : "rgba(255,255,255,0.05)", color: lowStockProducts.length ? "#C2185B" : "rgba(245,240,232,0.7)", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: "2px" }}>
-          {lowStockProducts.length} Low Stock
-        </span>
-      </div>
-
-      {lowStockProducts.length === 0 ? (
-        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", color: "rgba(245,240,232,0.6)" }}>All catalogue items are above their stock thresholds.</p>
-      ) : (
-        <div style={{ display: "grid", gap: "10px" }}>
-          {lowStockProducts.map((product) => (
-            <div key={product.id} style={{ background: "rgba(194,24,91,0.08)", border: "1px solid rgba(194,24,91,0.28)", padding: "14px", display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
-              <div style={{ display: "grid", gap: "4px" }}>
-                <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#F5F0E8" }}>{product.product_name || "Unnamed Product"}</p>
-                <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.55)" }}>Threshold: {Number(product.low_stock_threshold || 0)} units</p>
-              </div>
-              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#C2185B", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
-                {Number(product.current_stock || 0)} remaining
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
+    </WidgetShell>
   );
 }
 
@@ -170,25 +243,31 @@ export default function Dashboard() {
   const metrics = useMemo(() => {
     const activeOrders = orders.filter((order) => order.fulfilment_status === "Active");
     const fulfilledOrders = orders.filter((order) => order.fulfilment_status === "Fulfilled");
-    const todaysDeliveries = orders.filter((order) => String(order.delivery_date || "").startsWith(today));
-    const paymentCounts = {
-      PAID: orders.filter((order) => order.payment_status === "PAID").length,
-      CASH: orders.filter((order) => order.payment_status === "CASH").length,
-      PENDING: orders.filter((order) => order.payment_status === "PENDING").length
-    };
+    const cancelledOrders = orders.filter((order) => order.fulfilment_status === "Cancelled");
 
-    const upcoming = activeOrders
+    const nextDeliveries = [...orders]
       .filter((order) => {
         const datePart = getDatePart(order.delivery_date);
         return datePart && datePart >= today;
       })
-      .sort((a, b) => String(a.delivery_date || "").localeCompare(String(b.delivery_date || "")));
-
-    const recent = [...orders]
-      .sort((a, b) => String(b.updated_date || "").localeCompare(String(a.updated_date || "")))
+      .sort((a, b) => String(a.delivery_date || "").localeCompare(String(b.delivery_date || "")))
       .slice(0, 5);
 
+    const actionRequired = [...orders]
+      .filter((order) => order.payment_status === "PENDING" || !String(order.delivery_date || "").trim())
+      .map((order) => ({
+        ...order,
+        actionReason: order.payment_status === "PENDING" ? "Payment pending" : "No delivery date set"
+      }))
+      .sort((a, b) => String(b.created_date || "").localeCompare(String(a.created_date || "")));
+
+    const lowStock = [...products]
+      .filter((product) => Number(product.current_stock || 0) <= Number(product.low_stock_threshold || 0))
+      .sort((a, b) => Number(a.current_stock || 0) - Number(b.current_stock || 0));
+
     const weekStart = moment(today).startOf("isoWeek");
+    const lastWeekStart = weekStart.clone().subtract(1, "week");
+    const lastWeekEnd = weekStart.clone().subtract(1, "day");
     const weeklyPerformance = Array.from({ length: 7 }, (_, index) => {
       const date = weekStart.clone().add(index, "days");
       const dateKey = date.format("YYYY-MM-DD");
@@ -204,17 +283,39 @@ export default function Dashboard() {
       };
     });
 
+    const thisWeekRevenue = orders
+      .filter((order) => {
+        const datePart = getDatePart(order.delivery_date);
+        return datePart && moment(datePart).isBetween(weekStart, weekStart.clone().endOf("isoWeek"), "day", "[]");
+      })
+      .reduce((sum, order) => sum + Number(order.order_total || 0), 0);
+
+    const lastWeekRevenue = orders
+      .filter((order) => {
+        const datePart = getDatePart(order.delivery_date);
+        return datePart && moment(datePart).isBetween(lastWeekStart, lastWeekEnd, "day", "[]");
+      })
+      .reduce((sum, order) => sum + Number(order.order_total || 0), 0);
+
+    const outstandingCashOrders = orders.filter((order) => order.payment_status === "CASH" && order.fulfilment_status === "Active");
+    const outstandingCashTotal = outstandingCashOrders.reduce((sum, order) => sum + Number(order.order_total || 0), 0);
+
+    const orderBreakdown = [
+      { name: "Active", value: activeOrders.length },
+      { name: "Fulfilled", value: fulfilledOrders.length },
+      { name: "Cancelled", value: cancelledOrders.length }
+    ];
+
     return {
-      totalOrders: orders.length,
-      totalProducts: products.length,
-      activeCount: activeOrders.length,
-      todaysDeliveries: todaysDeliveries.length,
-      totalFulfilled: fulfilledOrders.length,
-      totalRevenue: orders.reduce((sum, order) => sum + Number(order.order_total || 0), 0),
-      paymentCounts,
       weeklyPerformance,
-      upcoming,
-      recent
+      nextDeliveries,
+      actionRequired,
+      lowStock,
+      thisWeekRevenue,
+      lastWeekRevenue,
+      outstandingCashTotal,
+      outstandingCashCount: outstandingCashOrders.length,
+      orderBreakdown
     };
   }, [orders, products, today]);
 
@@ -226,23 +327,14 @@ export default function Dashboard() {
 
       <DailyPerformanceCharts data={metrics.weeklyPerformance} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-        <StatCard label="Total Orders" value={metrics.totalOrders} />
-        <StatCard label="Today&apos;s Orders" value={metrics.todaysDeliveries} />
-        <StatCard label="Total Fulfilled" value={metrics.totalFulfilled} />
-        <StatCard label="Total Revenue" value={formatCurrency(metrics.totalRevenue)} />
+      <div style={widgetGridStyle}>
+        <NextDeliveriesWidget orders={metrics.nextDeliveries} />
+        <ActionRequiredWidget items={metrics.actionRequired} />
+        <LowStockWidget products={metrics.lowStock} />
+        <WeeklyRevenueWidget thisWeekRevenue={metrics.thisWeekRevenue} lastWeekRevenue={metrics.lastWeekRevenue} />
+        <CashToCollectWidget total={metrics.outstandingCashTotal} count={metrics.outstandingCashCount} />
+        <OrderBreakdownWidget data={metrics.orderBreakdown} />
       </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-        <StatCard label="Active Orders" value={metrics.activeCount} />
-        <StatCard label="Paid Orders" value={metrics.paymentCounts.PAID} />
-        <StatCard label="Cash Orders" value={metrics.paymentCounts.CASH} />
-        <StatCard label="Pending Payment" value={metrics.paymentCounts.PENDING} />
-      </div>
-
-      <InventoryAlerts products={products} />
-      <UpcomingDeliveries orders={metrics.upcoming} />
-      <RecentActivity orders={metrics.recent} />
     </div>
   );
 }
