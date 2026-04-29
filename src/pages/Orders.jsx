@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import moment from "moment";
+import { Phone } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cleanClientName, isVisibleOrderRecord } from "../components/notes/memberIntelligenceUtils";
@@ -70,6 +71,60 @@ function PaymentBadge({ value }) {
   );
 }
 
+function TodayOrderCard({ order }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    const lines = [
+      cleanClientName(order.client_name),
+      `${getTimePart(order.delivery_date)} — ${order.delivery_address || "Address TBC"}`,
+      `📞 ${order.cell_number || "No contact number"}`
+    ];
+
+    if (order.payment_status === "CASH") {
+      lines.push(`💵 ${formatCurrency(order.order_total)} — Cash on delivery`);
+    }
+
+    await navigator.clipboard.writeText(lines.join("\n"));
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", padding: "18px", display: "grid", gap: "14px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
+        <div style={{ display: "grid", gap: "8px", flex: 1 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
+            <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "26px", fontWeight: 700, color: "#F5F0E8" }}>{cleanClientName(order.client_name)}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 700, color: "#F5F0E8" }}>{getTimePart(order.delivery_date)}</p>
+          </div>
+          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: order.delivery_address ? "rgba(245,240,232,0.62)" : "rgba(245,240,232,0.4)" }}>{order.delivery_address || "Address TBC"}</p>
+          <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.58)" }}>
+            <Phone size={12} />
+            <span>{order.cell_number || "No contact number"}</span>
+          </p>
+          {order.payment_status === "CASH" && (
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#d29c6c" }}>💵 {formatCurrency(order.order_total)} — Cash on delivery</p>
+          )}
+          <Link to="/daily-dispatch-manifest" style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.68)", letterSpacing: "0.02em" }}>
+            View Dispatch →
+          </Link>
+        </div>
+        <PaymentBadge value={order.payment_status} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-start" }}>
+        <button
+          type="button"
+          onClick={handleCopy}
+          style={{ background: "transparent", border: "1px solid #C9A84C", color: "#C9A84C", fontFamily: "var(--font-body)", fontSize: "11px", fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", padding: "8px 14px", borderRadius: "2px", cursor: "pointer" }}
+        >
+          {copied ? "✓ Copied!" : "Copy for Driver"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TodayOrders({ orders, todayDisplay }) {
   return (
     <section style={sectionCardStyle}>
@@ -82,24 +137,7 @@ function TodayOrders({ orders, todayDisplay }) {
       ) : (
         <div style={{ display: "grid", gap: "12px" }}>
           {orders.map((order) => (
-            <div key={order.id} style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", padding: "18px", display: "grid", gap: "14px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
-                <div style={{ display: "grid", gap: "8px", flex: 1 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
-                    <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "26px", fontWeight: 700, color: "#F5F0E8" }}>{cleanClientName(order.client_name)}</p>
-                    <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 700, color: "#F5F0E8" }}>{getTimePart(order.delivery_date)}</p>
-                  </div>
-                  <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: order.delivery_address ? "rgba(245,240,232,0.62)" : "rgba(245,240,232,0.4)" }}>{order.delivery_address || "Address TBC"}</p>
-                  {order.payment_status === "CASH" && (
-                    <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#d29c6c" }}>{formatCurrency(order.order_total)} — Cash on delivery</p>
-                  )}
-                  <Link to="/daily-dispatch-manifest" style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.68)", letterSpacing: "0.02em" }}>
-                    View Dispatch →
-                  </Link>
-                </div>
-                <PaymentBadge value={order.payment_status} />
-              </div>
-            </div>
+            <TodayOrderCard key={order.id} order={order} />
           ))}
         </div>
       )}
