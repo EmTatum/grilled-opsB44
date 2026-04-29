@@ -73,6 +73,7 @@ function PaymentBadge({ value }) {
 
 function TodayOrderCard({ order }) {
   const [copied, setCopied] = useState(false);
+  const isFulfilled = order.fulfilment_status === "Fulfilled";
 
   const handleCopy = async () => {
     const lines = [
@@ -91,12 +92,17 @@ function TodayOrderCard({ order }) {
   };
 
   return (
-    <div style={{ background: "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", padding: "18px", display: "grid", gap: "14px" }}>
+    <div style={{ background: isFulfilled ? "rgba(21, 128, 61, 0.12)" : "#1a1a1a", border: "1px solid rgba(201,168,76,0.18)", borderLeft: isFulfilled ? "3px solid #15803d" : "1px solid rgba(201,168,76,0.18)", padding: "18px", display: "grid", gap: "14px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
         <div style={{ display: "grid", gap: "8px", flex: 1 }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
-            <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "26px", fontWeight: 700, color: "#F5F0E8" }}>{cleanClientName(order.client_name)}</p>
-            <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 700, color: "#F5F0E8" }}>{getTimePart(order.delivery_date)}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "26px", fontWeight: 700, color: "#F5F0E8", opacity: isFulfilled ? 0.7 : 1 }}>{cleanClientName(order.client_name)}</p>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 700, color: "#F5F0E8", opacity: isFulfilled ? 0.7 : 1 }}>{getTimePart(order.delivery_date)}</p>
+              {isFulfilled && (
+                <span style={{ fontFamily: "var(--font-body)", fontSize: "11px", color: "#15803d", letterSpacing: "0.08em" }}>✓ Done</span>
+              )}
+            </div>
           </div>
           <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: order.delivery_address ? "rgba(245,240,232,0.62)" : "rgba(245,240,232,0.4)" }}>{order.delivery_address || "Address TBC"}</p>
           <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.58)" }}>
@@ -275,7 +281,15 @@ export default function Orders() {
       .sort((a, b) => String(a.delivery_date || "").localeCompare(String(b.delivery_date || "")));
   }, [liveOrders]);
 
-  const todaysOrders = useMemo(() => orders.filter((order) => getDatePart(order.delivery_date) === today), [orders, today]);
+  const todaysOrders = useMemo(() => {
+    return [...orders.filter((order) => getDatePart(order.delivery_date) === today)].sort((a, b) => {
+      const aFulfilled = a.fulfilment_status === 'Fulfilled';
+      const bFulfilled = b.fulfilment_status === 'Fulfilled';
+      if (aFulfilled && !bFulfilled) return 1;
+      if (!aFulfilled && bFulfilled) return -1;
+      return (a.delivery_date || '').localeCompare(b.delivery_date || '');
+    });
+  }, [orders, today]);
 
   if (loading) return <Spinner />;
 
