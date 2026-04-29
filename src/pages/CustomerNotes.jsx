@@ -26,6 +26,9 @@ export default function CustomerNotes() {
   const [conversation, setConversation] = useState("");
   const [importMessage, setImportMessage] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [inputError, setInputError] = useState("");
+  const [processingMessage, setProcessingMessage] = useState("");
+  const [localGeneratedOrders, setLocalGeneratedOrders] = useState([]);
   const [updatingReport, setUpdatingReport] = useState(false);
   const [confirmedPayments, setConfirmedPayments] = useState({});
   const [pendingSelection, setPendingSelection] = useState({});
@@ -33,7 +36,10 @@ export default function CustomerNotes() {
   const [followUpFlags, setFollowUpFlags] = useState({});
   const [selectedReportId, setSelectedReportId] = useState(null);
 
-  const activeOrders = useMemo(() => memberOrders.filter((record) => record.fulfilment_status !== "Fulfilled" && record.fulfilment_status !== "Cancelled"), [memberOrders]);
+  const activeOrders = useMemo(() => {
+    const merged = [...localGeneratedOrders, ...memberOrders.filter((record) => !localGeneratedOrders.some((localRecord) => localRecord.id === record.id))];
+    return merged.filter((record) => record.fulfilment_status !== "Fulfilled" && record.fulfilment_status !== "Cancelled");
+  }, [memberOrders, localGeneratedOrders]);
   const selectedOrder = useMemo(() => activeOrders.find((order) => order.id === selectedReportId) || activeOrders[0] || null, [activeOrders, selectedReportId]);
 
   const findExistingByClientName = async (clientName) => {
@@ -68,37 +74,92 @@ export default function CustomerNotes() {
   });
 
   const handleGenerate = async () => {
-    if (!conversation.trim() || generating) return;
+    if (generating) return;
+
+    if (!conversation.trim() || conversation.trim().length < 50) {
+      setInputError("Please paste or import a WhatsApp chat before generating.");
+      return;
+    }
+
+    setInputError("");
     setGenerating(true);
+    setProcessingMessage("Analysing chat... this takes a moment.");
+
+    let fullReportText = "Report generation failed — please try again.";
 
     try {
-      const fullReportText = await base44.integrations.Core.InvokeLLM({
+      const reportResponse = await base44.integrations.Core.InvokeLLM({
         prompt: `${FULL_REPORT_PROMPT}\n\nWhatsApp conversation:\n${conversation}`
       });
 
-      const extraction = await base44.integrations.Core.InvokeLLM({
+      if (typeof reportResponse === "string" && reportResponse.trim()) {
+        fullReportText = reportResponse.trim();
+      }
+    } catch {
+      fullReportText = "Report generation failed — please try again.";
+    }
+
+    setProcessingMessage("Extracting order details...");
+
+    let extraction;
+    try {
+      extraction = await base44.integrations.Core.InvokeLLM({
         prompt: `${EXTRACTION_PROMPT}\n\nWhatsApp conversation:\n${conversation}`,
         response_json_schema: EXTRACTION_SCHEMA
       });
+    } catch {
+      toast.error("Extraction failed — check your chat text and try again.");
+      setGenerating(false);
+      setProcessingMessage("");
+      return;
+    }
 
-      const cleanedClientName = cleanClientName(extraction.client_name || "");
-      const jsonFields = buildStructuredFields({ ...extraction, client_name: cleanedClientName });
+    if (!extraction || typeof extraction !== "object" || Array.isArray(extraction)) {
+      toast.error("Could not read extraction result — please try again.");
+      setGenerating(false);
+      setProcessingMessage("");
+      return;
+    }
+
+    const cleanedClientName = cleanClientName(extraction.client_name || "");
+    const jsonFields = buildStructuredFields({ ...extraction, client_name: cleanedClientName });
+    const payload = {
+      ...jsonFields,
+      intelligence_report: fullReportText,
+      fulfilment_status: "Active"
+    };
+
+    const existingLocalRecord = activeOrders.find((item) => normalizeClientName(item.client_name) === normalizeClientName(cleanedClientName));
+    const temporaryId = existingLocalRecord?.id || `temp-${Date.now()}`;
+    const localRecord = {
+      ...existingLocalRecord,
+      ...payload,
+      id: temporaryId
+    };
+
+    setLocalGeneratedOrders((prev) => {
+      const remaining = prev.filter((item) => normalizeClientName(item.client_name) !== normalizeClientName(cleanedClientName) && item.id !== temporaryId);
+      return [localRecord, ...remaining];
+    });
+    setSelectedReportId(temporaryId);
+
+    try {
       const existingRecord = await findExistingByClientName(cleanedClientName);
-      const payload = {
-        ...jsonFields,
-        intelligence_report: fullReportText
-      };
-
       const savedRecord = existingRecord
         ? await base44.entities.MemberOrder.update(existingRecord.id, payload)
-        : await base44.entities.MemberOrder.create({ ...payload, fulfilment_status: "Active" });
+        : await base44.entities.MemberOrder.create(payload);
 
+      setLocalGeneratedOrders((prev) => {
+        const remaining = prev.filter((item) => item.id !== temporaryId && normalizeClientName(item.client_name) !== normalizeClientName(cleanedClientName));
+        return [savedRecord, ...remaining];
+      });
       setSelectedReportId(savedRecord.id);
       toast.success(`Saved for ${savedRecord.client_name}`);
     } catch {
-      toast.error("Save failed — please try again");
+      toast.warning("Could not save to database — data will be lost on refresh.");
     } finally {
       setGenerating(false);
+      setProcessingMessage("");
     }
   };
 
@@ -179,11 +240,16 @@ export default function CustomerNotes() {
 
       <MemberIntelligenceInput
         conversation={conversation}
-        onConversationChange={setConversation}
+        onConversationChange={(value) => {
+          setConversation(value);
+          if (inputError) setInputError("");
+        }}
         onImportFile={handleImportFile}
         importMessage={importMessage}
         onGenerate={handleGenerate}
         generating={generating}
+        inputError={inputError}
+        processingMessage={processingMessage}
       />
 
       <section style={sectionStyle}>

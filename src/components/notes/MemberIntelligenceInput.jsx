@@ -36,7 +36,7 @@ const buttonStyle = {
   cursor: "pointer"
 };
 
-export default function MemberIntelligenceInput({ conversation, onConversationChange, onImportFile, importMessage, onGenerate, generating }) {
+export default function MemberIntelligenceInput({ conversation, onConversationChange, onImportFile, importMessage, onGenerate, generating, inputError, processingMessage }) {
   return (
     <section style={panelStyle}>
       <div>
@@ -59,7 +59,19 @@ export default function MemberIntelligenceInput({ conversation, onConversationCh
         placeholder="Paste the full WhatsApp conversation here..."
       />
 
-      <button onClick={onGenerate} disabled={!conversation.trim() || generating} style={{ ...buttonStyle, opacity: !conversation.trim() || generating ? 0.6 : 1, cursor: !conversation.trim() || generating ? "default" : "pointer", justifySelf: "start" }}>
+      {inputError && (
+        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "#C2185B" }}>{inputError}</p>
+      )}
+
+      {generating && (
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ width: "16px", height: "16px", border: "1px solid rgba(201,168,76,0.2)", borderTopColor: "#C9A84C", borderRadius: "50%", animation: "spin 0.9s linear infinite" }} />
+          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.7)" }}>{processingMessage || "Analysing chat... this takes a moment."}</p>
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        </div>
+      )}
+
+      <button onClick={onGenerate} disabled={generating} style={{ ...buttonStyle, opacity: generating ? 0.6 : 1, cursor: generating ? "default" : "pointer", justifySelf: "start" }}>
         {generating ? "Generating..." : "Generate Report"}
       </button>
     </section>
