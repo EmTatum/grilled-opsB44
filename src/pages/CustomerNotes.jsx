@@ -5,6 +5,7 @@ import PageHeader from "../components/PageHeader";
 import MemberIntelligenceInput from "../components/notes/MemberIntelligenceInput";
 import MemberOrderSummaryCard from "../components/notes/MemberOrderSummaryCard";
 import FullIntelligenceReportPanel from "../components/notes/FullIntelligenceReportPanel";
+import MemberHistoryProfilePanel from "../components/notes/MemberHistoryProfilePanel";
 import { useEntityList } from "@/hooks/useEntityList";
 import { EXTRACTION_PROMPT, EXTRACTION_SCHEMA, FULL_REPORT_PROMPT } from "../components/notes/member-intelligence-config";
 import { cleanClientName, consolidateOrderList, normalizeClientName, normalizeDeliveryDate } from "../components/notes/memberIntelligenceUtils";
@@ -288,11 +289,17 @@ export default function CustomerNotes() {
         )}
       </section>
 
-      <FullIntelligenceReportPanel
-        selectedOrder={selectedOrder}
-        onUpdateReport={handleUpdateReport}
-        updating={updatingReport}
-      />
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 0.8fr)", gap: "16px", alignItems: "start" }}>
+        <FullIntelligenceReportPanel
+          selectedOrder={selectedOrder}
+          onUpdateReport={handleUpdateReport}
+          updating={updatingReport}
+        />
+        <MemberHistoryProfilePanel
+          selectedOrder={selectedOrder}
+          orders={memberOrders}
+        />
+      </div>
     </div>
   );
 }
