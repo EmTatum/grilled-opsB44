@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, AlertTriangle } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import ProductFormDialog from "../components/ProductFormDialog";
+import { syncInventoryFromFulfilledOrders } from "@/functions/syncInventoryFromFulfilledOrders";
 
 
 const GoldBtn = ({ onClick, children }) => (
@@ -124,6 +125,21 @@ export default function Inventory() {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
+    const sync = async () => {
+      await syncInventoryFromFulfilledOrders({});
+      await load();
+    };
+
+    sync();
+
+    const unsubscribe = base44.entities.MemberOrder.subscribe(() => {
+      sync();
+    });
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
     const nextDrafts = {};
     products.forEach((product) => {
       nextDrafts[product.id] = String(product.current_stock ?? product.last_stock_count ?? 0);
@@ -179,6 +195,10 @@ export default function Inventory() {
       .sort((a, b) => (a.display_name || "").localeCompare(b.display_name || ""));
   }, [products]);
 
+  const lowStockProducts = useMemo(() => {
+    return filteredProducts.filter((product) => Number(product.current_stock || 0) <= Number(product.low_stock_threshold || 0));
+  }, [filteredProducts]);
+
   if (loading) return <Spinner />;
 
   return (
@@ -189,6 +209,23 @@ export default function Inventory() {
         </p>
         <GoldBtn onClick={() => { setEditProduct(null); setFormOpen(true); }}><Plus size={12} /> Add Product</GoldBtn>
       </PageHeader>
+
+      {lowStockProducts.length > 0 && (
+        <div style={{ marginBottom: "16px", background: "rgba(194,24,91,0.08)", border: "1px solid rgba(194,24,91,0.28)", padding: "16px", display: "grid", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <AlertTriangle size={16} color="#C2185B" />
+            <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "22px", color: "#C9A84C", letterSpacing: "0.06em", textTransform: "uppercase" }}>Low Stock Alerts</p>
+          </div>
+          <div style={{ display: "grid", gap: "8px" }}>
+            {lowStockProducts.map((product) => (
+              <div key={product.id} style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center", background: "#111111", border: "1px solid rgba(201,168,76,0.14)", padding: "12px 14px" }}>
+                <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 700, color: "#F5F0E8" }}>{product.display_name}</p>
+                <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "#C2185B" }}>Stock {Number(product.current_stock || 0)} / Threshold {Number(product.low_stock_threshold || 0)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {filteredProducts.length === 0 ? (
         <div style={{ textAlign: "center", padding: "80px 20px", border: "1px dashed rgba(210,156,108,0.15)" }}>

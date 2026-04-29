@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useEntityList } from "@/hooks/useEntityList";
 import moment from "moment";
+import { syncInventoryFromFulfilledOrders } from "@/functions/syncInventoryFromFulfilledOrders";
 import { CalendarDays, AlertTriangle, Package, Banknote, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import PageHeader from "../components/PageHeader";
@@ -238,6 +239,10 @@ function OrderBreakdownWidget({ data }) {
 export default function Dashboard() {
   const { data: orders, loading: loadingOrders } = useEntityList("MemberOrder", "-updated_date", 1000);
   const { data: products, loading: loadingProducts } = useEntityList("Product", "product_name", 1000);
+
+  useEffect(() => {
+    syncInventoryFromFulfilledOrders({});
+  }, []);
 
   const today = moment().format("YYYY-MM-DD");
 
