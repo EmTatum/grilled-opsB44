@@ -4,6 +4,7 @@ import moment from "moment";
 import PageHeader from "../components/PageHeader";
 import ClientAnalyticsList from "../components/client-analytics/ClientAnalyticsList";
 import ClientDetailPanel from "../components/client-analytics/ClientDetailPanel";
+import MemberAnalyticsOverview from "../components/client-analytics/MemberAnalyticsOverview";
 import { cleanClientName, isValidClientName } from "../components/notes/memberIntelligenceUtils";
 
 const Spinner = () => (
@@ -113,6 +114,73 @@ export default function ClientAnalytics() {
     [clients, selectedClientName]
   );
 
+  const analyticsOverview = useMemo(() => {
+    const monthMap = notes.reduce((acc, note) => {
+      const clientName = cleanClientName(note.client_name || "");
+      if (!isValidClientName(clientName)) return acc;
+      if (String(note.fulfilment_status || "") === "Cancelled") return acc;
+
+      const monthKey = moment(note.delivery_date || note.last_order_date || note.updated_date || note.created_date).startOf("month").format("YYYY-MM");
+      if (!acc[monthKey]) {
+        acc[monthKey] = {
+          label: moment(monthKey, "YYYY-MM").format("MMM YYYY"),
+          revenue: 0,
+          activeMembers: new Set(),
+          premiumOrders: 0,
+          premiumBuyers: new Set()
+        };
+      }
+
+      acc[monthKey].revenue += Number(note.order_total || 0);
+      acc[monthKey].activeMembers.add(clientName);
+
+      const orderList = String(note.order_list || note.content || "").toLowerCase();
+      if (/(bud|changa|mushroom|ketamine|ecstasy|acid|dougies|cola|md|xannie|zolpidiem)/i.test(orderList)) {
+        acc[monthKey].premiumOrders += 1;
+        acc[monthKey].premiumBuyers.add(clientName);
+      }
+
+      return acc;
+    }, {});
+
+    const sortedMonths = Object.entries(monthMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value], index, array) => {
+        const previous = index > 0 ? array[index - 1][1] : null;
+        const retentionBase = previous ? previous.activeMembers : null;
+        const retainedCount = retentionBase ? Array.from(value.activeMembers).filter((member) => retentionBase.has(member)).length : 0;
+        const retentionRate = retentionBase && retentionBase.size > 0 ? Number(((retainedCount / retentionBase.size) * 100).toFixed(1)) : 0;
+        const monthlyActiveUsers = value.activeMembers.size;
+        const purchaseFrequency = monthlyActiveUsers > 0 ? Number((value.premiumOrders / monthlyActiveUsers).toFixed(2)) : 0;
+
+        return {
+          key,
+          label: value.label,
+          revenue: value.revenue,
+          retentionRate,
+          monthlyActiveUsers,
+          purchaseFrequency
+        };
+      });
+
+    const latest = sortedMonths[sortedMonths.length - 1] || { revenue: 0, retentionRate: 0, monthlyActiveUsers: 0, purchaseFrequency: 0 };
+    const previous = sortedMonths[sortedMonths.length - 2] || { revenue: 0 };
+    const growth = previous.revenue > 0 ? Number((((latest.revenue - previous.revenue) / previous.revenue) * 100).toFixed(1)) : 0;
+
+    return {
+      summary: {
+        revenueGrowthLabel: `${growth >= 0 ? "+" : ""}${growth}%`,
+        retentionRateLabel: `${latest.retentionRate}%`,
+        latestMonthlyActiveUsers: latest.monthlyActiveUsers,
+        averagePurchaseFrequencyLabel: `${latest.purchaseFrequency}x`
+      },
+      revenueTrend: sortedMonths.map((month) => ({ label: month.label, value: month.revenue })),
+      retentionTrend: sortedMonths.map((month) => ({ label: month.label, value: month.retentionRate })),
+      monthlyActiveUsersTrend: sortedMonths.map((month) => ({ label: month.label, value: month.monthlyActiveUsers })),
+      purchaseFrequencyTrend: sortedMonths.map((month) => ({ label: month.label, value: month.purchaseFrequency }))
+    };
+  }, [notes]);
+
   if (loading) return <Spinner />;
 
   return (
@@ -126,6 +194,13 @@ export default function ClientAnalytics() {
         </div>
       ) : (
         <div style={{ display: "grid", gap: "22px" }}>
+          <MemberAnalyticsOverview
+            summary={analyticsOverview.summary}
+            revenueTrend={analyticsOverview.revenueTrend}
+            retentionTrend={analyticsOverview.retentionTrend}
+            monthlyActiveUsersTrend={analyticsOverview.monthlyActiveUsersTrend}
+            purchaseFrequencyTrend={analyticsOverview.purchaseFrequencyTrend}
+          />
           <ClientAnalyticsList
             clients={clients}
             selectedClientName={selectedClientName}
