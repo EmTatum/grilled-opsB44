@@ -194,8 +194,9 @@ export default function CustomerNotes() {
     try {
       await base44.entities.MemberOrder.update(record.id, { fulfilment_status: 'Fulfilled' });
       setCardStatus((prev) => ({ ...prev, [record.id]: 'Fulfilled' }));
+      toast.success('Order fulfilled');
     } catch {
-      alert('Update failed');
+      toast.error('Update failed — please try again');
     }
   };
 
@@ -203,8 +204,9 @@ export default function CustomerNotes() {
     try {
       await base44.entities.MemberOrder.update(record.id, { fulfilment_status: 'Cancelled' });
       setCardStatus((prev) => ({ ...prev, [record.id]: 'Cancelled' }));
+      toast.success('Order cancelled');
     } catch {
-      alert('Update failed');
+      toast.error('Update failed — please try again');
     }
   };
 
