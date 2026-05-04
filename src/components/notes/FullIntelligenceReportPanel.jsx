@@ -27,10 +27,12 @@ const buttonStyle = {
 export default function FullIntelligenceReportPanel({ selectedOrder, onUpdateReport, updating }) {
   const [draft, setDraft] = useState("");
   const [isDirty, setIsDirty] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     setDraft(selectedOrder?.intelligence_report || "");
     setIsDirty(false);
+    setIsEditing(false);
   }, [selectedOrder?.id, selectedOrder?.intelligence_report]);
 
   if (!selectedOrder) {
@@ -51,25 +53,36 @@ export default function FullIntelligenceReportPanel({ selectedOrder, onUpdateRep
         <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.5)" }}>{selectedOrder.client_name || "Selected client"}</p>
       </div>
 
-      <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.16)", padding: "16px" }}>
-        <ReactMarkdown
-          components={{
-            p: ({ children }) => <p style={{ margin: "0 0 12px", fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8", lineHeight: 1.7 }}>{children}</p>,
-            strong: ({ children }) => <strong style={{ fontWeight: 700, color: "#F5F0E8" }}>{children}</strong>
-          }}
-        >
-          {draft || "No report content found."}
-        </ReactMarkdown>
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        <button type="button" onClick={() => setIsEditing(false)} style={{ ...buttonStyle, opacity: isEditing ? 0.7 : 1 }}>
+          Preview
+        </button>
+        <button type="button" onClick={() => setIsEditing(true)} style={{ ...buttonStyle, opacity: isEditing ? 1 : 0.7 }}>
+          Edit Report
+        </button>
       </div>
 
-      <textarea
-        value={draft}
-        onChange={(e) => {
-          setDraft(e.target.value);
-          setIsDirty(e.target.value !== (selectedOrder.intelligence_report || ""));
-        }}
-        style={{ width: "100%", minHeight: "260px", background: "#111111", border: "1px solid rgba(201,168,76,0.2)", color: "#F5F0E8", padding: "14px", fontFamily: "var(--font-body)", fontSize: "14px", resize: "vertical", outline: "none" }}
-      />
+      {isEditing ? (
+        <textarea
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setIsDirty(e.target.value !== (selectedOrder.intelligence_report || ""));
+          }}
+          style={{ width: "100%", minHeight: "260px", background: "#111111", border: "1px solid rgba(201,168,76,0.2)", color: "#F5F0E8", padding: "14px", fontFamily: "var(--font-body)", fontSize: "14px", resize: "vertical", outline: "none" }}
+        />
+      ) : (
+        <div style={{ background: "#111111", border: "1px solid rgba(201,168,76,0.16)", padding: "16px" }}>
+          <ReactMarkdown
+            components={{
+              p: ({ children }) => <p style={{ margin: "0 0 12px", fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8", lineHeight: 1.7 }}>{children}</p>,
+              strong: ({ children }) => <strong style={{ fontWeight: 700, color: "#F5F0E8" }}>{children}</strong>
+            }}
+          >
+            {draft || "No report content found."}
+          </ReactMarkdown>
+        </div>
+      )}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", minHeight: "20px" }}>
@@ -82,7 +95,10 @@ export default function FullIntelligenceReportPanel({ selectedOrder, onUpdateRep
         </div>
         <button type="button" disabled={!isDirty || updating} onClick={async () => {
           const ok = await onUpdateReport(selectedOrder, draft);
-          if (ok) setIsDirty(false);
+          if (ok) {
+            setIsDirty(false);
+            setIsEditing(false);
+          }
         }} style={{ ...buttonStyle, opacity: !isDirty || updating ? 0.6 : 1, cursor: !isDirty || updating ? "default" : "pointer" }}>
           {updating ? "Updating..." : "Update Report"}
         </button>
