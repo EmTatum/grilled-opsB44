@@ -36,6 +36,7 @@ export default function CustomerNotes() {
   const [cardStatus, setCardStatus] = useState({});
   const [followUpFlags, setFollowUpFlags] = useState({});
   const [selectedReportId, setSelectedReportId] = useState(null);
+  const [editReportRequestKey, setEditReportRequestKey] = useState(0);
 
   const activeOrders = useMemo(() => {
     const merged = [...localGeneratedOrders, ...memberOrders.filter((record) => !localGeneratedOrders.some((localRecord) => localRecord.id === record.id))];
@@ -283,6 +284,10 @@ export default function CustomerNotes() {
                 onFulfilled={handleFulfilled}
                 onCancelled={handleCancelled}
                 onSelectReport={(record) => setSelectedReportId(record.id)}
+                onEditReport={(record) => {
+                  setSelectedReportId(record.id);
+                  setEditReportRequestKey(Date.now());
+                }}
               />
             ))}
           </div>
@@ -294,6 +299,7 @@ export default function CustomerNotes() {
           selectedOrder={selectedOrder}
           onUpdateReport={handleUpdateReport}
           updating={updatingReport}
+          editRequestKey={editReportRequestKey}
         />
         <MemberHistoryProfilePanel
           selectedOrder={selectedOrder}

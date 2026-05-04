@@ -24,7 +24,7 @@ const buttonStyle = {
   cursor: "pointer"
 };
 
-export default function FullIntelligenceReportPanel({ selectedOrder, onUpdateReport, updating }) {
+export default function FullIntelligenceReportPanel({ selectedOrder, onUpdateReport, updating, editRequestKey }) {
   const [draft, setDraft] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -34,6 +34,14 @@ export default function FullIntelligenceReportPanel({ selectedOrder, onUpdateRep
     setIsDirty(false);
     setIsEditing(false);
   }, [selectedOrder?.id, selectedOrder?.intelligence_report]);
+
+  useEffect(() => {
+    if (!selectedOrder || !editRequestKey) return;
+    setIsEditing(true);
+    window.requestAnimationFrame(() => {
+      document.getElementById("full-intelligence-report-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [editRequestKey, selectedOrder]);
 
   if (!selectedOrder) {
     return (
@@ -47,10 +55,15 @@ export default function FullIntelligenceReportPanel({ selectedOrder, onUpdateRep
   }
 
   return (
-    <section style={panelStyle}>
-      <div>
-        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase" }}>Full Intelligence Report</p>
-        <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.5)" }}>{selectedOrder.client_name || "Selected client"}</p>
+    <section id="full-intelligence-report-panel" style={panelStyle}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
+        <div>
+          <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase" }}>Full Intelligence Report</p>
+          <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.5)" }}>{selectedOrder.client_name || "Selected client"}</p>
+        </div>
+        <button type="button" onClick={() => setIsEditing(true)} style={buttonStyle}>
+          Edit
+        </button>
       </div>
 
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>

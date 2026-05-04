@@ -85,7 +85,7 @@ function EditableField({ label, value, field, type = "text", displayValue, optio
   );
 }
 
-export default function MemberOrderSummaryCard({ order, onInlineSave, onConfirmPayment, onFollowUp, onFulfilled, onCancelled, confirmedPayments, setConfirmedPayments, pendingSelection, setPendingSelection, cardStatus, followUpFlags, onSelectReport }) {
+export default function MemberOrderSummaryCard({ order, onInlineSave, onConfirmPayment, onFollowUp, onFulfilled, onCancelled, confirmedPayments, setConfirmedPayments, pendingSelection, setPendingSelection, cardStatus, followUpFlags, onSelectReport, onEditReport }) {
   const paymentStyle = PAYMENT_STYLES[order.payment_status] || PAYMENT_STYLES.PENDING;
   const confirmedValue = confirmedPayments[order.id] || null;
   const confirmChip = confirmChipConfig[confirmedValue || order.payment_status] || confirmChipConfig.PENDING;
@@ -211,6 +211,7 @@ export default function MemberOrderSummaryCard({ order, onInlineSave, onConfirmP
           {statusValue === 'Cancelled' ? '✗ Cancelled' : 'Cancelled'}
         </button>
         <button type="button" onClick={() => onSelectReport(order)} style={buttonStyle}>Full Report</button>
+        <button type="button" onClick={() => onEditReport(order)} style={buttonStyle}>Edit Report</button>
       </div>
     </div>
   );
