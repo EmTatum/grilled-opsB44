@@ -55,22 +55,22 @@ export default function FullIntelligenceReportPanel({ selectedOrder, onUpdateRep
   }
 
   return (
-    <section id="full-intelligence-report-panel" style={panelStyle}>
+    <section id="full-intelligence-report-panel" style={{ ...panelStyle, position: "relative" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
         <div>
           <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", color: "#C9A84C", letterSpacing: "0.08em", textTransform: "uppercase" }}>Full Intelligence Report</p>
           <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.5)" }}>{selectedOrder.client_name || "Selected client"}</p>
         </div>
-        <button type="button" onClick={() => setIsEditing(true)} style={buttonStyle}>
+        <button type="button" onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} style={{ ...buttonStyle, position: "relative", zIndex: 2 }}>
           Edit
         </button>
       </div>
 
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-        <button type="button" onClick={() => setIsEditing(false)} style={{ ...buttonStyle, opacity: isEditing ? 0.7 : 1 }}>
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", position: "relative", zIndex: 2 }}>
+        <button type="button" onClick={(e) => { e.stopPropagation(); setIsEditing(false); }} style={{ ...buttonStyle, opacity: isEditing ? 0.7 : 1 }}>
           Preview
         </button>
-        <button type="button" onClick={() => setIsEditing(true)} style={{ ...buttonStyle, opacity: isEditing ? 1 : 0.7 }}>
+        <button type="button" onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} style={{ ...buttonStyle, opacity: isEditing ? 1 : 0.7 }}>
           Edit Report
         </button>
       </div>

@@ -287,6 +287,9 @@ export default function CustomerNotes() {
                 onEditReport={(record) => {
                   setSelectedReportId(record.id);
                   setEditReportRequestKey(Date.now());
+                  window.requestAnimationFrame(() => {
+                    document.getElementById("full-intelligence-report-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  });
                 }}
               />
             ))}
