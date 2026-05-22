@@ -22,18 +22,19 @@ const widgetGridStyle = {
 };
 
 const sectionCardStyle = {
-  background: "#111111",
-  border: "1px solid rgba(201,168,76,0.2)",
+  background: "var(--color-surface)",
+  border: "1px solid rgba(201,168,76,0.3)",
   padding: "18px",
   display: "flex",
   flexDirection: "column",
-  gap: "16px"
+  gap: "16px",
+  borderRadius: "2px"
 };
 
 const paymentBadgeStyles = {
-  PAID: { background: "rgba(22,163,74,0.14)", border: "1px solid rgba(22,163,74,0.5)", color: "#16a34a" },
-  CASH: { background: "rgba(141,32,28,0.14)", border: "1px solid rgba(141,32,28,0.5)", color: "#8d201c" },
-  PENDING: { background: "rgba(210,156,108,0.14)", border: "1px solid rgba(210,156,108,0.5)", color: "#d29c6c" }
+  PAID: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(245,240,232,0.7)" },
+  CASH: { background: "rgba(194,24,91,0.08)", border: "1px solid rgba(194,24,91,0.4)", color: "#C2185B" },
+  PENDING: { background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.5)", color: "#C9A84C" }
 };
 
 const fulfilmentBadgeStyles = {
@@ -65,7 +66,7 @@ function formatCurrency(value) {
 function Badge({ value, styles }) {
   const style = styles[value] || styles.PENDING || styles.Active;
   return (
-    <span style={{ ...style, display: "inline-flex", alignItems: "center", padding: "6px 10px", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: "2px" }}>
+    <span style={{ ...style, display: "inline-flex", alignItems: "center", padding: "6px 10px", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: "2px", minHeight: "24px" }}>
       {value || "Unknown"}
     </span>
   );
@@ -163,7 +164,7 @@ function LowStockWidget({ products }) {
 
 function WeeklyRevenueWidget({ thisWeekRevenue, lastWeekRevenue }) {
   const TrendIcon = thisWeekRevenue > lastWeekRevenue ? TrendingUp : thisWeekRevenue < lastWeekRevenue ? TrendingDown : Minus;
-  const trendColor = thisWeekRevenue > lastWeekRevenue ? "#16a34a" : thisWeekRevenue < lastWeekRevenue ? "#C2185B" : "rgba(245,240,232,0.55)";
+  const trendColor = thisWeekRevenue > lastWeekRevenue ? "var(--color-teal)" : thisWeekRevenue < lastWeekRevenue ? "var(--color-rose)" : "rgba(245,240,232,0.55)";
 
   return (
     <WidgetShell title="Weekly Revenue" icon={CalendarDays}>
@@ -206,7 +207,7 @@ function BreakdownLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, v
 }
 
 function OrderBreakdownWidget({ data }) {
-  const colors = ["#C9A84C", "#16a34a", "#C2185B"];
+  const colors = ["var(--color-gold)", "var(--color-teal)", "var(--color-rose)"];
   return (
     <WidgetShell title="Order Breakdown" icon={Package}>
       <div style={{ width: "100%", height: "220px" }}>

@@ -1,13 +1,13 @@
 import { BarChart, Bar, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, LabelList } from "recharts";
 
 const panelStyle = {
-  background: "var(--color-bg-secondary)",
-  border: "1px solid var(--color-border-gold)",
+  background: "var(--color-surface)",
+  border: "1px solid rgba(201,168,76,0.3)",
   padding: "20px",
   display: "grid",
   gap: "16px",
-  borderRadius: "6px",
-  boxShadow: "0 2px 20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(201,168,76,0.06)"
+  borderRadius: "2px",
+  boxShadow: "0 4px 16px rgba(0,0,0,0.8)"
 };
 
 function RevenueLabel({ x, y, width, value }) {
@@ -15,7 +15,7 @@ function RevenueLabel({ x, y, width, value }) {
     <text
       x={Number(x) + Number(width) / 2}
       y={Number(y) - 10}
-      fill={value === "R0" ? "rgba(194,24,91,0.58)" : "#C2185B"}
+      fill={value === "R0" ? "rgba(245,240,232,0.4)" : "var(--color-gold)"}
       textAnchor="middle"
       style={{ fontFamily: "var(--font-body)", fontSize: 11, fontWeight: 600, letterSpacing: "0.02em" }}
     >
@@ -28,8 +28,8 @@ export default function DailyPerformanceCharts({ data }) {
   return (
     <section style={panelStyle}>
       <div style={{ display: "grid", gap: "4px" }}>
-        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "18px", fontWeight: 700, color: "#F5F0E8" }}>Weekly Performance</p>
-        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.55)" }}>Order Volume this week</p>
+        <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 700, color: "var(--color-gold)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Weekly Performance</p>
+        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", fontWeight: 300, color: "var(--color-text-muted)" }}>Order Volume this week</p>
       </div>
 
       <div style={{ width: "100%", height: "280px" }}>
@@ -49,7 +49,7 @@ export default function DailyPerformanceCharts({ data }) {
                 return [value, name];
               }}
             />
-            <Bar dataKey="orders" name="orders" fill="#C9A84C" radius={[2, 2, 0, 0]} maxBarSize={42}>
+            <Bar dataKey="orders" name="orders" fill="var(--color-gold)" radius={[2, 2, 0, 0]} maxBarSize={42}>
               <LabelList dataKey="revenueLabel" content={<RevenueLabel />} />
             </Bar>
           </BarChart>
