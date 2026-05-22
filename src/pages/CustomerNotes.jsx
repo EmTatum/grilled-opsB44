@@ -225,7 +225,14 @@ export default function CustomerNotes() {
         intelligence_report: editedText
       };
 
-      await base44.entities.MemberOrder.update(order.id, reExtractedFields);
+      const updatedOrder = await base44.entities.MemberOrder.update(order.id, reExtractedFields);
+
+      setLocalGeneratedOrders((prev) => {
+        const existingIndex = prev.findIndex((item) => item.id === order.id);
+        if (existingIndex === -1) return [updatedOrder, ...prev.filter((item) => item.id !== order.id)];
+        return prev.map((item) => item.id === order.id ? updatedOrder : item);
+      });
+      setSelectedReportId(updatedOrder.id);
       toast.success("Report and summary updated.");
       return true;
     } catch {
@@ -287,9 +294,6 @@ export default function CustomerNotes() {
                 onEditReport={(record) => {
                   setSelectedReportId(record.id);
                   setEditReportRequestKey(Date.now());
-                  window.requestAnimationFrame(() => {
-                    document.getElementById("full-intelligence-report-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  });
                 }}
               />
             ))}

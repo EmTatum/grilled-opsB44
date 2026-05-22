@@ -37,11 +37,13 @@ export default function FullIntelligenceReportPanel({ selectedOrder, onUpdateRep
 
   useEffect(() => {
     if (!selectedOrder || !editRequestKey) return;
+    setDraft(selectedOrder?.intelligence_report || "");
+    setIsDirty(false);
     setIsEditing(true);
     window.requestAnimationFrame(() => {
       document.getElementById("full-intelligence-report-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-  }, [editRequestKey, selectedOrder]);
+  }, [editRequestKey, selectedOrder?.id]);
 
   if (!selectedOrder) {
     return (
@@ -109,6 +111,7 @@ export default function FullIntelligenceReportPanel({ selectedOrder, onUpdateRep
         <button type="button" disabled={!isDirty || updating} onClick={async () => {
           const ok = await onUpdateReport(selectedOrder, draft);
           if (ok) {
+            setDraft(draft);
             setIsDirty(false);
             setIsEditing(false);
           }
