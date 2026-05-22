@@ -260,19 +260,40 @@ export default function Orders() {
   const todayDisplay = moment().format("dddd, D MMMM YYYY");
 
   useEffect(() => {
+    let active = true;
+
+    const sortOrders = (records) => [...records].sort((a, b) => String(a.delivery_date || "").localeCompare(String(b.delivery_date || "")));
+
     const load = async () => {
       const records = await base44.entities.MemberOrder.list("delivery_date", 1000);
+      if (!active) return;
       setLiveOrders(records || []);
       setLoading(false);
     };
 
     load();
 
-    const unsubscribe = base44.entities.MemberOrder.subscribe(() => {
-      load();
+    const unsubscribe = base44.entities.MemberOrder.subscribe((event) => {
+      if (!active || !event?.type) return;
+
+      setLiveOrders((current) => {
+        if (event.type === "create") {
+          return sortOrders([event.data, ...current.filter((item) => item.id !== event.data.id)]);
+        }
+        if (event.type === "update") {
+          return sortOrders(current.map((item) => item.id === event.id ? event.data : item));
+        }
+        if (event.type === "delete") {
+          return current.filter((item) => item.id !== event.id);
+        }
+        return current;
+      });
     });
 
-    return unsubscribe;
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
   const orders = useMemo(() => {

@@ -125,18 +125,7 @@ export default function Inventory() {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    const sync = async () => {
-      await syncInventoryFromFulfilledOrders({});
-      await load();
-    };
-
-    sync();
-
-    const unsubscribe = base44.entities.MemberOrder.subscribe(() => {
-      sync();
-    });
-
-    return unsubscribe;
+    syncInventoryFromFulfilledOrders({}).then(load);
   }, []);
 
   useEffect(() => {
