@@ -18,13 +18,32 @@ export const buildOrderFromReport = (reportData, sourceReportId) => ({
 
 export const syncOrderFromReport = async (reportData, sourceReportId) => {
   const payload = buildOrderFromReport(reportData, sourceReportId);
-  const existingOrders = await base44.entities.MemberOrder.filter({ intelligence_report_id: sourceReportId }, "-created_date", 1);
 
-  if (existingOrders.length > 0) {
-    return base44.entities.MemberOrder.update(existingOrders[0].id, payload);
+  try {
+    // First try to find by intelligence_report_id
+    let existing = null;
+    const byReportId = await base44.entities.MemberOrder.filter({ intelligence_report_id: sourceReportId }, "-created_date", 1);
+    if (byReportId.length > 0) {
+      existing = byReportId[0];
+    }
+
+    // Fallback: find by client_name if no report-id match
+    if (!existing && payload.client_name && payload.client_name !== "Not recorded.") {
+      const byClientName = await base44.entities.MemberOrder.filter({ client_name: payload.client_name }, "-updated_date", 1);
+      if (byClientName.length > 0) {
+        existing = byClientName[0];
+      }
+    }
+
+    const record = existing
+      ? await base44.entities.MemberOrder.update(existing.id, payload)
+      : await base44.entities.MemberOrder.create(payload);
+
+    return { success: true, record };
+  } catch (error) {
+    console.error("[syncOrderFromReport] MemberOrder DB write failed:", error);
+    return { success: false, error };
   }
-
-  return base44.entities.MemberOrder.create(payload);
 };
 
 export const syncReportFromOrder = async (order) => {
