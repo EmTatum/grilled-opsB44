@@ -462,5 +462,6 @@ Conversation:\n${sanitizedConversation}`,
   >
     {syncStatus.type === 'success' ? '✓ ' : '⚠ '}
     {syncStatus.message}
-  </div>
-)}
+   </div>
+  );
+}
