@@ -154,6 +154,7 @@ export default function ConversationIntelligencePanel({ onSaved }) {
   const [report, setReport] = useState(null);
   const [savedIndicator, setSavedIndicator] = useState(false);
   const [isComposerCollapsed, setIsComposerCollapsed] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(null);
   const reportRef = useRef(null);
 
   const headerMeta = useMemo(() => {
