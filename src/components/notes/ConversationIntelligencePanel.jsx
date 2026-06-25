@@ -323,12 +323,18 @@ Conversation:\n${sanitizedConversation}`,
     const savedRecord = existingRecord
       ? await base44.entities.CustomerNote.update(existingRecord.id, payload)
       : await base44.entities.CustomerNote.create(payload);
-    await syncOrderFromReport({
+    const syncResult = await syncOrderFromReport({
       ...sanitized,
       ...normalizedResult,
       order_total: normalizedResult.order_total > 0 ? `R${normalizedResult.order_total.toLocaleString("en-ZA")}` : "Not confirmed.",
       delivery_date: normalizedResult.delivery_date || "Not recorded.",
     }, savedRecord.id);
+    if (syncResult.success) {
+    setSyncStatus({ type: 'success', message: 'Order saved to database' });
+    } else {
+    setSyncStatus({ type: 'error', message: syncResult.error || 'Save failed' });
+    }
+    setTimeout(() => setSyncStatus(null), 5000);
     setSaving(false);
     setSavedIndicator(true);
     setConversation("");
