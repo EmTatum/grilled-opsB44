@@ -446,11 +446,21 @@ Conversation:\n${sanitizedConversation}`,
         </div>
       )}
       {syncStatus && (
-        <div style={{ position: 'fixed', bottom: '24px', right: '24px', padding: '12px 20px', borderRadius: '8px', background: syncStatus.type === 'success' ? '#16a34a' : '#dc2626', color: 'white', fontFamily: "'Raleway', sans-serif", fontSize: '14px', zIndex: 9999 }}>
-        {syncStatus.type === 'success' ? '✓ ' : '⚠ '}{syncStatus.message}
-        </div>
-      )}
-      )}
-    </div>
-  );
-}
+  <div
+    style={{
+      position: 'fixed',
+      bottom: '24px',
+      right: '24px',
+      padding: '12px 20px',
+      borderRadius: '8px',
+      background: syncStatus.type === 'success' ? '#16a34a' : '#dc2626',
+      color: 'white',
+      fontFamily: "'Raleway', sans-serif",
+      fontSize: '14px',
+      zIndex: 9999,
+    }}
+  >
+    {syncStatus.type === 'success' ? '✓ ' : '⚠ '}
+    {syncStatus.message}
+  </div>
+)}
