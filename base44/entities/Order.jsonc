@@ -44,28 +44,64 @@
         "Cancelled"
       ],
       "title": "Status"
+    },
+    "cell_number": {
+      "type": "string",
+      "title": "Cell Number"
+    },
+    "delivery_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Delivery Date"
+    },
+    "delivery_address": {
+      "type": "string",
+      "title": "Delivery Address"
+    },
+    "order_list": {
+      "type": "string",
+      "title": "Order List"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "PAID",
+        "CASH",
+        "PENDING"
+      ],
+      "title": "Payment Status",
+      "default": "PENDING"
+    },
+    "fulfilment_status": {
+      "type": "string",
+      "enum": [
+        "Active",
+        "Fulfilled",
+        "Cancelled"
+      ],
+      "title": "Fulfilment Status",
+      "default": "Active"
+    },
+    "next_action": {
+      "type": "string",
+      "title": "Next Action"
+    },
+    "intelligence_report_id": {
+      "type": "string",
+      "title": "Intelligence Report ID"
+    },
+    "order_total": {
+      "type": "number",
+      "title": "Order Total",
+      "default": 0
     }
   },
   "required": [
-    "client_name",
-    "order_details",
-    "order_date",
-    "status"
+    "client_name"
   ],
   "rls": {
     "create": null,
-    "read": {
-      "$or": [
-        {
-          "created_by_id": "{{user.id}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
-    },
+    "read": null,
     "update": {
       "$or": [
         {
