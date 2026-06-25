@@ -14,6 +14,7 @@ import DailyDispatchManifest from './pages/DailyDispatchManifest';
 import Inventory from './pages/Inventory';
 import CustomerNotes from './pages/CustomerNotes';
 import ClientAnalytics from './pages/ClientAnalytics';
+import MemberIntelligence from './pages/MemberIntelligence';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
