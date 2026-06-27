@@ -1,3 +1,4 @@
+import { LayoutDashboard, ShoppingCart, Package, StickyNote, LineChart, Menu, X, LogOut, Search, Brain } from "lucide-react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, ShoppingCart, Package, StickyNote, LineChart, Menu, X, LogOut, Search } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -9,7 +10,8 @@ const navItems = [
   { path: "/orders", label: "Orders", icon: ShoppingCart },
   { path: "/daily-dispatch-manifest", label: "Dispatch Manifest", icon: ShoppingCart },
   { path: "/inventory", label: "Catalogue", icon: Package },
-  { path: "/notes", label: "Member Intelligence", icon: StickyNote },
+  { path: "/member-intelligence", label: "Member Intelligence", icon: Brain },
+  { path: "/notes", label: "Customer Notes", icon: StickyNote },
   { path: "/client-analytics", label: "Member Circle", icon: LineChart },
 ];
 
