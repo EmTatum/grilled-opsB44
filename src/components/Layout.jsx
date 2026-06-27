@@ -15,6 +15,7 @@ const navItems = [
   { path: "/client-analytics", label: "Member Circle", icon: LineChart },
 ];
 
+
 const sidebarStyle = {
   width: "216px",
   background: "#050505",
