@@ -1,6 +1,5 @@
 import { LayoutDashboard, ShoppingCart, Package, StickyNote, LineChart, Menu, X, LogOut, Search, Brain } from "lucide-react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingCart, Package, StickyNote, LineChart, Menu, X, LogOut, Search } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
