@@ -1,13 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { User, Coffee, Palette, AlertCircle, CreditCard, MessageSquare, Zap, TrendingUp, TrendingDown, Minus, Brain, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Coffee, Palette, AlertCircle, CreditCard, MessageSquare, Zap, TrendingUp, TrendingDown, Minus, Brain, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
+import WhatsAppIntelligencePanel from '@/components/notes/WhatsAppIntelligencePanel';
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const cardStyle = {
   background: '#1a1a1a',
   border: '1px solid rgba(201,168,76,0.25)',
   borderRadius: '2px',
   padding: '20px',
+};
+
+const intelCardStyle = {
+  background: '#0f0f0f',
+  border: '2px solid #C9A84C',
+  borderRadius: '2px',
+  padding: '24px',
 };
 
 const labelStyle = {
@@ -17,7 +27,6 @@ const labelStyle = {
   color: 'rgba(201,168,76,0.6)',
   letterSpacing: '0.15em',
   textTransform: 'uppercase',
-  marginBottom: '6px',
   margin: 0,
 };
 
@@ -58,6 +67,8 @@ const actionBtnStyle = {
   cursor: 'pointer',
   transition: 'all 0.2s ease',
 };
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 const SentimentTrend = ({ value }) => {
   if (value === 'High') return (
@@ -108,6 +119,112 @@ const FieldRow = ({ label, value }) => (
   </div>
 );
 
+// Inline-editable field for the Intel card
+const EditableIntelField = ({ label, value, onSave }) => {
+  const [editing, setEditing] = useState(false);
+  const [local, setLocal] = useState(value || '');
+
+  useEffect(() => { setLocal(value || ''); }, [value]);
+
+  const commit = () => {
+    setEditing(false);
+    if (local !== (value || '')) onSave(local);
+  };
+
+  return (
+    <div style={{ marginBottom: '16px' }}>
+      <p style={{ ...labelStyle, marginBottom: '6px' }}>{label}</p>
+      {editing ? (
+        <textarea
+          autoFocus
+          value={local}
+          onChange={e => setLocal(e.target.value)}
+          onBlur={commit}
+          rows={3}
+          style={{
+            width: '100%',
+            background: '#0a0a0a',
+            border: '1px solid #C9A84C',
+            color: '#F5F0E8',
+            fontFamily: 'var(--font-body)',
+            fontSize: '14px',
+            padding: '8px 10px',
+            borderRadius: '2px',
+            resize: 'vertical',
+            outline: 'none',
+            lineHeight: 1.6,
+          }}
+        />
+      ) : (
+        <p
+          onClick={() => setEditing(true)}
+          title="Click to edit"
+          style={{
+            ...valueStyle,
+            cursor: 'text',
+            padding: '6px 8px',
+            border: '1px solid transparent',
+            borderRadius: '2px',
+            margin: 0,
+            transition: 'border-color 0.2s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(201,168,76,0.25)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}
+        >
+          {local || <span style={{ color: 'rgba(245,240,232,0.3)', fontStyle: 'italic' }}>Click to add…</span>}
+        </p>
+      )}
+    </div>
+  );
+};
+
+// CLIENT INTELLIGENCE REPORT card
+const IntelReportCard = ({ draft, onFieldSave }) => {
+  const fields = ['relationship_vibe', 'payment_rail', 'usual_order', 'communication_rule', 'red_flags', 'extracted_intel'];
+  const hasAny = fields.some(f => draft[f]);
+  if (!hasAny) return null;
+
+  const fieldLabels = {
+    relationship_vibe: 'Relationship Vibe',
+    payment_rail: 'Payment Rail',
+    usual_order: 'The "Usual"',
+    communication_rule: 'Communication Rule',
+    red_flags: 'Red Flags',
+    extracted_intel: 'Extracted Intel',
+  };
+
+  return (
+    <div style={intelCardStyle}>
+      <div style={{ marginBottom: '20px' }}>
+        <h3 style={{
+          fontFamily: 'var(--font-heading)',
+          fontSize: '20px',
+          color: '#C9A84C',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          margin: '0 0 8px',
+          fontWeight: 600,
+        }}>
+          Client Intelligence Report
+        </h3>
+        <p style={{ ...labelStyle, color: '#C9A84C', opacity: 0.5, margin: 0 }}>{draft.client_name}</p>
+        <div style={{ height: '1px', background: 'rgba(201,168,76,0.3)', marginTop: '14px' }} />
+      </div>
+
+      {fields.map(f => (
+        <EditableIntelField
+          key={f}
+          label={fieldLabels[f]}
+          value={draft[f]}
+          onSave={val => onFieldSave(f, val)}
+        />
+      ))}
+    </div>
+  );
+};
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function MemberIntelligence() {
   const [records, setRecords] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -117,13 +234,14 @@ export default function MemberIntelligence() {
   const [refreshing, setRefreshing] = useState(false);
   const [toast, setToast] = useState(null);
   const [draft, setDraft] = useState(null);
+  const [showImport, setShowImport] = useState(false);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 4000);
   };
 
-  const loadRecords = async (keepSelectedId) => {
+  const loadRecords = async () => {
     const res = await base44.entities.MemberIntelligence.list('-updated_date', 200);
     setRecords(res || []);
     return res;
@@ -160,11 +278,24 @@ export default function MemberIntelligence() {
       });
       setRecords((prev) => prev.map((r) => r.id === updated.id ? updated : r));
       showToast('Intelligence record updated.');
-    } catch (e) {
+    } catch {
       showToast('Save failed. Please try again.', 'error');
     }
     setSaving(false);
   };
+
+  // Inline field save from IntelReportCard
+  const handleFieldSave = useCallback(async (field, value) => {
+    if (!draft?.id) return;
+    const updated = { ...draft, [field]: value, last_updated: new Date().toISOString() };
+    setDraft(updated);
+    try {
+      const saved = await base44.entities.MemberIntelligence.update(draft.id, { [field]: value, last_updated: updated.last_updated });
+      setRecords(prev => prev.map(r => r.id === saved.id ? { ...r, [field]: value } : r));
+    } catch {
+      showToast('Field save failed.', 'error');
+    }
+  }, [draft]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -177,6 +308,18 @@ export default function MemberIntelligence() {
     showToast('Intelligence refreshed.');
   };
 
+  const handleImportSaved = async ({ client_name, intelligence_id }) => {
+    const res = await loadRecords();
+    if (intelligence_id && res) {
+      const found = res.find(r => r.id === intelligence_id);
+      if (found) {
+        setSelectedId(found.id);
+        setDraft({ ...found });
+      }
+    }
+    setShowImport(false);
+  };
+
   if (loading) return <Spinner />;
 
   return (
@@ -184,7 +327,26 @@ export default function MemberIntelligence() {
       <PageHeader
         title="Member Intelligence"
         subtitle="Neurological profiles, behavioral patterns, and strategic intelligence for key members."
-      />
+      >
+        <button
+          onClick={() => setShowImport(v => !v)}
+          style={{
+            ...actionBtnStyle,
+            display: 'flex', alignItems: 'center', gap: '8px',
+            borderColor: showImport ? '#C9A84C' : 'rgba(201,168,76,0.4)',
+            color: showImport ? '#0a0a0a' : '#C9A84C',
+            background: showImport ? '#C9A84C' : 'transparent',
+          }}
+        >
+          {showImport ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          WhatsApp Import
+        </button>
+      </PageHeader>
+
+      {/* WhatsApp Import Panel */}
+      {showImport && (
+        <WhatsAppIntelligencePanel onSaved={handleImportSaved} />
+      )}
 
       <div style={{ display: 'flex', gap: '0', minHeight: '70vh' }}>
         {/* Left: vertical client selector */}
@@ -276,49 +438,49 @@ export default function MemberIntelligence() {
                 </div>
               </div>
 
-              {/* Top 3 accent cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-                {/* Resilience Protocol */}
-                <div style={{ ...cardStyle, borderLeft: '3px solid #C2185B' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                    <AlertCircle size={15} color="#C2185B" />
-                    <span style={labelStyle}>Resilience Protocol</span>
-                  </div>
-                  <p style={valueStyle}>{draft.neurological_protocol || 'Not recorded.'}</p>
-                </div>
+              {/* CLIENT INTELLIGENCE REPORT card — shown at top if any intel fields populated */}
+              <IntelReportCard draft={draft} onFieldSave={handleFieldSave} />
 
-                {/* Coffee Rush */}
-                <div style={{ ...cardStyle, borderLeft: '3px solid #C9A84C' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                    <Coffee size={15} color="#C9A84C" />
-                    <span style={labelStyle}>Coffee Rush</span>
-                  </div>
-                  {draft.coffee_rush ? (
-                    <>
+              {/* Supplementary accent cards — only if their fields are populated */}
+              {(draft.neurological_protocol || draft.coffee_rush || draft.vegans_designs) && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+                  {draft.neurological_protocol && (
+                    <div style={{ ...cardStyle, borderLeft: '3px solid #C2185B' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                        <AlertCircle size={15} color="#C2185B" />
+                        <span style={labelStyle}>Resilience Protocol</span>
+                      </div>
+                      <p style={valueStyle}>{draft.neurological_protocol}</p>
+                    </div>
+                  )}
+
+                  {draft.coffee_rush && (
+                    <div style={{ ...cardStyle, borderLeft: '3px solid #C9A84C' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                        <Coffee size={15} color="#C9A84C" />
+                        <span style={labelStyle}>Coffee Rush</span>
+                      </div>
                       <p style={{ ...valueStyle, fontWeight: 600, fontSize: '15px' }}>{draft.coffee_rush.usual || '—'}</p>
                       <p style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'rgba(245,240,232,0.5)', marginTop: '4px' }}>
                         {[draft.coffee_rush.temp, draft.coffee_rush.frequency].filter(Boolean).join(' · ')}
                       </p>
-                    </>
-                  ) : <p style={valueStyle}>Not recorded.</p>}
-                </div>
+                    </div>
+                  )}
 
-                {/* Vegans Designs */}
-                <div style={{ ...cardStyle, borderLeft: '3px solid rgba(160,100,200,0.7)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                    <Palette size={15} color="rgba(160,100,200,0.9)" />
-                    <span style={labelStyle}>Vegans Designs</span>
-                  </div>
-                  {draft.vegans_designs ? (
-                    <>
+                  {draft.vegans_designs && (
+                    <div style={{ ...cardStyle, borderLeft: '3px solid rgba(160,100,200,0.7)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                        <Palette size={15} color="rgba(160,100,200,0.9)" />
+                        <span style={labelStyle}>Vegans Designs</span>
+                      </div>
                       <p style={{ ...valueStyle, fontWeight: 600 }}>{draft.vegans_designs.aesthetic || '—'}</p>
                       <p style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'rgba(245,240,232,0.5)', marginTop: '4px' }}>
                         Feedback: {draft.vegans_designs.feedback_style || '—'}
                       </p>
-                    </>
-                  ) : <p style={valueStyle}>Not recorded.</p>}
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
               {/* Tab panel */}
               <div style={{ ...cardStyle, padding: 0 }}>
@@ -442,6 +604,8 @@ export default function MemberIntelligence() {
           letterSpacing: '0.06em',
           zIndex: 9999,
           borderRadius: '2px',
+          maxWidth: '480px',
+          lineHeight: 1.6,
         }}>
           {toast.msg}
         </div>
