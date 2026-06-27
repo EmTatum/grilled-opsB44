@@ -13,6 +13,7 @@ import Orders from './pages/Orders';
 import DailyDispatchManifest from './pages/DailyDispatchManifest';
 import Inventory from './pages/Inventory';
 import CustomerNotes from './pages/CustomerNotes';
+import CustomerNotesViewer from './pages/CustomerNotesViewer';
 import ClientAnalytics from './pages/ClientAnalytics';
 import MemberIntelligence from './pages/MemberIntelligence';
 
@@ -47,7 +48,8 @@ const AuthenticatedApp = () => {
         <Route path="/orders" element={<Orders />} />
         <Route path="/daily-dispatch-manifest" element={<DailyDispatchManifest />} />
         <Route path="/inventory" element={<Inventory />} />
-        <Route path="/notes" element={<CustomerNotes />} />
+        <Route path="/notes" element={<CustomerNotesViewer />} />
+        <Route path="/notes-legacy" element={<CustomerNotes />} />
         <Route path="/client-analytics" element={<ClientAnalytics />} />
         <Route path="/member-intelligence" element={<MemberIntelligence />} />
         <Route path="*" element={<PageNotFound />} />

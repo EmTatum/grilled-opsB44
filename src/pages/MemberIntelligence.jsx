@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Coffee, Palette, AlertCircle, CreditCard, MessageSquare, Zap, TrendingUp, TrendingDown, Minus, Brain, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Coffee, Palette, AlertCircle, CreditCard, MessageSquare, Zap, TrendingUp, TrendingDown, Minus, Brain, RefreshCw } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
-import WhatsAppIntelligencePanel from '@/components/notes/WhatsAppIntelligencePanel';
+import WhatsAppImportPanel from '@/components/notes/WhatsAppImportPanel';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -234,7 +234,7 @@ export default function MemberIntelligence() {
   const [refreshing, setRefreshing] = useState(false);
   const [toast, setToast] = useState(null);
   const [draft, setDraft] = useState(null);
-  const [showImport, setShowImport] = useState(false);
+  const [showImport, setShowImport] = useState(true);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -327,26 +327,10 @@ export default function MemberIntelligence() {
       <PageHeader
         title="Member Intelligence"
         subtitle="Neurological profiles, behavioral patterns, and strategic intelligence for key members."
-      >
-        <button
-          onClick={() => setShowImport(v => !v)}
-          style={{
-            ...actionBtnStyle,
-            display: 'flex', alignItems: 'center', gap: '8px',
-            borderColor: showImport ? '#C9A84C' : 'rgba(201,168,76,0.4)',
-            color: showImport ? '#0a0a0a' : '#C9A84C',
-            background: showImport ? '#C9A84C' : 'transparent',
-          }}
-        >
-          {showImport ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-          WhatsApp Import
-        </button>
-      </PageHeader>
+      />
 
-      {/* WhatsApp Import Panel */}
-      {showImport && (
-        <WhatsAppIntelligencePanel onSaved={handleImportSaved} />
-      )}
+      {/* WhatsApp Import Panel — always visible */}
+      <WhatsAppImportPanel onSaved={handleImportSaved} />
 
       <div style={{ display: 'flex', gap: '0', minHeight: '70vh' }}>
         {/* Left: vertical client selector */}
@@ -364,8 +348,8 @@ export default function MemberIntelligence() {
             <p style={{ ...labelStyle, marginBottom: 0 }}>Clients</p>
           </div>
           {records.length === 0 ? (
-            <p style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'rgba(245,240,232,0.35)', padding: '16px', margin: 0 }}>
-              No records yet.
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'rgba(245,240,232,0.35)', padding: '16px', margin: 0, lineHeight: 1.6 }}>
+              No clients yet — import a WhatsApp chat above to begin.
             </p>
           ) : (
             records.map((r) => {
