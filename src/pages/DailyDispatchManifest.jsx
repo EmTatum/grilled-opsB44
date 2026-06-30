@@ -3,14 +3,11 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useEntityList } from "@/hooks/useEntityList";
 import PageHeader from "../components/PageHeader";
+import Spinner from "../components/Spinner";
+import StatusPill, { PAYMENT_BADGE_STYLES, FULFILMENT_BADGE_STYLES } from "../components/StatusPill";
 import { cleanClientName, isVisibleOrderRecord } from "../components/notes/memberIntelligenceUtils";
-
-const Spinner = () => (
-  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
-    <div style={{ width: "24px", height: "24px", border: "1px solid rgba(201,168,76,0.2)", borderTopColor: "#C9A84C", borderRadius: "50%", animation: "spin 0.9s linear infinite" }} />
-    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-  </div>
-);
+import { formatCurrency, getDatePart, getTimePart } from "../utils/formatting";
+import { parseLineItems, findMatchedProduct, extractQuantity } from "../utils/productMatching";
 
 const sectionStyle = {
   background: "#111111",
@@ -35,29 +32,6 @@ const buttonStyle = {
   cursor: "pointer"
 };
 
-const paymentStyles = {
-  PAID: { background: "rgba(57,255,20,0.14)", border: "1px solid rgba(57,255,20,0.65)", color: "#39ff14" },
-  CASH: { background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.45)", color: "#C9A84C" },
-  PENDING: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.18)", color: "rgba(245,240,232,0.7)" }
-};
-
-const fulfilmentStyles = {
-  Fulfilled: { background: "rgba(57,255,20,0.14)", border: "1px solid rgba(57,255,20,0.65)", color: "#39ff14" },
-  Cancelled: { background: "rgba(194,24,91,0.08)", border: "1px solid rgba(194,24,91,0.4)", color: "#C2185B" },
-  Active: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.18)", color: "rgba(245,240,232,0.7)" }
-};
-
-function getDatePart(value) {
-  return String(value || "").trim().split("T")[0] || "";
-}
-
-function getTimePart(value) {
-  const raw = String(value || "").trim();
-  if (!raw.includes("T")) return "Time TBC";
-  const [, timePart = ""] = raw.split("T");
-  return timePart ? timePart.slice(0, 5) : "Time TBC";
-}
-
 function formatOtherDate(value) {
   const datePart = getDatePart(value);
   if (!datePart) return "Date TBC";
@@ -65,76 +39,6 @@ function formatOtherDate(value) {
   const date = new Date(`${datePart}T00:00:00`);
   const dateLabel = date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
   return timePart === "Time TBC" ? `${dateLabel} — Time TBC` : `${dateLabel} at ${timePart}`;
-}
-
-function formatCurrency(value) {
-  return `R${Number(value || 0).toLocaleString("en-ZA")}`;
-}
-
-function parseLineItems(orderList) {
-  const raw = String(orderList || "").trim();
-  if (!raw) return [];
-
-  let items = raw.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
-  if (items.length <= 1) {
-    items = raw.split(",").map((item) => item.trim()).filter(Boolean);
-  }
-
-  return items.filter((item) => !/(delivery|fee|charge|tip)/i.test(item));
-}
-
-function findMatchedProduct(item, products) {
-  const normalizedItem = String(item || "").toLowerCase().trim();
-
-  return (products || []).find((product) => {
-    const name = String(product.product_name || "").toLowerCase().trim();
-    return name && (normalizedItem.includes(name) || name.includes(normalizedItem));
-  }) || null;
-}
-
-function extractQuantityAndProductName(item) {
-  const raw = String(item || "").trim();
-  if (!raw) return { productName: "", quantity: 1 };
-
-  let quantity = 1;
-  let productName = raw;
-
-  const patterns = [
-    /^\s*(\d+)\s*x\s+/i,
-    /^\s*x\s*(\d+)\s+/i,
-    /^\s*(\d+)\s+/i,
-    /\((\d+)\)/,
-    /\bx\s*(\d+)\b/i,
-    /\b(\d+)x\b/i
-  ];
-
-  patterns.some((pattern) => {
-    const match = raw.match(pattern);
-    if (!match) return false;
-    quantity = Number(match[1]) || 1;
-    productName = raw.replace(match[0], " ").replace(/\s+/g, " ").trim();
-    return true;
-  });
-
-  return { productName, quantity: Math.max(1, quantity) };
-}
-
-function PaymentPill({ value }) {
-  const style = paymentStyles[value] || paymentStyles.PENDING;
-  return (
-    <span style={{ ...style, display: "inline-flex", alignItems: "center", padding: "6px 10px", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: "2px" }}>
-      {value || "PENDING"}
-    </span>
-  );
-}
-
-function FulfilmentPill({ value }) {
-  const style = fulfilmentStyles[value] || fulfilmentStyles.Active;
-  return (
-    <span style={{ ...style, display: "inline-flex", alignItems: "center", padding: "6px 10px", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: "2px" }}>
-      {value || "Active"}
-    </span>
-  );
 }
 
 function StockBadge({ product }) {
@@ -183,7 +87,7 @@ function OrderDetailCard({ order, products, checkedItems, onToggleItem, onStatus
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
             {allPacked && <span style={{ color: "#39ff14", fontFamily: "var(--font-body)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" }}>✓ Packed</span>}
             <p style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 700, color: "#F5F0E8" }}>{getTimePart(order.delivery_date)}</p>
-            <PaymentPill value={order.payment_status} />
+            <StatusPill value={order.payment_status} styleMap={PAYMENT_BADGE_STYLES} />
           </div>
         </div>
       </div>
@@ -296,7 +200,7 @@ export default function DailyDispatchManifest() {
     const items = parseLineItems(targetOrder.order_list);
 
     for (const item of items) {
-      const { productName, quantity } = extractQuantityAndProductName(item);
+      const { productName, quantity } = extractQuantity(item);
       const matchedProduct = findMatchedProduct(productName, products);
 
       if (!matchedProduct) {
@@ -353,7 +257,7 @@ export default function DailyDispatchManifest() {
                       <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.52)" }}>{formatOtherDate(order.delivery_date)}</p>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                      <PaymentPill value={order.payment_status} />
+                      <StatusPill value={order.payment_status} styleMap={PAYMENT_BADGE_STYLES} />
                       <button onClick={() => toggleExpanded(order.id)} style={buttonStyle}>{isExpanded ? "Close ▴" : "View Order ▾"}</button>
                     </div>
                   </div>
@@ -383,8 +287,8 @@ export default function DailyDispatchManifest() {
                   <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", color: "rgba(245,240,232,0.52)" }}>{formatOtherDate(order.delivery_date)}</p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                  <FulfilmentPill value={order.fulfilment_status} />
-                  <PaymentPill value={order.payment_status} />
+                  <StatusPill value={order.fulfilment_status} styleMap={FULFILMENT_BADGE_STYLES} fallbackKey="Active" />
+                  <StatusPill value={order.payment_status} styleMap={PAYMENT_BADGE_STYLES} />
                   <span style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "#F5F0E8" }}>{formatCurrency(order.order_total)}</span>
                 </div>
               </div>

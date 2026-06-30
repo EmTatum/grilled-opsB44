@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Coffee, Palette, AlertCircle, CreditCard, MessageSquare, Zap, TrendingUp, TrendingDown, Minus, Brain, RefreshCw } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
+import Spinner from '@/components/Spinner';
 import WhatsAppImportPanel from '@/components/notes/WhatsAppImportPanel';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -103,13 +104,6 @@ const BadgeTag = ({ label }) => (
   }}>
     {label}
   </span>
-);
-
-const Spinner = () => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-    <div style={{ width: '24px', height: '24px', border: '1px solid rgba(201,168,76,0.2)', borderTopColor: '#C9A84C', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
-    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-  </div>
 );
 
 const FieldRow = ({ label, value }) => (

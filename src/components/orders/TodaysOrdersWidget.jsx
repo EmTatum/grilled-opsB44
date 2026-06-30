@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import DispatchOrderEditDialog from "./DispatchOrderEditDialog";
-import { extractQuantity, matchProductFromItem, splitManifestItems } from "@/utils/dispatchReconciliation";
+import { extractQuantityFromManifest, matchProductFromItem, splitManifestItems } from "@/utils/dispatchReconciliation";
 
 const sectionTitleStyle = {
   margin: 0,
@@ -73,7 +73,7 @@ function getDeliveryTime(order) {
 }
 
 function formatOrderItem(item, products) {
-  const quantity = extractQuantity(item);
+  const quantity = extractQuantityFromManifest(item);
   const matchedProduct = matchProductFromItem(item, products || []);
   const cleanLabel = String(item || "")
     .replace(/\s+/g, " ")

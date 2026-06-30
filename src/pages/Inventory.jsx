@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Plus, Pencil, AlertTriangle } from "lucide-react";
 import PageHeader from "../components/PageHeader";
+import Spinner from "../components/Spinner";
 import ProductFormDialog from "../components/ProductFormDialog";
 import { syncInventoryFromFulfilledOrders } from "@/functions/syncInventoryFromFulfilledOrders";
 
@@ -13,13 +14,6 @@ const GoldBtn = ({ onClick, children }) => (
     letterSpacing: "0.1em", textTransform: "uppercase", padding: "10px 24px",
     borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", transition: "all 0.2s ease"
   }}>{children}</button>
-);
-
-const Spinner = () => (
-  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
-    <div style={{ width: "24px", height: "24px", border: "1px solid rgba(210,156,108,0.2)", borderTopColor: "#d29c6c", borderRadius: "50%", animation: "spin 0.9s linear infinite" }} />
-    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-  </div>
 );
 
 const PRODUCT_RULES = {
@@ -188,7 +182,7 @@ export default function Inventory() {
     return filteredProducts.filter((product) => Number(product.current_stock || 0) <= Number(product.low_stock_threshold || 0));
   }, [filteredProducts]);
 
-  if (loading) return <Spinner />;
+  if (loading) return <Spinner accentColor="#d29c6c" />;
 
   return (
     <div>
