@@ -1,3 +1,5 @@
+import { formatCurrency as _formatCurrency, formatDeliveryDate as _formatDeliveryDate } from "../../utils/formatting";
+
 export const normalizeClientName = (value) => String(value || "").trim().toLowerCase();
 
 export const cleanClientName = (value) => {
@@ -42,19 +44,9 @@ export const consolidateOrderList = (value) => {
   )).join(", ");
 };
 
-export const formatCurrency = (value) => `R${Number(value || 0).toLocaleString("en-ZA")}`;
+export const formatCurrency = _formatCurrency;
 
-export const formatDeliveryDate = (value) => {
-  const raw = String(value || "").trim();
-  if (!raw) return "Date TBC";
-
-  const [datePart, timePart] = raw.includes("T") ? raw.split("T") : [raw, ""];
-  const date = new Date(`${datePart}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return "Date TBC";
-
-  const formatted = date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-  return timePart ? `${formatted} at ${timePart.slice(0, 5)}` : `${formatted} — Time TBC`;
-};
+export const formatDeliveryDate = _formatDeliveryDate;
 
 export const normalizeDeliveryDate = (value) => {
   const raw = String(value || "").trim();

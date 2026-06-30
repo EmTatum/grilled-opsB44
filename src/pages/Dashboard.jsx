@@ -5,15 +5,11 @@ import { syncInventoryFromFulfilledOrders } from "@/functions/syncInventoryFromF
 import { CalendarDays, AlertTriangle, Package, Banknote, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import PageHeader from "../components/PageHeader";
+import Spinner from "../components/Spinner";
+import StatusPill, { PAYMENT_BADGE_STYLES } from "../components/StatusPill";
 import DailyPerformanceCharts from "../components/dashboard/DailyPerformanceCharts";
 import { cleanClientName, isVisibleOrderRecord } from "../components/notes/memberIntelligenceUtils";
-
-const Spinner = () => (
-  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
-    <div style={{ width: "24px", height: "24px", border: "1px solid rgba(201,168,76,0.2)", borderTopColor: "#C9A84C", borderRadius: "50%", animation: "spin 0.9s linear infinite" }} />
-    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-  </div>
-);
+import { formatCurrency, getDatePart, formatDeliveryDate } from "../utils/formatting";
 
 const widgetGridStyle = {
   display: "grid",
@@ -31,46 +27,7 @@ const sectionCardStyle = {
   borderRadius: "2px"
 };
 
-const paymentBadgeStyles = {
-  PAID: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(245,240,232,0.7)" },
-  CASH: { background: "rgba(194,24,91,0.08)", border: "1px solid rgba(194,24,91,0.4)", color: "#C2185B" },
-  PENDING: { background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.5)", color: "#C9A84C" }
-};
 
-const fulfilmentBadgeStyles = {
-  Active: { background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.45)", color: "#C9A84C" },
-  Fulfilled: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(245,240,232,0.75)" },
-  Cancelled: { background: "rgba(194,24,91,0.08)", border: "1px solid rgba(194,24,91,0.4)", color: "#C2185B" }
-};
-
-function getDatePart(value) {
-  return String(value || "").trim().split("T")[0] || "";
-}
-
-function formatDeliveryDate(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "Date TBC";
-
-  const [datePart, timePart] = raw.includes("T") ? raw.split("T") : [raw, ""];
-  const date = moment(datePart, "YYYY-MM-DD", true);
-  if (!date.isValid()) return "Date TBC";
-
-  if (timePart) return `${date.format("D MMMM YYYY")} at ${timePart.slice(0, 5)}`;
-  return `${date.format("D MMMM YYYY")} — Time TBC`;
-}
-
-function formatCurrency(value) {
-  return `R${Number(value || 0).toLocaleString("en-ZA")}`;
-}
-
-function Badge({ value, styles }) {
-  const style = styles[value] || styles.PENDING || styles.Active;
-  return (
-    <span style={{ ...style, display: "inline-flex", alignItems: "center", padding: "6px 10px", fontFamily: "var(--font-body)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: "2px", minHeight: "24px" }}>
-      {value || "Unknown"}
-    </span>
-  );
-}
 
 function WidgetShell({ title, icon: IconComponent, accentBorder = sectionCardStyle.border, badge, children, fullWidth = false }) {
   return (
@@ -100,7 +57,7 @@ function NextDeliveriesWidget({ orders }) {
                 <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: 700, color: "#F5F0E8" }}>{cleanClientName(order.client_name)}</p>
                 <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", color: "rgba(245,240,232,0.55)" }}>{formatDeliveryDate(order.delivery_date)}</p>
               </div>
-              <Badge value={order.payment_status || "PENDING"} styles={paymentBadgeStyles} />
+              <StatusPill value={order.payment_status || "PENDING"} styleMap={PAYMENT_BADGE_STYLES} />
             </div>
           ))}
         </div>

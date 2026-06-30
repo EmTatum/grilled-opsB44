@@ -1,4 +1,4 @@
-const normalizeText = (value) => String(value || "").trim().toLowerCase();
+import { findMatchedProduct } from "./productMatching";
 
 export const splitManifestItems = (text) => {
   const seen = new Set();
@@ -16,7 +16,7 @@ export const splitManifestItems = (text) => {
     });
 };
 
-export const extractQuantity = (item) => {
+export const extractQuantityFromManifest = (item) => {
   const value = String(item || "").toLowerCase().trim();
   const leadingMatch = value.match(/^(\d+(?:\.\d+)?)\s*[x×-]?\s*/i);
   if (leadingMatch) return Number(leadingMatch[1]);
@@ -30,19 +30,7 @@ export const extractQuantity = (item) => {
   return 1;
 };
 
-export const matchProductFromItem = (item, products) => {
-  const normalizedItem = normalizeText(item)
-    .replace(/^(\d+(?:\.\d+)?)\s*[x×-]?\s*/i, "")
-    .replace(/\b(pack|packs|bag|bags|unit|units|bottle|bottles|gram|grams|g)\b/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  return products.find((product) => {
-    const productName = normalizeText(product.product_name);
-    if (!productName) return false;
-    return normalizedItem.includes(productName) || productName.includes(normalizedItem);
-  }) || null;
-};
+export const matchProductFromItem = (item, products) => findMatchedProduct(item, products);
 
 export const buildDispatchDiscrepancies = (orders, products) => {
   return orders.flatMap((order) => {
@@ -61,7 +49,7 @@ export const buildDispatchDiscrepancies = (orders, products) => {
         };
       }
 
-      const requiredQuantity = extractQuantity(item);
+      const requiredQuantity = extractQuantityFromManifest(item);
       const currentStock = Number(matchedProduct.current_stock || 0);
       if (currentStock >= requiredQuantity) return null;
 

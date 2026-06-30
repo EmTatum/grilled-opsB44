@@ -1,18 +1,8 @@
-import moment from "moment";
+import { getDatePart as _getDatePart, formatDeliveryDate, getTodayKey as _getTodayKey } from "../../utils/formatting";
 
-export const getDatePart = (value) => String(value || "").trim().split("T")[0] || "";
+export const getDatePart = _getDatePart;
 
-export const formatDeliveryDateLabel = (value) => {
-  const raw = String(value || "").trim();
-  if (!raw) return "Date TBC";
-
-  const [datePart, timePart] = raw.includes("T") ? raw.split("T") : [raw, null];
-  const date = moment(datePart, "YYYY-MM-DD", true);
-  if (!date.isValid()) return "Date TBC";
-
-  if (timePart) return `${date.format("D MMMM YYYY")} at ${String(timePart).slice(0, 5)}`;
-  return `${date.format("D MMMM YYYY")} — Time TBC`;
-};
+export const formatDeliveryDateLabel = formatDeliveryDate;
 
 export const formatCurrency = (value) => {
   const amount = Number(value || 0);
@@ -30,4 +20,4 @@ export const sortByDeliveryDateAscNullsLast = (records) => {
   });
 };
 
-export const getTodayKey = () => moment().format("YYYY-MM-DD");
+export const getTodayKey = _getTodayKey;

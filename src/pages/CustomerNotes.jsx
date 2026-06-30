@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import PageHeader from "../components/PageHeader";
+import Spinner from "../components/Spinner";
 import MemberIntelligenceInput from "../components/notes/MemberIntelligenceInput";
 import MemberOrderSummaryCard from "../components/notes/MemberOrderSummaryCard";
 import FullIntelligenceReportPanel from "../components/notes/FullIntelligenceReportPanel";
@@ -14,13 +15,6 @@ const sectionStyle = {
   display: "grid",
   gap: "16px"
 };
-
-const Spinner = () => (
-  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
-    <div style={{ width: "24px", height: "24px", border: "1px solid rgba(201,168,76,0.2)", borderTopColor: "#C9A84C", borderRadius: "50%", animation: "spin 0.9s linear infinite" }} />
-    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-  </div>
-);
 
 export default function CustomerNotes() {
   const { data: memberOrders, loading } = useEntityList("MemberOrder", "-updated_date", 500);
