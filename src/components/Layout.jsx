@@ -40,6 +40,8 @@ export default function Layout() {
     base44.entities.CustomerNote.list("-updated_date", 300).then((records) => {
       const uniqueNames = [...new Set((records || []).map((item) => (item.client_name || "").trim()).filter(Boolean))];
       setMemberResults(uniqueNames.map((name) => ({ client_name: name })));
+    }).catch((error) => {
+      console.error('Failed to load member search data:', error);
     });
   }, []);
 

@@ -258,6 +258,9 @@ export default function MemberIntelligence() {
         setSelectedId(res[0].id);
       }
       setLoading(false);
+    }).catch((error) => {
+      console.error('Failed to load member intelligence records:', error);
+      setLoading(false);
     });
   }, []);
 
@@ -278,7 +281,8 @@ export default function MemberIntelligence() {
       });
       setRecords((prev) => prev.map((r) => r.id === updated.id ? updated : r));
       showToast('Intelligence record updated.');
-    } catch {
+    } catch (error) {
+      console.error('Failed to save intelligence record:', error);
       showToast('Save failed. Please try again.', 'error');
     }
     setSaving(false);
@@ -292,7 +296,8 @@ export default function MemberIntelligence() {
     try {
       const saved = await base44.entities.MemberIntelligence.update(draft.id, { [field]: value, last_updated: updated.last_updated });
       setRecords(prev => prev.map(r => r.id === saved.id ? { ...r, [field]: value } : r));
-    } catch {
+    } catch (error) {
+      console.error('Failed to save field:', error);
       showToast('Field save failed.', 'error');
     }
   }, [draft]);

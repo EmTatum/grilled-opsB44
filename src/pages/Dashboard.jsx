@@ -242,7 +242,9 @@ export default function Dashboard() {
   const { data: products, loading: loadingProducts } = useEntityList("Product", "product_name", 1000);
 
   useEffect(() => {
-    syncInventoryFromFulfilledOrders({});
+    syncInventoryFromFulfilledOrders({}).catch((error) => {
+      console.error('Failed to sync inventory from fulfilled orders:', error);
+    });
   }, []);
 
   const today = moment().format("YYYY-MM-DD");

@@ -23,6 +23,9 @@ export default function ClientAnalytics() {
     base44.entities.CustomerNote.list("-updated_date", 500).then((noteData) => {
       setNotes(noteData || []);
       setLoading(false);
+    }).catch((error) => {
+      console.error('Failed to load customer notes:', error);
+      setLoading(false);
     });
   }, []);
 
