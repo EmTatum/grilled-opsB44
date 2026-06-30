@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import PageHeader from "@/components/PageHeader";
-import ReactMarkdown from "react-markdown";
 
 const Spinner = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
@@ -50,9 +49,17 @@ const NoteContent = ({ content }) => {
         }
         if (line === "---") return <hr key={i} style={{ border: "none", borderTop: "1px solid rgba(201,168,76,0.15)", margin: "8px 0" }} />;
         if (!line.trim()) return <div key={i} style={{ height: "6px" }} />;
-        // Bold text
-        const boldReplaced = line.replace(/\*\*(.+?)\*\*/g, (_, m) => `<strong style="color:#F5F0E8;font-weight:600">${m}</strong>`);
-        return <p key={i} style={{ margin: "2px 0" }} dangerouslySetInnerHTML={{ __html: boldReplaced }} />;
+        // Bold text - split on **bold** markers and render safely
+        const parts = line.split(/\*\*(.+?)\*\*/g);
+        return (
+          <p key={i} style={{ margin: "2px 0" }}>
+            {parts.map((part, idx) =>
+              idx % 2 === 1
+                ? <strong key={idx} style={{ color: "#F5F0E8", fontWeight: 600 }}>{part}</strong>
+                : <span key={idx}>{part}</span>
+            )}
+          </p>
+        );
       })}
     </div>
   );
