@@ -202,7 +202,8 @@ export default function WhatsAppIntelligencePanel({ onSaved }) {
         throw new Error("Invalid shape");
       }
       extracted = raw;
-    } catch {
+    } catch (error) {
+      console.error('WhatsApp intelligence extraction failed:', error);
       setLoading(false);
       showToast("Extraction failed — paste a longer chat or try again.", "error");
       return;

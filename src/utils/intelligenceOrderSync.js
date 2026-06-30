@@ -49,7 +49,13 @@ export const syncOrderFromReport = async (reportData, sourceReportId) => {
 export const syncReportFromOrder = async (order) => {
   if (!order.intelligence_report_id) return null;
 
-  const report = await base44.entities.CustomerNote.get(order.intelligence_report_id);
+  let report;
+  try {
+    report = await base44.entities.CustomerNote.get(order.intelligence_report_id);
+  } catch (error) {
+    console.error('[syncReportFromOrder] Failed to fetch report:', error);
+    throw error;
+  }
   const currentTags = report.tags || [];
   const currentReportTag = currentTags.find((tag) => String(tag).startsWith("report-data:"));
   const currentData = currentReportTag ? JSON.parse(currentReportTag.replace("report-data:", "")) : {};
@@ -102,18 +108,23 @@ export const syncReportFromOrder = async (order) => {
     `Next Action: ${nextData.next_action}`,
   ].join("\n");
 
-  return base44.entities.CustomerNote.update(order.intelligence_report_id, {
-    client_name: nextData.client_name,
-    content,
-    tags: nextTags,
-    delivery_date: order.delivery_date || "",
-    cell_number: order.cell_number || "",
-    payment_status: nextData.payment_status,
-    order_total: parseOrderValue(nextData.order_total),
-    delivery_address: order.delivery_address || "",
-    order_list: order.order_list || "",
-    next_action: order.next_action || "",
-    fulfilment_status: order.fulfilment_status || "Active",
-    total_spend: parseOrderValue(nextData.order_total),
-  });
+  try {
+    return await base44.entities.CustomerNote.update(order.intelligence_report_id, {
+      client_name: nextData.client_name,
+      content,
+      tags: nextTags,
+      delivery_date: order.delivery_date || "",
+      cell_number: order.cell_number || "",
+      payment_status: nextData.payment_status,
+      order_total: parseOrderValue(nextData.order_total),
+      delivery_address: order.delivery_address || "",
+      order_list: order.order_list || "",
+      next_action: order.next_action || "",
+      fulfilment_status: order.fulfilment_status || "Active",
+      total_spend: parseOrderValue(nextData.order_total),
+    });
+  } catch (error) {
+    console.error('[syncReportFromOrder] Failed to update report:', error);
+    throw error;
+  }
 };

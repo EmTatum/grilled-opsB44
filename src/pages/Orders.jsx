@@ -86,9 +86,13 @@ function TodayOrderCard({ order }) {
       lines.push(`💵 ${formatCurrency(order.order_total)} — Cash on delivery`);
     }
 
-    await navigator.clipboard.writeText(lines.join("\n"));
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
   };
 
   return (
@@ -265,10 +269,15 @@ export default function Orders() {
     const sortOrders = (records) => [...records].sort((a, b) => String(a.delivery_date || "").localeCompare(String(b.delivery_date || "")));
 
     const load = async () => {
-      const records = await base44.entities.MemberOrder.list("delivery_date", 1000);
-      if (!active) return;
-      setLiveOrders(records || []);
-      setLoading(false);
+      try {
+        const records = await base44.entities.MemberOrder.list("delivery_date", 1000);
+        if (!active) return;
+        setLiveOrders(records || []);
+      } catch (error) {
+        console.error('Failed to load orders:', error);
+      } finally {
+        if (active) setLoading(false);
+      }
     };
 
     load();

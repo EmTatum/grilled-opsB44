@@ -104,7 +104,8 @@ export const getReportDataFromTags = (tags = []) => {
 
   try {
     return JSON.parse(reportTag.replace("report-data:", ""));
-  } catch {
+  } catch (error) {
+    console.error('Failed to parse report-data tag:', error);
     return null;
   }
 };

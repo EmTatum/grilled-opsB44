@@ -97,7 +97,8 @@ export default function CustomerNotes() {
       if (typeof reportResponse === "string" && reportResponse.trim()) {
         fullReportText = reportResponse.trim();
       }
-    } catch {
+    } catch (error) {
+      console.error('Report generation failed:', error);
       fullReportText = "Report generation failed — please try again.";
     }
 
@@ -109,7 +110,8 @@ export default function CustomerNotes() {
         prompt: `${EXTRACTION_PROMPT}\n\nWhatsApp conversation:\n${conversation}`,
         response_json_schema: EXTRACTION_SCHEMA
       });
-    } catch {
+    } catch (error) {
+      console.error('Extraction failed:', error);
       toast.error("Extraction failed — check your chat text and try again.");
       setGenerating(false);
       setProcessingMessage("");
@@ -157,7 +159,8 @@ export default function CustomerNotes() {
       });
       setSelectedReportId(savedRecord.id);
       toast.success(`Saved for ${savedRecord.client_name}`);
-    } catch {
+    } catch (error) {
+      console.error('Failed to save order to database:', error);
       toast.warning("Could not save to database — data will be lost on refresh.");
     } finally {
       setGenerating(false);
@@ -174,7 +177,12 @@ export default function CustomerNotes() {
           ? Number(value || 0)
           : value;
 
-    await base44.entities.MemberOrder.update(order.id, { [field]: nextValue });
+    try {
+      await base44.entities.MemberOrder.update(order.id, { [field]: nextValue });
+    } catch (error) {
+      console.error(`Failed to update ${field}:`, error);
+      throw error;
+    }
   };
 
   const handleConfirmPayment = async (record) => {
@@ -183,7 +191,8 @@ export default function CustomerNotes() {
     try {
       await base44.entities.MemberOrder.update(record.id, { payment_status: selected });
       setConfirmedPayments((prev) => ({ ...prev, [record.id]: selected }));
-    } catch {
+    } catch (error) {
+      console.error('Payment status update failed:', error);
       alert('Update failed — please try again');
     }
   };
@@ -197,7 +206,8 @@ export default function CustomerNotes() {
       await base44.entities.MemberOrder.update(record.id, { fulfilment_status: 'Fulfilled' });
       setCardStatus((prev) => ({ ...prev, [record.id]: 'Fulfilled' }));
       toast.success('Order fulfilled');
-    } catch {
+    } catch (error) {
+      console.error('Failed to mark order as fulfilled:', error);
       toast.error('Update failed — please try again');
     }
   };
@@ -207,7 +217,8 @@ export default function CustomerNotes() {
       await base44.entities.MemberOrder.update(record.id, { fulfilment_status: 'Cancelled' });
       setCardStatus((prev) => ({ ...prev, [record.id]: 'Cancelled' }));
       toast.success('Order cancelled');
-    } catch {
+    } catch (error) {
+      console.error('Failed to cancel order:', error);
       toast.error('Update failed — please try again');
     }
   };
@@ -235,7 +246,8 @@ export default function CustomerNotes() {
       setSelectedReportId(updatedOrder.id);
       toast.success("Report and summary updated.");
       return true;
-    } catch {
+    } catch (error) {
+      console.error('Report update failed:', error);
       toast.error("Update failed — please try again.");
       return false;
     } finally {

@@ -182,6 +182,9 @@ export default function CustomerNotesViewer() {
       setNotes(n || []);
       setIntelligenceRecords(intel || []);
       setLoading(false);
+    }).catch((error) => {
+      console.error('Failed to load notes or intelligence records:', error);
+      setLoading(false);
     });
   }, []);
 

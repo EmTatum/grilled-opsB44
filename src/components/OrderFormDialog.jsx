@@ -15,7 +15,9 @@ export default function OrderFormDialog({ open, onOpenChange, order, onSave }) {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    base44.entities.Product.list("product_name", 200).then((data) => setProducts(data || []));
+    base44.entities.Product.list("product_name", 200).then((data) => setProducts(data || [])).catch((error) => {
+      console.error('Failed to load products:', error);
+    });
   }, []);
 
   useEffect(() => {

@@ -118,14 +118,21 @@ export default function Inventory() {
   const [draftCounts, setDraftCounts] = useState({});
 
   const load = async () => {
-    setProducts(await base44.entities.Product.list("-updated_date", 200));
-    setLoading(false);
+    try {
+      setProducts(await base44.entities.Product.list("-updated_date", 200));
+    } catch (error) {
+      console.error('Failed to load products:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    syncInventoryFromFulfilledOrders({}).then(load);
+    syncInventoryFromFulfilledOrders({}).then(load).catch((error) => {
+      console.error('Failed to sync inventory from fulfilled orders:', error);
+    });
   }, []);
 
   useEffect(() => {
@@ -150,8 +157,13 @@ export default function Inventory() {
       low_stock_threshold: Number(data.low_stock_threshold ?? 0)
     };
 
-    if (editProduct) await base44.entities.Product.update(editProduct.id, payload);
-    else await base44.entities.Product.create(payload);
+    try {
+      if (editProduct) await base44.entities.Product.update(editProduct.id, payload);
+      else await base44.entities.Product.create(payload);
+    } catch (error) {
+      console.error('Failed to save product:', error);
+      throw error;
+    }
 
     setEditProduct(null);
     load();
@@ -174,8 +186,12 @@ export default function Inventory() {
       new_stock_arrived: 0
     };
 
-    await base44.entities.Product.update(product.id, payload);
-    load();
+    try {
+      await base44.entities.Product.update(product.id, payload);
+      load();
+    } catch (error) {
+      console.error('Failed to update stock count:', error);
+    }
   };
 
   const filteredProducts = useMemo(() => {

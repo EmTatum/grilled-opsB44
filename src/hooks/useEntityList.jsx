@@ -23,10 +23,17 @@ export function useEntityList(entityName, sort = "-updated_date", limit = 1000) 
     let active = true;
 
     const load = async () => {
-      const records = await base44.entities[entityName].list(sort, limit);
-      if (active) {
-        setData(records || []);
-        setLoading(false);
+      try {
+        const records = await base44.entities[entityName].list(sort, limit);
+        if (active) {
+          setData(records || []);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error(`Failed to load ${entityName} list:`, error);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
 
