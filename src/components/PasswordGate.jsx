@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const CORRECT_PASSWORD = "Grilled2026";
+const CORRECT_PASSWORD = import.meta.env.VITE_ACCESS_PASSWORD || "";
 const STORAGE_KEY = "grilled_auth";
 
 export function isAuthenticated() {
